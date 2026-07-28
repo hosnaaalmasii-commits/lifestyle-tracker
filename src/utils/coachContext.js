@@ -3,6 +3,8 @@ import { streakFromDateSet } from './streaks'
 import { computeXP, levelProgress, levelTitle } from './gamification'
 import { computeBadges } from './badges'
 import { getWeeklyChallenge } from './challenges'
+import { computeConsistencyScore } from './consistencyScore'
+import { activeContractsToday } from './habitContracts'
 
 export const PERSONALITIES = [
   {
@@ -103,6 +105,7 @@ export function summarizeUserData(data) {
   const xp = computeXP(data, unlockedBadges.length)
   const { level } = levelProgress(xp)
   const challenge = getWeeklyChallenge(data)
+  const consistency = computeConsistencyScore(data)
 
   const workoutProfile = data.workouts.profile
     ? `Goal: ${data.workouts.profile.goal}, experience: ${data.workouts.profile.experience}, ${data.workouts.profile.daysPerWeek}x/week`
@@ -117,7 +120,18 @@ Nutrition: averaging ${nutritionAvg}/5 daily checklist items this week.
 Weight: ${weightTrend}.
 Mood, most recent entries: ${recentMoods.length ? recentMoods.join('; ') : 'none logged yet'}.
 Level ${level} (${levelTitle(level)}), ${unlockedBadges.length}/${badges.length} badges unlocked.
-This week's challenge: "${challenge.title}" — ${challenge.progress}/${challenge.target} (${challenge.complete ? 'complete' : 'in progress'}).`
+This week's challenge: "${challenge.title}" — ${challenge.progress}/${challenge.target} (${challenge.complete ? 'complete' : 'in progress'}).
+Consistency score: ${consistency.score}/100 (${consistency.label}) — a 30-day rolling score, not a streak; context matters more than any single day.
+${habitContractsSummary(data)}`
+}
+
+function habitContractsSummary(data) {
+  if (!data.habitContracts?.length) return 'No habit contracts set up yet.'
+  const active = activeContractsToday(data.habitContracts, data)
+  const activeText = active.length
+    ? `Active today: ${active.map((c) => `"${c.response}"`).join('; ')}.`
+    : 'None triggered today.'
+  return `Habit contracts (${data.habitContracts.length} total): ${activeText}`
 }
 
 export function buildSystemPrompt(personalityId, data) {

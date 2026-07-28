@@ -4,6 +4,7 @@ import { todayKey, currentWeekKeys, weekdayShort, isToday, humanDate } from '../
 import { streakFromDateSet } from '../utils/streaks'
 import { GOAL_OPTIONS, EXPERIENCE_OPTIONS, FOCUS_OPTIONS } from '../utils/workoutGenerator'
 import { parseRestSeconds } from '../utils/time'
+import { TIERS, deriveTiers, suggestTier } from '../utils/workoutTiers'
 import StreakBadge from '../components/StreakBadge'
 import Sheet from '../components/Sheet'
 import RestTimer from '../components/RestTimer'
@@ -33,7 +34,33 @@ export default function Workouts() {
       onRemoveExercise={removeExercise}
       onLogPR={logExercisePR}
       onDeletePR={deleteExercisePR}
+      suggestion={suggestTier(data)}
     />
+  )
+}
+
+function TierTabs({ value, onChange, suggestedTier }) {
+  return (
+    <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+      {TIERS.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => onChange(t.id)}
+          style={{
+            flex: 1, padding: '8px 4px', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+            border: `1px solid ${value === t.id ? 'var(--accent-workout)' : 'var(--border)'}`,
+            background: value === t.id ? 'color-mix(in srgb, var(--accent-workout) 14%, transparent)' : 'var(--surface-soft)',
+            textAlign: 'center', position: 'relative',
+          }}
+        >
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: value === t.id ? 'var(--accent-workout)' : 'var(--text)' }}>
+            {t.label}
+            {t.id === suggestedTier && <span style={{ marginLeft: 4 }} title="Suggested">✨</span>}
+          </div>
+          <div className="mono" style={{ fontSize: 10, color: 'var(--text-faint)' }}>{t.minutes}</div>
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -100,9 +127,10 @@ function bestPR(logs) {
   return logs.reduce((best, l) => (l.weight > best.weight || (l.weight === best.weight && l.reps > best.reps)) ? l : best)
 }
 
-function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onOpenTimer, onOpenPR }) {
+function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onOpenTimer, onOpenPR, editable = true }) {
   const logs = exerciseLogs[exercise.name]
   const pr = bestPR(logs)
+  const isFinisher = exercise.name === 'Full-body finisher'
   return (
     <div style={{ padding: '10px 0', borderTop: '1px solid var(--border-soft)' }}>
       <div className="row">
@@ -112,12 +140,12 @@ function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onO
       <div className="row" style={{ marginTop: 6 }}>
         <span className="text-sm faint">{pr ? `PR: ${pr.weight}×${pr.reps}` : exercise.rest}</span>
         <div className="row" style={{ gap: 4, justifyContent: 'flex-end' }}>
-          {!exercise.custom && (
+          {editable && !exercise.custom && (
             <IconButton label="Swap exercise" onClick={() => onSwap(day, index)}>🔁</IconButton>
           )}
           <IconButton label="Rest timer" onClick={() => onOpenTimer(exercise)}>⏱</IconButton>
-          <IconButton label="Log PR" onClick={() => onOpenPR(exercise)}>🏋</IconButton>
-          {exercise.custom && (
+          {!isFinisher && <IconButton label="Log PR" onClick={() => onOpenPR(exercise)}>🏋</IconButton>}
+          {editable && exercise.custom && (
             <IconButton label="Remove exercise" onClick={() => onRemove(day, index)}>🗑</IconButton>
           )}
         </div>
@@ -216,13 +244,15 @@ function PRSheet({ exercise, onClose, exerciseLogs, onLogPR, onDeletePR }) {
 
 function WorkoutPlan({
   schedule, completions, exerciseLogs, onToggle, profile, setWorkoutProfile,
-  onSwap, onAddExercise, onRemoveExercise, onLogPR, onDeletePR,
+  onSwap, onAddExercise, onRemoveExercise, onLogPR, onDeletePR, suggestion,
 }) {
   const [dayOpen, setDayOpen] = useState(null) // date key
   const [editing, setEditing] = useState(false)
   const [addingTo, setAddingTo] = useState(null) // day string
   const [timerFor, setTimerFor] = useState(null) // exercise
   const [prFor, setPrFor] = useState(null) // exercise
+  const [todayTier, setTodayTier] = useState(suggestion.tier)
+  const [sheetTier, setSheetTier] = useState(suggestion.tier)
   const today = todayKey()
   const weekKeys = currentWeekKeys()
 
@@ -262,8 +292,12 @@ function WorkoutPlan({
         </div>
         {!todaysWorkout?.rest && (
           <>
-            <div style={{ marginTop: 6 }}>
-              {todaysWorkout?.exercises.map((ex, i) => (
+            <p className="text-sm" style={{ marginTop: 8, marginBottom: 0, color: 'var(--text-soft)' }}>
+              <span aria-hidden>✨</span> {suggestion.reason}
+            </p>
+            <TierTabs value={todayTier} onChange={setTodayTier} suggestedTier={suggestion.tier} />
+            <div>
+              {deriveTiers(todaysWorkout.exercises)[todayTier].map((ex, i) => (
                 <ExerciseRow
                   key={`${ex.name}-${i}`}
                   day={todayWeekday}
@@ -274,10 +308,13 @@ function WorkoutPlan({
                   onRemove={onRemoveExercise}
                   onOpenTimer={setTimerFor}
                   onOpenPR={setPrFor}
+                  editable={todayTier === 'full'}
                 />
               ))}
             </div>
-            <button className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setAddingTo(todayWeekday)}>+ Add exercise</button>
+            {todayTier === 'full' && (
+              <button className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setAddingTo(todayWeekday)}>+ Add exercise</button>
+            )}
             <button
               className={`btn btn-block ${completions[today] ? 'btn-secondary' : 'btn-primary'}`}
               style={{ marginTop: 12 }}
@@ -296,7 +333,12 @@ function WorkoutPlan({
           const w = dayFor(k)
           const done = !!completions[k]
           return (
-            <button key={k} className="card" style={{ textAlign: 'left', cursor: 'pointer', padding: '14px 16px' }} onClick={() => setDayOpen(k)}>
+            <button
+              key={k}
+              className="card"
+              style={{ textAlign: 'left', cursor: 'pointer', padding: '14px 16px' }}
+              onClick={() => { setDayOpen(k); setSheetTier(k === today ? suggestion.tier : 'full') }}
+            >
               <div className="row">
                 <div className="row" style={{ gap: 12, justifyContent: 'flex-start' }}>
                   <div style={{
@@ -335,9 +377,10 @@ function WorkoutPlan({
       <Sheet open={!!dayOpen} onClose={() => setDayOpen(null)} title={openDay ? `${openDay.rest ? 'Rest' : openDay.label} — ${dayOpen && humanDate(dayOpen)}` : ''}>
         {openDay && !openDay.rest && (
           <>
-            {openDay.note && <p className="muted text-sm" style={{ marginBottom: 4 }}>{openDay.note}</p>}
+            {openDay.note && <p className="muted text-sm" style={{ marginBottom: 10 }}>{openDay.note}</p>}
+            <TierTabs value={sheetTier} onChange={setSheetTier} suggestedTier={dayOpen === today ? suggestion.tier : null} />
             <div>
-              {openDay.exercises.map((ex, i) => (
+              {deriveTiers(openDay.exercises)[sheetTier].map((ex, i) => (
                 <ExerciseRow
                   key={`${ex.name}-${i}`}
                   day={openDay.day}
@@ -348,10 +391,13 @@ function WorkoutPlan({
                   onRemove={onRemoveExercise}
                   onOpenTimer={setTimerFor}
                   onOpenPR={setPrFor}
+                  editable={sheetTier === 'full'}
                 />
               ))}
             </div>
-            <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={() => setAddingTo(openDay.day)}>+ Add exercise</button>
+            {sheetTier === 'full' && (
+              <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={() => setAddingTo(openDay.day)}>+ Add exercise</button>
+            )}
             <button
               className={`btn btn-block ${dayOpen && completions[dayOpen] ? 'btn-secondary' : 'btn-primary'}`}
               style={{ marginTop: 14 }}

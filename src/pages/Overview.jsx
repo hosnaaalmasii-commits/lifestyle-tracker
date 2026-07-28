@@ -5,11 +5,14 @@ import { streakFromDateSet } from '../utils/streaks'
 import { computeInsights } from '../utils/insights'
 import { computeBadges } from '../utils/badges'
 import { computeXP } from '../utils/gamification'
+import { computeConsistencyScore } from '../utils/consistencyScore'
 import Ring from '../components/Ring'
 import MiniCard from '../components/MiniCard'
 import StreakBadge from '../components/StreakBadge'
 import LevelBar from '../components/LevelBar'
 import Confetti from '../components/Confetti'
+import MoodCheckIn from '../components/MoodCheckIn'
+import { activeContractsToday, getTriggerType } from '../utils/habitContracts'
 
 const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
 
@@ -31,6 +34,7 @@ export default function Overview({ onNavigate }) {
 
   const celebratedToday = useRef(null)
   const [confettiTick, setConfettiTick] = useState(0)
+  const [moodCheckInOpen, setMoodCheckInOpen] = useState(false)
   useEffect(() => {
     if (score >= 100 && celebratedToday.current !== today) {
       celebratedToday.current = today
@@ -52,6 +56,8 @@ export default function Overview({ onNavigate }) {
   const topInsights = computeInsights(data).slice(0, 2)
 
   const { colors, useGradientAccents } = data.settings
+  const consistency = computeConsistencyScore(data)
+  const activeContracts = activeContractsToday(data.habitContracts, data)
 
   return (
     <div className="page">
@@ -77,25 +83,51 @@ export default function Overview({ onNavigate }) {
           <StreakBadge days={sleepStreak} label="sleep" />
           <StreakBadge days={workoutStreak} label="workout" />
         </div>
+        <div
+          style={{
+            marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-soft)',
+            width: '100%', display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8,
+          }}
+        >
+          <span className="text-sm muted">Consistency</span>
+          <span className="mono" style={{ fontWeight: 700 }}>{consistency.score}</span>
+          <span className="text-sm" style={{ color: 'var(--accent)', fontWeight: 600 }}>{consistency.label}</span>
+        </div>
       </div>
+
+      {activeContracts.length > 0 && (
+        <button
+          className="card"
+          style={{ marginTop: 12, textAlign: 'left', cursor: 'pointer', borderColor: 'color-mix(in srgb, var(--accent) 45%, var(--border-soft))' }}
+          onClick={() => onNavigate('more', 'contracts')}
+        >
+          <div className="tag" style={{ background: 'transparent', color: 'var(--accent)', padding: 0, marginBottom: 6 }}>🤝 Contract active today</div>
+          {activeContracts.map((c) => (
+            <p key={c.id} style={{ margin: '2px 0', fontSize: 14 }}>
+              <span className="faint">If {getTriggerType(c.triggerType)?.label.toLowerCase()} — </span>{c.response}
+            </p>
+          ))}
+        </button>
+      )}
 
       <button className="card" style={{ marginTop: 12, textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('more', 'badges')}>
         <LevelBar xp={xp} compact />
       </button>
 
-      <button
-        className="card"
-        style={{ marginTop: 12, textAlign: 'left', cursor: 'pointer' }}
-        onClick={() => onNavigate('more', 'coach')}
-      >
-        <div className="row" style={{ gap: 12, justifyContent: 'flex-start' }}>
-          <span style={{ fontSize: 20 }}>✨</span>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Ask your coach</div>
-            <div className="text-sm faint">Chat about today, grounded in your real data</div>
-          </div>
-        </div>
-      </button>
+      <div className="card-row" style={{ marginTop: 12 }}>
+        <button className="card" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('more', 'coach')}>
+          <div style={{ fontSize: 20, marginBottom: 8 }}>✨</div>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>Ask your coach</div>
+          <div className="text-sm faint">Grounded in your data</div>
+        </button>
+        <button className="card" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => setMoodCheckInOpen(true)}>
+          <div style={{ fontSize: 20, marginBottom: 8 }}>🫶</div>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>Need a moment?</div>
+          <div className="text-sm faint">Quick mood-to-action</div>
+        </button>
+      </div>
+
+      <MoodCheckIn open={moodCheckInOpen} onClose={() => setMoodCheckInOpen(false)} />
 
       {topInsights.length > 0 && (
         <>

@@ -19,6 +19,10 @@ export function addDaysToKey(key, delta) {
   return dateKey(d)
 }
 
+export function diffDays(fromKey, toKey) {
+  return Math.round((keyToDate(toKey) - keyToDate(fromKey)) / 86400000)
+}
+
 export function lastNDayKeys(n, endKey = todayKey()) {
   const keys = []
   for (let i = n - 1; i >= 0; i--) keys.push(addDaysToKey(endKey, -i))

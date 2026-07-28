@@ -4,6 +4,7 @@ import { todayKey, humanDate, lastNDayKeys } from '../../utils/dates'
 import BackHeader from '../../components/BackHeader'
 import WeeklyBarChart from '../../components/WeeklyBarChart'
 import Sheet from '../../components/Sheet'
+import MoodCheckIn from '../../components/MoodCheckIn'
 
 const MOODS = [
   { emoji: '😞', value: 1, label: 'Rough' },
@@ -18,6 +19,7 @@ export default function Mood({ onBack }) {
   const [logOpen, setLogOpen] = useState(false)
   const [emoji, setEmoji] = useState('🙂')
   const [note, setNote] = useState('')
+  const [checkInOpen, setCheckInOpen] = useState(false)
 
   const entries = data.mood
   const today = todayKey()
@@ -44,6 +46,9 @@ export default function Mood({ onBack }) {
         <div style={{ fontSize: 44 }}>{todaysEntry ? todaysEntry.emoji : '—'}</div>
         <div className="text-sm muted" style={{ marginTop: 6 }}>{todaysEntry ? 'Logged today' : 'Not logged today'}</div>
         {todaysEntry?.note && <p className="text-sm" style={{ marginTop: 10, fontStyle: 'italic' }}>"{todaysEntry.note}"</p>}
+        <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={() => setCheckInOpen(true)}>
+          🫶 Need a moment? Get a matched suggestion
+        </button>
       </div>
 
       <div className="section-title">This week</div>
@@ -93,6 +98,8 @@ export default function Mood({ onBack }) {
         </div>
         <button className="btn btn-primary btn-block" onClick={() => { addMood(emoji, note); setLogOpen(false) }}>Save</button>
       </Sheet>
+
+      <MoodCheckIn open={checkInOpen} onClose={() => setCheckInOpen(false)} />
     </div>
   )
 }

@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { AppProvider } from './context/AppContext'
+import { AppProvider, useApp } from './context/AppContext'
+import { getComebackStatus } from './utils/comeback'
 import TabBar from './components/TabBar'
+import ComebackScreen from './components/ComebackScreen'
 import Overview from './pages/Overview'
 import Water from './pages/Water'
 import Sleep from './pages/Sleep'
@@ -9,8 +11,10 @@ import Progress from './pages/Progress'
 import More from './pages/More'
 
 function Shell() {
+  const { data } = useApp()
   const [activeTab, setActiveTab] = useState('overview')
   const [moreView, setMoreView] = useState(null)
+  const [comebackDismissed, setComebackDismissed] = useState(false)
 
   const navigate = (tab, subView = null) => {
     setActiveTab(tab)
@@ -24,6 +28,19 @@ function Shell() {
       setMoreView(null)
     }
     setActiveTab(tab)
+  }
+
+  const comeback = getComebackStatus(data)
+  if (comeback.isComeback && !comebackDismissed) {
+    return (
+      <div className="app-shell">
+        <ComebackScreen
+          gapDays={comeback.gapDays}
+          onContinue={() => setComebackDismissed(true)}
+          onGoToWorkout={() => { setComebackDismissed(true); setActiveTab('workouts') }}
+        />
+      </div>
+    )
   }
 
   return (

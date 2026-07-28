@@ -1,10 +1,12 @@
 # Lifestyle Tracker
 
 A personal, fully client-side lifestyle tracker (water, sleep, workouts, weight,
-mood, nutrition, progress photos) with rule-based insights and gamification.
-No backend, no AI API calls — everything runs and lives in the browser's
-`localStorage` on the device that opens it. Installable on iPhone via Safari's
-"Add to Home Screen".
+mood, nutrition, progress photos) with rule-based insights, gamification, habit
+contracts, and an optional AI coach. No backend — everything lives in the
+browser's `localStorage` on the device that opens it. The one exception is the
+AI Coach, which is opt-in and calls Anthropic directly from the browser using
+the user's own API key (see "AI Coach" below) — there is still no server of
+ours involved anywhere. Installable on iPhone via Safari's "Add to Home Screen".
 
 Live URL: see the repo's **About** section / GitHub Pages settings.
 
@@ -47,13 +49,27 @@ src/
     colorPresets.js        swatches + bundled theme presets for Settings
     image.js               client-side photo resize -> base64 JPEG
     time.js                 rest-timer duration parsing ("60-90 sec" -> seconds)
+    workoutTiers.js         derives Full/Short/Survival tiers from a day's exercise
+                            list on the fly (nothing stored), + suggestTier() readiness
+                            heuristic (sleep, mood, yesterday's training, comeback gap)
+    consistencyScore.js     30-day decay-weighted score across water/sleep/workout/
+                            mood/nutrition — deliberately not a streak, see file comment
+    moodActions.js          8-state mood -> matched micro-action lookup table
+    habitContracts.js       if-then contract trigger-type registry + today's-match check
+    comeback.js              detects a 4+ day inactivity gap from existing logs
+                            (no separate "last opened" field — self-clearing by design)
+    claudeApi.js             direct browser -> Anthropic fetch wrapper; API key lives in
+                            its own localStorage key, deliberately excluded from
+                            data export/import
+    coachContext.js          AI coach personalities + the data-summary text sent as the
+                            system prompt (this is the ONLY place real AI is called)
   components/            reusable UI (Ring, WeeklyBarChart, LineChart, Sheet, TabBar,
                           ColorPicker, SegmentedControl, LevelBar, ChallengeCard,
-                          Confetti, RestTimer, etc.)
+                          Confetti, RestTimer, MoodCheckIn, ComebackScreen, etc.)
   pages/
     Overview.jsx, Water.jsx, Sleep.jsx, Workouts.jsx, Progress.jsx, More.jsx
-    more/                Weight, Mood, Nutrition, Insights, Badges, Settings
-                          (the "More" hub)
+    more/                Weight, Mood, Nutrition, Insights, Coach, HabitContracts,
+                          Badges, Settings (the "More" hub)
   styles/
     theme.css             CSS custom properties: light/dark palette, fonts, radii,
                            gradient-accent variables, density/font attribute hooks
@@ -95,6 +111,24 @@ new derived feature, prefer this pattern over adding new stored state.
 (personal records, week-over-week deltas, simple correlations, streak-risk
 flags) — there is no AI/LLM call involved, by design, to keep the app free,
 private, and fully offline-capable.
+
+Minimum Viable Workout tiers, Consistency Score, Mood-to-Action Coach, and
+Comeback Mode follow the same "derived, not stored" rule. Habit Contracts is
+the one exception with real persisted state (`data.habitContracts`), since a
+contract is something the user authors, not something derivable from logs.
+
+## AI Coach (optional, bring-your-own-key)
+
+`More → Coach` lets the user paste their own Anthropic API key (`More →
+Settings → AI Coach`) and talk to an AI coach whose replies are grounded in a
+plain-text summary of their real data (`coachContext.js:summarizeUserData`).
+Requests go straight from the browser to `api.anthropic.com` using the
+`anthropic-dangerous-direct-browser-access` header — there is no proxy/backend,
+by design, so the app stays a static site. The key lives in its own
+localStorage key (`lifestyle-tracker-anthropic-key`), is never included in
+`data` (so never in export/import), and "Clear everything" wipes it along with
+the cached chat/daily-note. Do not change this to a shared/embedded key —
+anything shipped in client code is publicly extractable.
 
 ## Making changes in a future session
 
