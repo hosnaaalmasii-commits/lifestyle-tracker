@@ -46,9 +46,29 @@ export function suggestTier(data) {
     return { tier: 'survival', reason: `short on sleep (${sleepToday.hours}h logged)` }
   }
 
+  const soreAreas = data.painLog?.[today] || []
+  if (soreAreas.length >= 2) {
+    return { tier: 'survival', reason: `multiple sore spots flagged today (${soreAreas.join(', ')})` }
+  }
+  if (soreAreas.length === 1) {
+    return { tier: 'short', reason: `${soreAreas[0]} flagged as sore today` }
+  }
+
+  const busyMinutes = data.calendarStatus?.busyMinutesToday
+  if (typeof busyMinutes === 'number' && busyMinutes >= 360) {
+    return { tier: 'survival', reason: 'packed calendar today — barely any gaps' }
+  }
+  if (typeof busyMinutes === 'number' && busyMinutes >= 180) {
+    return { tier: 'short', reason: 'a busy calendar today — keeping it efficient' }
+  }
+
   const todaysMood = [...data.mood].reverse().find((m) => m.date === today)
   if (todaysMood && MOOD_LOW.includes(todaysMood.emoji)) {
     return { tier: 'short', reason: 'today felt heavier — a lighter session still counts' }
+  }
+
+  if (data.motivationFlags?.[today]) {
+    return { tier: 'short', reason: "low motivation today — showing up still counts" }
   }
 
   if (data.workouts.completions[yesterday]) {

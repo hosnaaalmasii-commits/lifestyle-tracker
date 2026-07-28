@@ -38,6 +38,7 @@ export default function Settings({ onBack }) {
     data, setThemeMode, setColor, resetColors, applyThemePreset,
     setHeadingFont, setDensity, setUseGradientAccents, setGentleMode,
     setWeightUnit, exportData, importData, clearAll,
+    connectGoogleCalendar, disconnectGoogleCalendar,
   } = useApp()
   const importRef = useRef(null)
   const [confirmClear, setConfirmClear] = useState(false)
@@ -49,6 +50,22 @@ export default function Settings({ onBack }) {
   const [coachSettings, setCoachSettingsState] = useState(getCoachSettings())
   const [testStatus, setTestStatus] = useState('idle') // idle | testing | ok | error
   const [testMessage, setTestMessage] = useState('')
+
+  const [clientIdInput, setClientIdInput] = useState(data.settings.googleClientId)
+  const [calendarConnecting, setCalendarConnecting] = useState(false)
+  const [calendarError, setCalendarError] = useState('')
+
+  const handleConnectCalendar = async () => {
+    setCalendarConnecting(true)
+    setCalendarError('')
+    try {
+      await connectGoogleCalendar(clientIdInput.trim())
+    } catch (e) {
+      setCalendarError(e.message || 'Could not connect.')
+    } finally {
+      setCalendarConnecting(false)
+    }
+  }
 
   const saveKey = (value) => {
     setApiKeyInput(value)
@@ -239,6 +256,47 @@ export default function Settings({ onBack }) {
         </div>
         {testStatus === 'ok' && <div className="text-sm" style={{ color: 'var(--success)' }}>Connected — your coach is ready.</div>}
         {testStatus === 'error' && <div className="text-sm" style={{ color: 'var(--danger)' }}>{testMessage}</div>}
+      </div>
+
+      <div className="section-title">Google Calendar</div>
+      <div className="card stack">
+        <p className="text-sm muted" style={{ margin: 0 }}>
+          Connect a read-only, free/busy-only view of today's calendar so workout suggestions can account for how packed today is. This uses Google's own sign-in — your calendar data goes straight from Google to this browser, never through any server of ours. Requires a one-time Google Cloud setup (a Client ID, not a secret — I'll walk you through it).
+        </p>
+        {data.calendarStatus?.connected ? (
+          <>
+            <div className="row">
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>Connected</div>
+                <div className="text-sm faint">
+                  Today: {data.calendarStatus.busyMinutesToday >= 60
+                    ? `${Math.round(data.calendarStatus.busyMinutesToday / 60 * 10) / 10}h busy`
+                    : `${data.calendarStatus.busyMinutesToday || 0}m busy`}
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={disconnectGoogleCalendar}>Disconnect</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Google OAuth Client ID</label>
+              <input
+                className="input"
+                type="text"
+                placeholder="xxxxx.apps.googleusercontent.com"
+                value={clientIdInput}
+                onChange={(e) => setClientIdInput(e.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+            <button className="btn btn-secondary btn-block" disabled={!clientIdInput.trim() || calendarConnecting} onClick={handleConnectCalendar}>
+              {calendarConnecting ? 'Connecting…' : 'Connect Google Calendar'}
+            </button>
+            {calendarError && <div className="text-sm" style={{ color: 'var(--danger)' }}>{calendarError}</div>}
+          </>
+        )}
       </div>
 
       <div className="section-title">Your data</div>

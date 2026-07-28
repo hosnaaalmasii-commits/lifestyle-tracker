@@ -70,6 +70,10 @@ src/
                             which is just 'fullBody' for 3-day split plans)
     lifestyleGPS.js          4-phase roadmap (Foundation/Momentum/Strength/Mastery)
                             derived from Consistency Score — no storage
+    googleCalendar.js        client-side-only Google Identity Services token flow +
+                            a freebusy.query call for "how busy is today"; the OAuth
+                            Client ID is meant to be public (unlike the Anthropic key)
+                            so it's fine to keep in data.settings — see "Google Calendar"
   components/            reusable UI (Ring, WeeklyBarChart, LineChart, Sheet, TabBar,
                           ColorPicker, SegmentedControl, LevelBar, ChallengeCard,
                           Confetti, RestTimer, MoodCheckIn, ComebackScreen,
@@ -106,13 +110,22 @@ onto `document.documentElement` as CSS custom properties / data attributes
 date}[]`), independent of which day the exercise appears on — logging a PR for
 "Kettlebell Swing" on a Monday also shows up if it appears on a Friday.
 
-`data.painLog` (`{dateKey: areaId[]}`) and `data.habitContracts` are the only
-other genuinely persisted additions beyond the original schema — everything
-else added since (Consistency Score, MVW tiers, Comeback Mode, Mood-to-Action,
-Lifestyle GPS, micro-habits) is derived live, following the same "derived, not
-stored" rule described below. `data.settings.gentleMode` hides exact weight
-numbers app-wide (Overview mini-card, Weight page, and the AI coach's data
-summary all respect it).
+`data.painLog` (`{dateKey: areaId[]}`), `data.motivationFlags` (`{dateKey:
+bool}`), and `data.habitContracts` are the only other genuinely persisted
+additions beyond the original schema — everything else added since
+(Consistency Score, MVW tiers, Comeback Mode, Mood-to-Action, Lifestyle GPS,
+micro-habits) is derived live, following the same "derived, not stored" rule
+described below. `data.settings.gentleMode` hides exact weight numbers
+app-wide (Overview mini-card, Weight page, and the AI coach's data summary
+all respect it).
+
+`data.calendarStatus` is the one field that's the *opposite* of persisted —
+it's intentionally ephemeral (kept in a separate `useState` in
+`AppProvider` and merged into the exposed `data` object at read time, in
+`AppContext.jsx`), so it's never written to localStorage. Only the Google
+Client ID and a "was connected" boolean live in `data.settings`; the OAuth
+access token itself is kept in a ref, in memory only, and re-requested
+(silently, where possible) each time the app loads.
 
 ### Derived-not-stored systems
 
@@ -145,6 +158,30 @@ localStorage key (`lifestyle-tracker-anthropic-key`), is never included in
 `data` (so never in export/import), and "Clear everything" wipes it along with
 the cached chat/daily-note. Do not change this to a shared/embedded key —
 anything shipped in client code is publicly extractable.
+
+## Google Calendar (optional, read-only, bring-your-own Client ID)
+
+`More → Settings → Google Calendar` connects a free/busy-only view of today
+via Google Identity Services (`googleCalendar.js`) — no backend, unlike a
+typical OAuth setup. This works specifically because a Google OAuth **Client
+ID is not a secret**: Google restricts it by the authorized JavaScript
+origins configured in Cloud Console, not by keeping it hidden, so storing it
+in `data.settings.googleClientId` is fine (this is the opposite trust model
+from the Anthropic API key above — don't conflate the two). The requested
+scope is the narrowest available, `calendar.freebusy` (busy/free time only,
+never event titles/details). The access token itself is short-lived (~1
+hour) and kept in memory only (a ref in `AppProvider`, never localStorage);
+on load, the app makes one silent, non-prompting attempt to resume a prior
+connection (`prompt: 'none'`) and just leaves it disconnected if that fails,
+rather than interrupting the user. Today's busy-minutes figure feeds into
+`workoutTiers.js:suggestTier()` (a packed calendar nudges toward Short/
+Survival) and is shown on Overview and Workouts when connected.
+
+Known limitation worth flagging to the user if they hit it: Google's OAuth
+popup flow can be flaky from an installed iOS home-screen PWA (WebKit
+restricts `window.open` from standalone-mode web apps in ways it doesn't for
+a normal Safari tab). If connecting fails silently or the popup won't open,
+try it from a regular Safari tab first.
 
 ## Making changes in a future session
 

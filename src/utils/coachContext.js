@@ -127,7 +127,14 @@ Level ${level} (${levelTitle(level)}), ${unlockedBadges.length}/${badges.length}
 This week's challenge: "${challenge.title}" — ${challenge.progress}/${challenge.target} (${challenge.complete ? 'complete' : 'in progress'}).
 Consistency score: ${consistency.score}/100 (${consistency.label}) — a 30-day rolling score, not a streak; context matters more than any single day.
 Lifestyle GPS phase: ${gps.current.label}${gps.next ? ` (${gps.next.threshold - gps.score} points from ${gps.next.label})` : ' (top phase)'}.
+${calendarSummary(data)}
 ${habitContractsSummary(data)}`
+}
+
+function calendarSummary(data) {
+  if (!data.calendarStatus?.connected) return 'Calendar: not connected.'
+  const mins = data.calendarStatus.busyMinutesToday || 0
+  return `Calendar: connected, ${mins} minutes busy today.`
 }
 
 function habitContractsSummary(data) {

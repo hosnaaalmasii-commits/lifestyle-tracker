@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { todayKey } from '../utils/dates'
 import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } from '../utils/workoutGenerator'
 import { DEFAULT_COLORS } from '../utils/colorPresets'
+import { requestGoogleToken, fetchTodayBusyMinutes } from '../utils/googleCalendar'
 
 const STORAGE_KEY = 'lifestyle-tracker-data-v1'
 
@@ -17,6 +18,8 @@ const DEFAULT_DATA = {
     density: 'comfortable',
     useGradientAccents: false,
     gentleMode: false,
+    googleClientId: '',
+    googleCalendarConnected: false,
   },
   water: {},
   sleep: {},
@@ -32,6 +35,7 @@ const DEFAULT_DATA = {
   photos: [],
   habitContracts: [],
   painLog: {},
+  motivationFlags: {},
 }
 
 function loadData() {
@@ -62,10 +66,31 @@ function makeId() {
 export function AppProvider({ children }) {
   const [data, setData] = useState(loadData)
   const lastWaterAdd = useRef(null)
+  const accessTokenRef = useRef(null)
+  // Ephemeral only — the access token and its derived status are never
+  // persisted to localStorage (only the client ID + a "was connected" flag are).
+  const [calendarStatus, setCalendarStatus] = useState({ connected: false, busyMinutesToday: null, error: null })
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }, [data])
+
+  // Quietly try to resume a Google Calendar connection on load, without prompting.
+  useEffect(() => {
+    const { googleCalendarConnected, googleClientId } = data.settings
+    if (!googleCalendarConnected || !googleClientId) return
+    let cancelled = false
+    requestGoogleToken(googleClientId, { silent: true })
+      .then(async (token) => {
+        if (cancelled || !token) return
+        accessTokenRef.current = token
+        const minutes = await fetchTodayBusyMinutes(token)
+        if (!cancelled) setCalendarStatus({ connected: true, busyMinutesToday: minutes, error: null })
+      })
+      .catch(() => { /* silent attempt — just leave it disconnected */ })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Apply theme + accent colors + personalization to the document root as CSS variables.
   useEffect(() => {
@@ -226,6 +251,9 @@ export function AppProvider({ children }) {
     setPainAreas: (dateKey, areaIds) => {
       setData((d) => ({ ...d, painLog: { ...d.painLog, [dateKey]: areaIds } }))
     },
+    setLowMotivation: (dateKey, on) => {
+      setData((d) => ({ ...d, motivationFlags: { ...d.motivationFlags, [dateKey]: on } }))
+    },
 
     setThemeMode: (mode) => setData((d) => ({ ...d, settings: { ...d.settings, themeMode: mode } })),
     setColor: (key, hex) => setData((d) => ({ ...d, settings: { ...d.settings, colors: { ...d.settings.colors, [key]: hex } } })),
@@ -235,6 +263,35 @@ export function AppProvider({ children }) {
     setDensity: (density) => setData((d) => ({ ...d, settings: { ...d.settings, density } })),
     setUseGradientAccents: (on) => setData((d) => ({ ...d, settings: { ...d.settings, useGradientAccents: on } })),
     setGentleMode: (on) => setData((d) => ({ ...d, settings: { ...d.settings, gentleMode: on } })),
+
+    connectGoogleCalendar: async (clientId) => {
+      setData((d) => ({ ...d, settings: { ...d.settings, googleClientId: clientId } }))
+      setCalendarStatus({ connected: false, busyMinutesToday: null, error: null })
+      try {
+        const token = await requestGoogleToken(clientId, { silent: false })
+        accessTokenRef.current = token
+        const minutes = await fetchTodayBusyMinutes(token)
+        setCalendarStatus({ connected: true, busyMinutesToday: minutes, error: null })
+        setData((d) => ({ ...d, settings: { ...d.settings, googleCalendarConnected: true } }))
+      } catch (e) {
+        setCalendarStatus({ connected: false, busyMinutesToday: null, error: e.message })
+        throw e
+      }
+    },
+    disconnectGoogleCalendar: () => {
+      accessTokenRef.current = null
+      setCalendarStatus({ connected: false, busyMinutesToday: null, error: null })
+      setData((d) => ({ ...d, settings: { ...d.settings, googleCalendarConnected: false } }))
+    },
+    refreshCalendarStatus: async () => {
+      if (!accessTokenRef.current) return
+      try {
+        const minutes = await fetchTodayBusyMinutes(accessTokenRef.current)
+        setCalendarStatus({ connected: true, busyMinutesToday: minutes, error: null })
+      } catch (e) {
+        setCalendarStatus((s) => ({ ...s, error: e.message }))
+      }
+    },
 
     exportData: () => {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -256,11 +313,18 @@ export function AppProvider({ children }) {
         workouts: { ...DEFAULT_DATA.workouts, ...parsed.workouts, exerciseLogs: { ...parsed.workouts?.exerciseLogs } },
       })
     },
-    clearAll: () => setData(structuredClone(DEFAULT_DATA)),
+    clearAll: () => {
+      accessTokenRef.current = null
+      setCalendarStatus({ connected: false, busyMinutesToday: null, error: null })
+      setData(structuredClone(DEFAULT_DATA))
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [data])
 
-  const value = useMemo(() => ({ data, ...actions }), [data, actions])
+  const value = useMemo(
+    () => ({ data: { ...data, calendarStatus }, calendarStatus, ...actions }),
+    [data, calendarStatus, actions]
+  )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

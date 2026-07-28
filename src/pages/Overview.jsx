@@ -114,6 +114,18 @@ export default function Overview({ onNavigate }) {
         </button>
       )}
 
+      {data.calendarStatus?.connected && (
+        <button className="card row" style={{ marginTop: 12, cursor: 'pointer' }} onClick={() => onNavigate('workouts')}>
+          <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
+            <span style={{ fontSize: 18 }}>📅</span>
+            <span style={{ fontWeight: 600, fontSize: 14 }}>
+              Today's calendar: {data.calendarStatus.busyMinutesToday >= 360 ? 'packed' : data.calendarStatus.busyMinutesToday >= 180 ? 'busy' : 'light'}
+            </span>
+          </div>
+          <span className="faint" aria-hidden>›</span>
+        </button>
+      )}
+
       <button className="card" style={{ marginTop: 12, textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('more', 'badges')}>
         <LevelBar xp={xp} compact />
       </button>

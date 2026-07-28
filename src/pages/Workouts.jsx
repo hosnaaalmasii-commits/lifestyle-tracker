@@ -15,7 +15,7 @@ export default function Workouts() {
   const {
     data, setWorkoutProfile, toggleWorkoutDay,
     swapExercise, addCustomExercise, removeExercise,
-    logExercisePR, deleteExercisePR, setPainAreas,
+    logExercisePR, deleteExercisePR, setPainAreas, setLowMotivation,
   } = useApp()
   const { profile, schedule, completions, exerciseLogs } = data.workouts
 
@@ -39,6 +39,9 @@ export default function Workouts() {
       suggestion={suggestTier(data)}
       todayPain={data.painLog[todayKey()] || []}
       onSavePain={(areas) => setPainAreas(todayKey(), areas)}
+      lowMotivation={!!data.motivationFlags[todayKey()]}
+      onSetLowMotivation={(on) => setLowMotivation(todayKey(), on)}
+      calendarStatus={data.calendarStatus}
     />
   )
 }
@@ -253,7 +256,7 @@ function PRSheet({ exercise, onClose, exerciseLogs, onLogPR, onDeletePR }) {
 function WorkoutPlan({
   schedule, completions, exerciseLogs, onToggle, profile, setWorkoutProfile,
   onSwap, onAddExercise, onRemoveExercise, onLogPR, onDeletePR, suggestion,
-  todayPain, onSavePain,
+  todayPain, onSavePain, lowMotivation, onSetLowMotivation, calendarStatus,
 }) {
   const [dayOpen, setDayOpen] = useState(null) // date key
   const [editing, setEditing] = useState(false)
@@ -308,6 +311,19 @@ function WorkoutPlan({
             <button className="btn btn-ghost btn-sm" style={{ marginTop: 4, padding: '4px 0' }} onClick={() => setPainOpen(true)}>
               {todayPain.length > 0 ? `⚠️ Flagged today: ${todayPain.map((id) => PAIN_AREAS.find((a) => a.id === id)?.label || id).join(', ')}` : "How's your body feeling?"}
             </button>
+            <div className="row" style={{ marginTop: 6, marginBottom: 4 }}>
+              <span className="text-sm muted">Not feeling motivated today</span>
+              <button
+                className={`switch${lowMotivation ? ' on' : ''}`}
+                onClick={() => onSetLowMotivation(!lowMotivation)}
+                aria-label="Low motivation today"
+              />
+            </div>
+            {calendarStatus?.connected && (
+              <p className="text-sm faint" style={{ margin: '2px 0 4px' }}>
+                📅 Today's calendar: {calendarStatus.busyMinutesToday >= 360 ? 'packed' : calendarStatus.busyMinutesToday >= 180 ? 'busy' : 'light'}
+              </p>
+            )}
             <TierTabs value={todayTier} onChange={setTodayTier} suggestedTier={suggestion.tier} />
             <div>
               {deriveTiers(todaysWorkout.exercises)[todayTier].map((ex, i) => (
