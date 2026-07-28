@@ -36,7 +36,7 @@ const COLOR_FIELDS = [
 export default function Settings({ onBack }) {
   const {
     data, setThemeMode, setColor, resetColors, applyThemePreset,
-    setHeadingFont, setDensity, setUseGradientAccents,
+    setHeadingFont, setDensity, setUseGradientAccents, setGentleMode,
     setWeightUnit, exportData, importData, clearAll,
   } = useApp()
   const importRef = useRef(null)
@@ -119,6 +119,23 @@ export default function Settings({ onBack }) {
             className={`switch${data.settings.useGradientAccents ? ' on' : ''}`}
             onClick={() => setUseGradientAccents(!data.settings.useGradientAccents)}
             aria-label="Gradient accents"
+          />
+        </div>
+      </div>
+
+      <div className="section-title">Wellbeing</div>
+      <div className="card">
+        <div className="row">
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Gentle mode</div>
+            <div className="text-sm faint" style={{ maxWidth: 240 }}>
+              Hide exact weight numbers on Overview and the Weight page — shows a trend direction instead
+            </div>
+          </div>
+          <button
+            className={`switch${data.settings.gentleMode ? ' on' : ''}`}
+            onClick={() => setGentleMode(!data.settings.gentleMode)}
+            aria-label="Gentle mode"
           />
         </div>
       </div>

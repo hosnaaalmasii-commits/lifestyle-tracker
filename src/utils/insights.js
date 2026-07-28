@@ -113,6 +113,40 @@ export function computeInsights(data) {
     })
   }
 
+  // --- Light trigger mapping: mood vs nutrition follow-through ---
+  const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
+  const nutritionOnLowMoodDays = []
+  const nutritionOnOtherDays = []
+  for (const [date, val] of Object.entries(moodByDate)) {
+    const nutritionDay = data.nutrition[date]
+    if (!nutritionDay) continue
+    const count = NUTRITION_KEYS.filter((k) => nutritionDay[k]).length
+    if (val <= 2) nutritionOnLowMoodDays.push(count)
+    else nutritionOnOtherDays.push(count)
+  }
+  const n1 = avg(nutritionOnLowMoodDays)
+  const n2 = avg(nutritionOnOtherDays)
+  if (nutritionOnLowMoodDays.length >= 3 && nutritionOnOtherDays.length >= 3 && n2 - n1 >= 0.8) {
+    insights.push({
+      id: 'corr-mood-nutrition',
+      icon: '🔍',
+      tone: 'neutral',
+      text: `On lower-mood days, your nutrition checklist tends to slip (${n1.toFixed(1)}/5 vs ${n2.toFixed(1)}/5) — worth having an easy backup meal ready for those days.`,
+    })
+  }
+
+  // --- Mood-tracking risk: a mood streak worth protecting too ---
+  const moodDates = new Set(data.mood.map((m) => m.date))
+  const moodStreak = streakFromDateSet(moodDates)
+  if (moodStreak >= 5 && !moodDates.has(today)) {
+    insights.push({
+      id: 'risk-mood',
+      icon: '⚡',
+      tone: 'warning',
+      text: `Your ${moodStreak}-day mood check-in streak is on the line — a 10-second log keeps it going.`,
+    })
+  }
+
   // --- Personal records / fun facts ---
   const waterEntries = Object.entries(data.water)
   if (waterEntries.length > 0) {

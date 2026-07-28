@@ -16,6 +16,7 @@ const DEFAULT_DATA = {
     headingFont: 'fraunces',
     density: 'comfortable',
     useGradientAccents: false,
+    gentleMode: false,
   },
   water: {},
   sleep: {},
@@ -30,6 +31,7 @@ const DEFAULT_DATA = {
   nutrition: {},
   photos: [],
   habitContracts: [],
+  painLog: {},
 }
 
 function loadData() {
@@ -221,6 +223,10 @@ export function AppProvider({ children }) {
     },
     deleteHabitContract: (id) => setData((d) => ({ ...d, habitContracts: d.habitContracts.filter((c) => c.id !== id) })),
 
+    setPainAreas: (dateKey, areaIds) => {
+      setData((d) => ({ ...d, painLog: { ...d.painLog, [dateKey]: areaIds } }))
+    },
+
     setThemeMode: (mode) => setData((d) => ({ ...d, settings: { ...d.settings, themeMode: mode } })),
     setColor: (key, hex) => setData((d) => ({ ...d, settings: { ...d.settings, colors: { ...d.settings.colors, [key]: hex } } })),
     resetColors: () => setData((d) => ({ ...d, settings: { ...d.settings, colors: { ...DEFAULT_COLORS } } })),
@@ -228,6 +234,7 @@ export function AppProvider({ children }) {
     setHeadingFont: (font) => setData((d) => ({ ...d, settings: { ...d.settings, headingFont: font } })),
     setDensity: (density) => setData((d) => ({ ...d, settings: { ...d.settings, density } })),
     setUseGradientAccents: (on) => setData((d) => ({ ...d, settings: { ...d.settings, useGradientAccents: on } })),
+    setGentleMode: (on) => setData((d) => ({ ...d, settings: { ...d.settings, gentleMode: on } })),
 
     exportData: () => {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })

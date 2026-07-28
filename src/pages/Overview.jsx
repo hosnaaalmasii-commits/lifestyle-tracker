@@ -13,6 +13,8 @@ import LevelBar from '../components/LevelBar'
 import Confetti from '../components/Confetti'
 import MoodCheckIn from '../components/MoodCheckIn'
 import { activeContractsToday, getTriggerType } from '../utils/habitContracts'
+import { getMicroHabit } from '../utils/microHabits'
+import { getGPSStatus } from '../utils/lifestyleGPS'
 
 const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
 
@@ -58,6 +60,8 @@ export default function Overview({ onNavigate }) {
   const { colors, useGradientAccents } = data.settings
   const consistency = computeConsistencyScore(data)
   const activeContracts = activeContractsToday(data.habitContracts, data)
+  const microHabit = getMicroHabit(data)
+  const gps = getGPSStatus(data)
 
   return (
     <div className="page">
@@ -114,6 +118,14 @@ export default function Overview({ onNavigate }) {
         <LevelBar xp={xp} compact />
       </button>
 
+      <button className="card row" style={{ marginTop: 12, cursor: 'pointer' }} onClick={() => onNavigate('more', 'gps')}>
+        <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
+          <span style={{ fontSize: 18 }}>{gps.current.icon}</span>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>{gps.current.label} phase</span>
+        </div>
+        <span className="faint" aria-hidden>›</span>
+      </button>
+
       <div className="card-row" style={{ marginTop: 12 }}>
         <button className="card" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('more', 'coach')}>
           <div style={{ fontSize: 20, marginBottom: 8 }}>✨</div>
@@ -128,6 +140,11 @@ export default function Overview({ onNavigate }) {
       </div>
 
       <MoodCheckIn open={moodCheckInOpen} onClose={() => setMoodCheckInOpen(false)} />
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="tag" style={{ background: 'transparent', color: 'var(--moss)', padding: 0, marginBottom: 6 }}>🌱 Today's micro-habit</div>
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>{microHabit.text}</p>
+      </div>
 
       {topInsights.length > 0 && (
         <>
@@ -161,8 +178,8 @@ export default function Overview({ onNavigate }) {
         />
         <MiniCard
           label="Weight"
-          value={latestWeight ? `${latestWeight.kg}${data.settings.weightUnit}` : '—'}
-          sub={latestWeight ? latestWeight.date.slice(5) : 'No entries'}
+          value={data.settings.gentleMode ? (latestWeight ? '🌱' : '—') : (latestWeight ? `${latestWeight.kg}${data.settings.weightUnit}` : '—')}
+          sub={data.settings.gentleMode ? 'Gentle mode' : (latestWeight ? latestWeight.date.slice(5) : 'No entries')}
           icon="⚖️"
           onClick={() => onNavigate('more', 'weight')}
         />

@@ -5,10 +5,12 @@ import Badges from './more/Badges'
 import Insights from './more/Insights'
 import Coach from './more/Coach'
 import HabitContracts from './more/HabitContracts'
+import LifestyleGPS from './more/LifestyleGPS'
 import Settings from './more/Settings'
 
 const ITEMS = [
   { id: 'coach', label: 'Coach', desc: 'AI chat grounded in your data', icon: '✨' },
+  { id: 'gps', label: 'Lifestyle GPS', desc: 'Your phased roadmap', icon: '🧭' },
   { id: 'contracts', label: 'Habit Contracts', desc: 'If-then agreements with yourself', icon: '🤝' },
   { id: 'weight', label: 'Weight', desc: 'Trend over time', icon: '⚖️' },
   { id: 'mood', label: 'Mood', desc: 'Emoji scale & notes', icon: '🙂' },
@@ -25,6 +27,7 @@ export default function More({ view, setView }) {
   if (view === 'insights') return <Insights onBack={() => setView(null)} />
   if (view === 'coach') return <Coach onBack={() => setView(null)} setView={setView} />
   if (view === 'contracts') return <HabitContracts onBack={() => setView(null)} />
+  if (view === 'gps') return <LifestyleGPS onBack={() => setView(null)} />
   if (view === 'badges') return <Badges onBack={() => setView(null)} />
   if (view === 'settings') return <Settings onBack={() => setView(null)} />
 

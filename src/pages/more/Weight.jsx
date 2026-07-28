@@ -14,11 +14,13 @@ export default function Weight({ onBack }) {
   const [toDelete, setToDelete] = useState(null)
 
   const unit = data.settings.weightUnit
+  const gentle = data.settings.gentleMode
   const entries = data.weight
   const chartValues = entries.slice(-30).map((w) => ({ key: w.date, value: w.kg }))
   const latest = entries[entries.length - 1]
   const previous = entries[entries.length - 2]
   const delta = latest && previous ? +(latest.kg - previous.kg).toFixed(1) : null
+  const trendWord = delta == null ? null : delta === 0 ? 'Holding steady' : delta < 0 ? 'Trending down' : 'Trending up'
 
   return (
     <div className="page">
@@ -33,24 +35,29 @@ export default function Weight({ onBack }) {
         <div className="row" style={{ alignItems: 'baseline' }}>
           <div>
             <div className="mono" style={{ fontSize: 28, fontWeight: 700 }}>
-              {latest ? `${latest.kg} ${unit}` : '—'}
+              {gentle ? (trendWord || '—') : (latest ? `${latest.kg} ${unit}` : '—')}
             </div>
             <div className="text-sm faint">{latest ? humanDate(latest.date) : 'No entries yet'}</div>
           </div>
-          {delta != null && (
+          {!gentle && delta != null && (
             <span className="mono text-sm" style={{ color: delta === 0 ? 'var(--text-soft)' : delta < 0 ? 'var(--success)' : 'var(--warning)' }}>
               {delta > 0 ? '+' : ''}{delta} {unit}
             </span>
           )}
         </div>
-        <div style={{ marginTop: 18 }}>
-          <LineChart values={chartValues} color="var(--accent)" />
-        </div>
+        {!gentle && (
+          <div style={{ marginTop: 18 }}>
+            <LineChart values={chartValues} color="var(--accent)" />
+          </div>
+        )}
+        {gentle && <p className="text-sm faint" style={{ marginTop: 10 }}>Gentle mode is on — exact numbers are hidden. Turn it off in Settings to see them.</p>}
       </div>
 
       <div className="section-title">History</div>
       {entries.length === 0 ? (
         <div className="empty-state"><div className="icon">⚖️</div><p>No weight logged yet.</p></div>
+      ) : gentle ? (
+        <p className="muted text-sm">History is hidden while Gentle mode is on.</p>
       ) : (
         <div className="stack">
           {[...entries].reverse().map((w) => (

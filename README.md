@@ -63,13 +63,21 @@ src/
                             data export/import
     coachContext.js          AI coach personalities + the data-summary text sent as the
                             system prompt (this is the ONLY place real AI is called)
+    microHabits.js           context-matched (time of day, rest day, water behind, low
+                            mood), date-stable daily suggestion — no storage
+    painAreas.js             per-exercise-name -> body-area map for the pain check-in
+                            (deliberately NOT keyed off the coarse workout "region" tag,
+                            which is just 'fullBody' for 3-day split plans)
+    lifestyleGPS.js          4-phase roadmap (Foundation/Momentum/Strength/Mastery)
+                            derived from Consistency Score — no storage
   components/            reusable UI (Ring, WeeklyBarChart, LineChart, Sheet, TabBar,
                           ColorPicker, SegmentedControl, LevelBar, ChallengeCard,
-                          Confetti, RestTimer, MoodCheckIn, ComebackScreen, etc.)
+                          Confetti, RestTimer, MoodCheckIn, ComebackScreen,
+                          PainCheckIn, etc.)
   pages/
     Overview.jsx, Water.jsx, Sleep.jsx, Workouts.jsx, Progress.jsx, More.jsx
     more/                Weight, Mood, Nutrition, Insights, Coach, HabitContracts,
-                          Badges, Settings (the "More" hub)
+                          LifestyleGPS, Badges, Settings (the "More" hub)
   styles/
     theme.css             CSS custom properties: light/dark palette, fonts, radii,
                            gradient-accent variables, density/font attribute hooks
@@ -97,6 +105,14 @@ onto `document.documentElement` as CSS custom properties / data attributes
 `data.workouts.exerciseLogs` holds per-exercise-name PR history (`{weight, reps,
 date}[]`), independent of which day the exercise appears on — logging a PR for
 "Kettlebell Swing" on a Monday also shows up if it appears on a Friday.
+
+`data.painLog` (`{dateKey: areaId[]}`) and `data.habitContracts` are the only
+other genuinely persisted additions beyond the original schema — everything
+else added since (Consistency Score, MVW tiers, Comeback Mode, Mood-to-Action,
+Lifestyle GPS, micro-habits) is derived live, following the same "derived, not
+stored" rule described below. `data.settings.gentleMode` hides exact weight
+numbers app-wide (Overview mini-card, Weight page, and the AI coach's data
+summary all respect it).
 
 ### Derived-not-stored systems
 

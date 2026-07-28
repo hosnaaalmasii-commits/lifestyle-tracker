@@ -5,15 +5,17 @@ import { streakFromDateSet } from '../utils/streaks'
 import { GOAL_OPTIONS, EXPERIENCE_OPTIONS, FOCUS_OPTIONS } from '../utils/workoutGenerator'
 import { parseRestSeconds } from '../utils/time'
 import { TIERS, deriveTiers, suggestTier } from '../utils/workoutTiers'
+import { isExerciseFlagged, PAIN_AREAS } from '../utils/painAreas'
 import StreakBadge from '../components/StreakBadge'
 import Sheet from '../components/Sheet'
 import RestTimer from '../components/RestTimer'
+import PainCheckIn from '../components/PainCheckIn'
 
 export default function Workouts() {
   const {
     data, setWorkoutProfile, toggleWorkoutDay,
     swapExercise, addCustomExercise, removeExercise,
-    logExercisePR, deleteExercisePR,
+    logExercisePR, deleteExercisePR, setPainAreas,
   } = useApp()
   const { profile, schedule, completions, exerciseLogs } = data.workouts
 
@@ -35,6 +37,8 @@ export default function Workouts() {
       onLogPR={logExercisePR}
       onDeletePR={deleteExercisePR}
       suggestion={suggestTier(data)}
+      todayPain={data.painLog[todayKey()] || []}
+      onSavePain={(areas) => setPainAreas(todayKey(), areas)}
     />
   )
 }
@@ -127,14 +131,18 @@ function bestPR(logs) {
   return logs.reduce((best, l) => (l.weight > best.weight || (l.weight === best.weight && l.reps > best.reps)) ? l : best)
 }
 
-function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onOpenTimer, onOpenPR, editable = true }) {
+function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onOpenTimer, onOpenPR, editable = true, flaggedPainAreas }) {
   const logs = exerciseLogs[exercise.name]
   const pr = bestPR(logs)
   const isFinisher = exercise.name === 'Full-body finisher'
+  const isFlagged = isExerciseFlagged(exercise.name, flaggedPainAreas)
   return (
     <div style={{ padding: '10px 0', borderTop: '1px solid var(--border-soft)' }}>
       <div className="row">
-        <span className="text-sm" style={{ fontWeight: 500 }}>{exercise.name}</span>
+        <span className="text-sm" style={{ fontWeight: 500 }}>
+          {isFlagged && <span title="Targets an area you flagged today" style={{ marginRight: 5 }}>⚠️</span>}
+          {exercise.name}
+        </span>
         <span className="mono text-sm faint">{exercise.sets}×{exercise.reps}</span>
       </div>
       <div className="row" style={{ marginTop: 6 }}>
@@ -245,6 +253,7 @@ function PRSheet({ exercise, onClose, exerciseLogs, onLogPR, onDeletePR }) {
 function WorkoutPlan({
   schedule, completions, exerciseLogs, onToggle, profile, setWorkoutProfile,
   onSwap, onAddExercise, onRemoveExercise, onLogPR, onDeletePR, suggestion,
+  todayPain, onSavePain,
 }) {
   const [dayOpen, setDayOpen] = useState(null) // date key
   const [editing, setEditing] = useState(false)
@@ -253,6 +262,7 @@ function WorkoutPlan({
   const [prFor, setPrFor] = useState(null) // exercise
   const [todayTier, setTodayTier] = useState(suggestion.tier)
   const [sheetTier, setSheetTier] = useState(suggestion.tier)
+  const [painOpen, setPainOpen] = useState(false)
   const today = todayKey()
   const weekKeys = currentWeekKeys()
 
@@ -295,6 +305,9 @@ function WorkoutPlan({
             <p className="text-sm" style={{ marginTop: 8, marginBottom: 0, color: 'var(--text-soft)' }}>
               <span aria-hidden>✨</span> {suggestion.reason}
             </p>
+            <button className="btn btn-ghost btn-sm" style={{ marginTop: 4, padding: '4px 0' }} onClick={() => setPainOpen(true)}>
+              {todayPain.length > 0 ? `⚠️ Flagged today: ${todayPain.map((id) => PAIN_AREAS.find((a) => a.id === id)?.label || id).join(', ')}` : "How's your body feeling?"}
+            </button>
             <TierTabs value={todayTier} onChange={setTodayTier} suggestedTier={suggestion.tier} />
             <div>
               {deriveTiers(todaysWorkout.exercises)[todayTier].map((ex, i) => (
@@ -309,6 +322,7 @@ function WorkoutPlan({
                   onOpenTimer={setTimerFor}
                   onOpenPR={setPrFor}
                   editable={todayTier === 'full'}
+                  flaggedPainAreas={todayPain}
                 />
               ))}
             </div>
@@ -392,6 +406,7 @@ function WorkoutPlan({
                   onOpenTimer={setTimerFor}
                   onOpenPR={setPrFor}
                   editable={sheetTier === 'full'}
+                  flaggedPainAreas={dayOpen === today ? todayPain : undefined}
                 />
               ))}
             </div>
@@ -429,6 +444,13 @@ function WorkoutPlan({
         exerciseLogs={exerciseLogs}
         onLogPR={onLogPR}
         onDeletePR={onDeletePR}
+      />
+
+      <PainCheckIn
+        open={painOpen}
+        onClose={() => setPainOpen(false)}
+        current={todayPain}
+        onSave={onSavePain}
       />
     </div>
   )

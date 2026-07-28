@@ -5,6 +5,7 @@ import { computeBadges } from './badges'
 import { getWeeklyChallenge } from './challenges'
 import { computeConsistencyScore } from './consistencyScore'
 import { activeContractsToday } from './habitContracts'
+import { getGPSStatus } from './lifestyleGPS'
 
 export const PERSONALITIES = [
   {
@@ -96,9 +97,11 @@ export function summarizeUserData(data) {
   const nutritionAvg = nutritionCounts.length ? (nutritionCounts.reduce((a, b) => a + b, 0) / nutritionCounts.length).toFixed(1) : '—'
 
   const latestWeight = data.weight[data.weight.length - 1]
-  const weightTrend = data.weight.length >= 2
-    ? `${data.weight[data.weight.length - 1].kg} ${data.settings.weightUnit} (was ${data.weight[data.weight.length - 2].kg} previously)`
-    : latestWeight ? `${latestWeight.kg} ${data.settings.weightUnit} (only one entry so far)` : 'not logged'
+  const weightTrend = data.settings.gentleMode
+    ? 'gentle mode is on — do not mention specific weight numbers, only general trend direction if asked'
+    : data.weight.length >= 2
+      ? `${data.weight[data.weight.length - 1].kg} ${data.settings.weightUnit} (was ${data.weight[data.weight.length - 2].kg} previously)`
+      : latestWeight ? `${latestWeight.kg} ${data.settings.weightUnit} (only one entry so far)` : 'not logged'
 
   const badges = computeBadges(data)
   const unlockedBadges = badges.filter((b) => b.unlocked)
@@ -106,6 +109,7 @@ export function summarizeUserData(data) {
   const { level } = levelProgress(xp)
   const challenge = getWeeklyChallenge(data)
   const consistency = computeConsistencyScore(data)
+  const gps = getGPSStatus(data)
 
   const workoutProfile = data.workouts.profile
     ? `Goal: ${data.workouts.profile.goal}, experience: ${data.workouts.profile.experience}, ${data.workouts.profile.daysPerWeek}x/week`
@@ -122,6 +126,7 @@ Mood, most recent entries: ${recentMoods.length ? recentMoods.join('; ') : 'none
 Level ${level} (${levelTitle(level)}), ${unlockedBadges.length}/${badges.length} badges unlocked.
 This week's challenge: "${challenge.title}" — ${challenge.progress}/${challenge.target} (${challenge.complete ? 'complete' : 'in progress'}).
 Consistency score: ${consistency.score}/100 (${consistency.label}) — a 30-day rolling score, not a streak; context matters more than any single day.
+Lifestyle GPS phase: ${gps.current.label}${gps.next ? ` (${gps.next.threshold - gps.score} points from ${gps.next.label})` : ' (top phase)'}.
 ${habitContractsSummary(data)}`
 }
 
