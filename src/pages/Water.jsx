@@ -6,14 +6,16 @@ import Ring from '../components/Ring'
 import StreakBadge from '../components/StreakBadge'
 import WeeklyBarChart from '../components/WeeklyBarChart'
 import Sheet from '../components/Sheet'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const QUICK_ADDS = [200, 330, 500]
 
 export default function Water() {
-  const { data, addWater, undoLastWater, setWaterGoal } = useApp()
+  const { data, addWater, undoLastWater, clearWater, setWaterGoal } = useApp()
   const [goalSheetOpen, setGoalSheetOpen] = useState(false)
   const [customGoal, setCustomGoal] = useState(data.settings.waterGoalMl)
   const [justAdded, setJustAdded] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
 
   const today = todayKey()
   const goal = data.settings.waterGoalMl
@@ -55,9 +57,10 @@ export default function Water() {
           ))}
         </div>
 
-        <div className="row" style={{ marginTop: 14, gap: 10 }}>
+        <div className="row" style={{ marginTop: 14, gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
           <button className="btn btn-ghost btn-sm" onClick={undoLastWater}>Undo last</button>
           <button className="btn btn-ghost btn-sm" onClick={() => { setCustomGoal(goal); setGoalSheetOpen(true) }}>Edit goal</button>
+          {todayMl > 0 && <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmClear(true)}>Clear today</button>}
         </div>
       </div>
 
@@ -92,6 +95,16 @@ export default function Water() {
           Save goal
         </button>
       </Sheet>
+
+      <ConfirmDialog
+        open={confirmClear}
+        title="Clear today's water?"
+        message="This resets today's total back to 0 ml."
+        confirmLabel="Clear"
+        danger
+        onCancel={() => setConfirmClear(false)}
+        onConfirm={() => { clearWater(today); setConfirmClear(false) }}
+      />
     </div>
   )
 }

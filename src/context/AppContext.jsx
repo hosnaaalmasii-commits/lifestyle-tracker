@@ -128,9 +128,24 @@ export function AppProvider({ children }) {
       }))
     },
     setWaterGoal: (ml) => setData((d) => ({ ...d, settings: { ...d.settings, waterGoalMl: ml } })),
+    clearWater: (dateKey = todayKey()) => {
+      lastWaterAdd.current = null
+      setData((d) => {
+        const water = { ...d.water }
+        delete water[dateKey]
+        return { ...d, water }
+      })
+    },
 
     logSleep: (dateKey, hours, quality) => {
       setData((d) => ({ ...d, sleep: { ...d.sleep, [dateKey]: { hours, quality } } }))
+    },
+    deleteSleep: (dateKey) => {
+      setData((d) => {
+        const sleep = { ...d.sleep }
+        delete sleep[dateKey]
+        return { ...d, sleep }
+      })
     },
     setSleepGoal: (hours) => setData((d) => ({ ...d, settings: { ...d.settings, sleepGoalHours: hours } })),
 

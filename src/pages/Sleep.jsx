@@ -6,11 +6,13 @@ import Ring from '../components/Ring'
 import StreakBadge from '../components/StreakBadge'
 import WeeklyBarChart from '../components/WeeklyBarChart'
 import Sheet from '../components/Sheet'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const QUALITY_LABELS = ['Rough', 'Poor', 'Okay', 'Good', 'Great']
 
 export default function Sleep() {
-  const { data, logSleep, setSleepGoal } = useApp()
+  const { data, logSleep, deleteSleep, setSleepGoal } = useApp()
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [logOpen, setLogOpen] = useState(false)
   const [goalOpen, setGoalOpen] = useState(false)
   const [hours, setHours] = useState(8)
@@ -104,7 +106,26 @@ export default function Sleep() {
         >
           Save
         </button>
+        {todayEntry && (
+          <button
+            className="btn btn-danger btn-block"
+            style={{ marginTop: 10 }}
+            onClick={() => { setLogOpen(false); setConfirmDelete(true) }}
+          >
+            Delete entry
+          </button>
+        )}
       </Sheet>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete last night's sleep?"
+        message="This removes tonight's log entirely — you can re-log it any time."
+        confirmLabel="Delete"
+        danger
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => { deleteSleep(today); setConfirmDelete(false) }}
+      />
 
       <Sheet open={goalOpen} onClose={() => setGoalOpen(false)} title="Sleep goal">
         <div className="field">
