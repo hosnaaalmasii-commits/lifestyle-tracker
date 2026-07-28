@@ -1,18 +1,21 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { todayKey } from '../utils/dates'
-import { generateWorkoutSchedule } from '../utils/workoutGenerator'
+import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } from '../utils/workoutGenerator'
 import { DEFAULT_COLORS } from '../utils/colorPresets'
 
 const STORAGE_KEY = 'lifestyle-tracker-data-v1'
 
 const DEFAULT_DATA = {
-  version: 1,
+  version: 2,
   settings: {
     themeMode: 'system',
     colors: { ...DEFAULT_COLORS },
     waterGoalMl: 2000,
     sleepGoalHours: 8,
     weightUnit: 'kg',
+    headingFont: 'fraunces',
+    density: 'comfortable',
+    useGradientAccents: false,
   },
   water: {},
   sleep: {},
@@ -20,6 +23,7 @@ const DEFAULT_DATA = {
     profile: null,
     schedule: [],
     completions: {},
+    exerciseLogs: {},
   },
   weight: [],
   mood: [],
@@ -37,7 +41,7 @@ function loadData() {
       ...structuredClone(DEFAULT_DATA),
       ...parsed,
       settings: { ...DEFAULT_DATA.settings, ...parsed.settings, colors: { ...DEFAULT_COLORS, ...parsed.settings?.colors } },
-      workouts: { ...DEFAULT_DATA.workouts, ...parsed.workouts },
+      workouts: { ...DEFAULT_DATA.workouts, ...parsed.workouts, exerciseLogs: { ...parsed.workouts?.exerciseLogs } },
     }
   } catch {
     return structuredClone(DEFAULT_DATA)
@@ -60,10 +64,10 @@ export function AppProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }, [data])
 
-  // Apply theme + accent colors to the document root as CSS variables.
+  // Apply theme + accent colors + personalization to the document root as CSS variables.
   useEffect(() => {
     const root = document.documentElement
-    const { themeMode, colors } = data.settings
+    const { themeMode, colors, headingFont, density, useGradientAccents } = data.settings
     if (themeMode === 'system') {
       root.removeAttribute('data-theme')
     } else {
@@ -74,6 +78,11 @@ export function AppProvider({ children }) {
     root.style.setProperty('--accent-water', colors.water)
     root.style.setProperty('--accent-sleep', colors.sleep)
     root.style.setProperty('--accent-workout', colors.workout)
+    root.style.setProperty('--accent-gradient-end', colors.gradientEnd)
+    root.style.setProperty('--accent-fill', useGradientAccents ? `linear-gradient(135deg, ${colors.accent}, ${colors.gradientEnd})` : colors.accent)
+    root.style.setProperty('--ring-fill', useGradientAccents ? `linear-gradient(135deg, ${colors.ring}, ${colors.gradientEnd})` : colors.ring)
+    root.setAttribute('data-density', density)
+    root.setAttribute('data-font', headingFont)
   }, [data.settings])
 
   const actions = useMemo(() => ({
@@ -110,6 +119,73 @@ export function AppProvider({ children }) {
         },
       }))
     },
+    swapExercise: (day, exerciseIndex) => {
+      setData((d) => ({
+        ...d,
+        workouts: {
+          ...d.workouts,
+          schedule: d.workouts.schedule.map((s) => {
+            if (s.day !== day) return s
+            const exercises = s.exercises.map((ex, i) => {
+              if (i !== exerciseIndex) return ex
+              const region = ex.region || findRegionForExercise(ex.name)
+              if (!region) return ex
+              return { ...ex, region, name: getAlternateExercise(region, ex.name) }
+            })
+            return { ...s, exercises }
+          }),
+        },
+      }))
+    },
+    addCustomExercise: (day, exercise) => {
+      setData((d) => ({
+        ...d,
+        workouts: {
+          ...d.workouts,
+          schedule: d.workouts.schedule.map((s) =>
+            s.day === day ? { ...s, exercises: [...s.exercises, { ...exercise, custom: true }] } : s
+          ),
+        },
+      }))
+    },
+    removeExercise: (day, exerciseIndex) => {
+      setData((d) => ({
+        ...d,
+        workouts: {
+          ...d.workouts,
+          schedule: d.workouts.schedule.map((s) =>
+            s.day === day ? { ...s, exercises: s.exercises.filter((_, i) => i !== exerciseIndex) } : s
+          ),
+        },
+      }))
+    },
+    logExercisePR: (exerciseName, weight, reps, dateKey = todayKey()) => {
+      setData((d) => ({
+        ...d,
+        workouts: {
+          ...d.workouts,
+          exerciseLogs: {
+            ...d.workouts.exerciseLogs,
+            [exerciseName]: [
+              ...(d.workouts.exerciseLogs[exerciseName] || []),
+              { id: makeId(), date: dateKey, weight, reps },
+            ],
+          },
+        },
+      }))
+    },
+    deleteExercisePR: (exerciseName, id) => {
+      setData((d) => ({
+        ...d,
+        workouts: {
+          ...d.workouts,
+          exerciseLogs: {
+            ...d.workouts.exerciseLogs,
+            [exerciseName]: (d.workouts.exerciseLogs[exerciseName] || []).filter((log) => log.id !== id),
+          },
+        },
+      }))
+    },
 
     addWeight: (kg, dateKey = todayKey()) => {
       setData((d) => ({ ...d, weight: [...d.weight, { id: makeId(), date: dateKey, kg }].sort((a, b) => a.date.localeCompare(b.date)) }))
@@ -142,6 +218,10 @@ export function AppProvider({ children }) {
     setThemeMode: (mode) => setData((d) => ({ ...d, settings: { ...d.settings, themeMode: mode } })),
     setColor: (key, hex) => setData((d) => ({ ...d, settings: { ...d.settings, colors: { ...d.settings.colors, [key]: hex } } })),
     resetColors: () => setData((d) => ({ ...d, settings: { ...d.settings, colors: { ...DEFAULT_COLORS } } })),
+    applyThemePreset: (colors) => setData((d) => ({ ...d, settings: { ...d.settings, colors: { ...colors } } })),
+    setHeadingFont: (font) => setData((d) => ({ ...d, settings: { ...d.settings, headingFont: font } })),
+    setDensity: (density) => setData((d) => ({ ...d, settings: { ...d.settings, density } })),
+    setUseGradientAccents: (on) => setData((d) => ({ ...d, settings: { ...d.settings, useGradientAccents: on } })),
 
     exportData: () => {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -160,7 +240,7 @@ export function AppProvider({ children }) {
         ...structuredClone(DEFAULT_DATA),
         ...parsed,
         settings: { ...DEFAULT_DATA.settings, ...parsed.settings, colors: { ...DEFAULT_COLORS, ...parsed.settings?.colors } },
-        workouts: { ...DEFAULT_DATA.workouts, ...parsed.workouts },
+        workouts: { ...DEFAULT_DATA.workouts, ...parsed.workouts, exerciseLogs: { ...parsed.workouts?.exerciseLogs } },
       })
     },
     clearAll: () => setData(structuredClone(DEFAULT_DATA)),

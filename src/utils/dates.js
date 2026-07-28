@@ -57,3 +57,15 @@ export function currentWeekKeys(key = todayKey()) {
   const monday = addDaysToKey(key, mondayOffset)
   return Array.from({ length: 7 }, (_, i) => addDaysToKey(monday, i))
 }
+
+export function previousWeekKeys(key = todayKey()) {
+  return currentWeekKeys(addDaysToKey(key, -7))
+}
+
+// ISO-ish week number (Monday-start), stable enough for rotating weekly challenges.
+export function weekNumber(key = todayKey()) {
+  const d = keyToDate(key)
+  const oneJan = new Date(d.getFullYear(), 0, 1)
+  const dayOfYear = Math.floor((d - oneJan) / 86400000) + 1
+  return Math.ceil((dayOfYear + (oneJan.getDay() || 7) - 1) / 7)
+}

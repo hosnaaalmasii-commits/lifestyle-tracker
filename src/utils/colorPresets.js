@@ -32,4 +32,14 @@ export const DEFAULT_COLORS = {
   water: '#4E8FB0',
   sleep: '#6C6EA0',
   workout: '#B0704A',
+  gradientEnd: '#C9A6F2',
 }
+
+export const THEME_PRESETS = [
+  { name: 'Signature Purple', colors: { accent: '#8A5CB8', ring: '#8A5CB8', water: '#4E8FB0', sleep: '#6C6EA0', workout: '#B0704A', gradientEnd: '#C9A6F2' } },
+  { name: 'Lavender Fields', colors: { accent: '#9B8AC4', ring: '#B9A6E0', water: '#7FA8C9', sleep: '#8C9EDE', workout: '#C9A0DC', gradientEnd: '#E3D5F5' } },
+  { name: 'Midnight Amethyst', colors: { accent: '#5D3FD3', ring: '#8E6FE0', water: '#4E6FB0', sleep: '#5A4FCF', workout: '#8E4585', gradientEnd: '#B9A6E0' } },
+  { name: 'Sage & Plum', colors: { accent: '#8E4585', ring: '#9B7EBD', water: '#6B7F52', sleep: '#8DA377', workout: '#8E4585', gradientEnd: '#CDA4DE' } },
+  { name: 'Orchid Bloom', colors: { accent: '#C77DD2', ring: '#C77DD2', water: '#4E9490', sleep: '#9B7EBD', workout: '#C06C84', gradientEnd: '#F0C6F5' } },
+  { name: 'Moss & Mauve', colors: { accent: '#9B7EBD', ring: '#9966CC', water: '#6B7F52', sleep: '#6B7F52', workout: '#B0704A', gradientEnd: '#CDA4DE' } },
+]

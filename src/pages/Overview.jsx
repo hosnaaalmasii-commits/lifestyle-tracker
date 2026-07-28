@@ -1,11 +1,16 @@
+import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { todayKey, humanDateFull } from '../utils/dates'
 import { streakFromDateSet } from '../utils/streaks'
+import { computeInsights } from '../utils/insights'
+import { computeBadges } from '../utils/badges'
+import { computeXP } from '../utils/gamification'
 import Ring from '../components/Ring'
 import MiniCard from '../components/MiniCard'
 import StreakBadge from '../components/StreakBadge'
+import LevelBar from '../components/LevelBar'
+import Confetti from '../components/Confetti'
 
-const MOOD_EMOJI = ['😞', '😕', '😐', '🙂', '😄']
 const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
 
 export default function Overview({ onNavigate }) {
@@ -24,6 +29,15 @@ export default function Overview({ onNavigate }) {
 
   const score = Math.round(((waterRatio + sleepRatio + workoutRatio) / 3) * 100)
 
+  const celebratedToday = useRef(null)
+  const [confettiTick, setConfettiTick] = useState(0)
+  useEffect(() => {
+    if (score >= 100 && celebratedToday.current !== today) {
+      celebratedToday.current = today
+      setConfettiTick((n) => n + 1)
+    }
+  }, [score, today])
+
   const waterStreak = streakFromDateSet(new Set(Object.entries(data.water).filter(([, ml]) => ml >= data.settings.waterGoalMl).map(([k]) => k)))
   const sleepStreak = streakFromDateSet(new Set(Object.entries(data.sleep).filter(([, s]) => s.hours >= data.settings.sleepGoalHours).map(([k]) => k)))
   const workoutStreak = streakFromDateSet(new Set(Object.keys(data.workouts.completions).filter((k) => data.workouts.completions[k])))
@@ -33,15 +47,28 @@ export default function Overview({ onNavigate }) {
   const nutritionToday = data.nutrition[today] || {}
   const nutritionCount = NUTRITION_KEYS.filter((k) => nutritionToday[k]).length
 
+  const badges = computeBadges(data)
+  const xp = computeXP(data, badges.filter((b) => b.unlocked).length)
+  const topInsights = computeInsights(data).slice(0, 2)
+
+  const { colors, useGradientAccents } = data.settings
+
   return (
     <div className="page">
+      <Confetti trigger={confettiTick} />
       <div className="page-header">
         <div className="eyebrow">{humanDateFull(today)}</div>
         <h1>Today</h1>
       </div>
 
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 18px' }}>
-        <Ring value={score / 100} size={168} stroke={15}>
+      <div className="card hero-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 18px' }}>
+        <Ring
+          value={score / 100}
+          size={168}
+          stroke={15}
+          color={colors.ring}
+          gradientTo={useGradientAccents ? colors.gradientEnd : undefined}
+        >
           <div className="mono" style={{ fontSize: 36, fontWeight: 700, lineHeight: 1 }}>{score}</div>
           <div className="text-sm muted" style={{ marginTop: 4 }}>daily score</div>
         </Ring>
@@ -51,6 +78,31 @@ export default function Overview({ onNavigate }) {
           <StreakBadge days={workoutStreak} label="workout" />
         </div>
       </div>
+
+      <button className="card" style={{ marginTop: 12, textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('more', 'badges')}>
+        <LevelBar xp={xp} compact />
+      </button>
+
+      {topInsights.length > 0 && (
+        <>
+          <div className="section-title">Insights</div>
+          <div>
+            {topInsights.map((ins) => (
+              <div key={ins.id} className={`insight-card tone-${ins.tone}`}>
+                <span style={{ fontSize: 18 }}>{ins.icon}</span>
+                <span className="text-sm" style={{ lineHeight: 1.5 }}>{ins.text}</span>
+              </div>
+            ))}
+          </div>
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{ marginTop: 8 }}
+            onClick={() => onNavigate('more', 'insights')}
+          >
+            See all insights →
+          </button>
+        </>
+      )}
 
       <div className="section-title">At a glance</div>
       <div className="card-row">

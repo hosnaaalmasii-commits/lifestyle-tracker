@@ -40,7 +40,7 @@ export default function Sleep() {
         <h1>Rest &amp; recovery</h1>
       </div>
 
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '26px 18px' }}>
+      <div className="card hero-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '26px 18px', '--hero-tint': 'var(--accent-sleep)', '--hero-glow': 'var(--accent-sleep)' }}>
         <Ring value={ratio} size={160} stroke={15} color="var(--accent-sleep)">
           <div className="mono" style={{ fontSize: 26, fontWeight: 700, lineHeight: 1 }}>
             {todayEntry ? todayEntry.hours : '—'}

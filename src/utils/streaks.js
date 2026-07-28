@@ -22,3 +22,16 @@ export function computeStreak(isSuccess) {
 export function streakFromDateSet(dateSet) {
   return computeStreak((key) => dateSet.has(key))
 }
+
+/** Longest run of consecutive calendar days ever present in dateSet. */
+export function longestStreakFromDateSet(dateSet) {
+  if (dateSet.size === 0) return 0
+  const sorted = [...dateSet].sort()
+  let best = 1
+  let current = 1
+  for (let i = 1; i < sorted.length; i++) {
+    current = addDaysToKey(sorted[i - 1], 1) === sorted[i] ? current + 1 : 1
+    if (current > best) best = current
+  }
+  return best
+}

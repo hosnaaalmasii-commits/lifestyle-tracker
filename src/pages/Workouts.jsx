@@ -3,12 +3,18 @@ import { useApp } from '../context/AppContext'
 import { todayKey, currentWeekKeys, weekdayShort, isToday, humanDate } from '../utils/dates'
 import { streakFromDateSet } from '../utils/streaks'
 import { GOAL_OPTIONS, EXPERIENCE_OPTIONS, FOCUS_OPTIONS } from '../utils/workoutGenerator'
+import { parseRestSeconds } from '../utils/time'
 import StreakBadge from '../components/StreakBadge'
 import Sheet from '../components/Sheet'
+import RestTimer from '../components/RestTimer'
 
 export default function Workouts() {
-  const { data, setWorkoutProfile, toggleWorkoutDay } = useApp()
-  const { profile, schedule, completions } = data.workouts
+  const {
+    data, setWorkoutProfile, toggleWorkoutDay,
+    swapExercise, addCustomExercise, removeExercise,
+    logExercisePR, deleteExercisePR,
+  } = useApp()
+  const { profile, schedule, completions, exerciseLogs } = data.workouts
 
   if (!profile) {
     return <Questionnaire onSubmit={setWorkoutProfile} />
@@ -18,10 +24,15 @@ export default function Workouts() {
     <WorkoutPlan
       schedule={schedule}
       completions={completions}
+      exerciseLogs={exerciseLogs}
       onToggle={toggleWorkoutDay}
-      onEditPlan={() => setWorkoutProfile(null)}
       profile={profile}
       setWorkoutProfile={setWorkoutProfile}
+      onSwap={swapExercise}
+      onAddExercise={addCustomExercise}
+      onRemoveExercise={removeExercise}
+      onLogPR={logExercisePR}
+      onDeletePR={deleteExercisePR}
     />
   )
 }
@@ -84,9 +95,134 @@ function Questionnaire({ onSubmit, initial }) {
   )
 }
 
-function WorkoutPlan({ schedule, completions, onToggle, onEditPlan, profile, setWorkoutProfile }) {
+function bestPR(logs) {
+  if (!logs || logs.length === 0) return null
+  return logs.reduce((best, l) => (l.weight > best.weight || (l.weight === best.weight && l.reps > best.reps)) ? l : best)
+}
+
+function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onOpenTimer, onOpenPR }) {
+  const logs = exerciseLogs[exercise.name]
+  const pr = bestPR(logs)
+  return (
+    <div style={{ padding: '10px 0', borderTop: '1px solid var(--border-soft)' }}>
+      <div className="row">
+        <span className="text-sm" style={{ fontWeight: 500 }}>{exercise.name}</span>
+        <span className="mono text-sm faint">{exercise.sets}×{exercise.reps}</span>
+      </div>
+      <div className="row" style={{ marginTop: 6 }}>
+        <span className="text-sm faint">{pr ? `PR: ${pr.weight}×${pr.reps}` : exercise.rest}</span>
+        <div className="row" style={{ gap: 4, justifyContent: 'flex-end' }}>
+          {!exercise.custom && (
+            <IconButton label="Swap exercise" onClick={() => onSwap(day, index)}>🔁</IconButton>
+          )}
+          <IconButton label="Rest timer" onClick={() => onOpenTimer(exercise)}>⏱</IconButton>
+          <IconButton label="Log PR" onClick={() => onOpenPR(exercise)}>🏋</IconButton>
+          {exercise.custom && (
+            <IconButton label="Remove exercise" onClick={() => onRemove(day, index)}>🗑</IconButton>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function IconButton({ children, label, onClick }) {
+  return (
+    <button
+      aria-label={label}
+      onClick={(e) => { e.stopPropagation(); onClick() }}
+      style={{
+        background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '50%',
+        width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 13, cursor: 'pointer',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function AddExerciseSheet({ open, onClose, onSubmit }) {
+  const [name, setName] = useState('')
+  const [sets, setSets] = useState(3)
+  const [reps, setReps] = useState('10-12')
+
+  return (
+    <Sheet open={open} onClose={onClose} title="Add exercise">
+      <div className="field">
+        <label>Exercise name</label>
+        <input className="input" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Bulgarian Split Squat" />
+      </div>
+      <div className="field">
+        <label>Sets</label>
+        <div className="stepper">
+          <button onClick={() => setSets((s) => Math.max(1, s - 1))}>−</button>
+          <span className="value">{sets}</span>
+          <button onClick={() => setSets((s) => s + 1)}>+</button>
+        </div>
+      </div>
+      <div className="field">
+        <label>Reps</label>
+        <input className="input" type="text" value={reps} onChange={(e) => setReps(e.target.value)} placeholder="e.g. 10-12" />
+      </div>
+      <button
+        className="btn btn-primary btn-block"
+        disabled={!name.trim()}
+        onClick={() => { onSubmit({ name: name.trim(), sets, reps, rest: '60-90 sec' }); onClose() }}
+      >
+        Add to this day
+      </button>
+    </Sheet>
+  )
+}
+
+function PRSheet({ exercise, onClose, exerciseLogs, onLogPR, onDeletePR }) {
+  const [weight, setWeight] = useState(20)
+  const [reps, setReps] = useState(10)
+  const logs = (exercise && exerciseLogs[exercise.name]) || []
+  const sorted = [...logs].sort((a, b) => b.date.localeCompare(a.date))
+  const pr = bestPR(logs)
+
+  return (
+    <Sheet open={!!exercise} onClose={onClose} title={exercise ? `PR log — ${exercise.name}` : ''}>
+      {pr && <p className="text-sm muted" style={{ marginBottom: 14 }}>Personal best: <strong style={{ color: 'var(--text)' }}>{pr.weight} × {pr.reps}</strong></p>}
+      <div className="row" style={{ gap: 10, marginBottom: 16 }}>
+        <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+          <label>Weight</label>
+          <input className="input" type="number" value={weight} onChange={(e) => setWeight(Number(e.target.value))} />
+        </div>
+        <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+          <label>Reps</label>
+          <input className="input" type="number" value={reps} onChange={(e) => setReps(Number(e.target.value))} />
+        </div>
+      </div>
+      <button className="btn btn-primary btn-block" onClick={() => exercise && onLogPR(exercise.name, weight, reps)}>Log set</button>
+      {sorted.length > 0 && (
+        <div className="stack" style={{ marginTop: 20 }}>
+          {sorted.map((l) => (
+            <div key={l.id} className="row">
+              <span className="text-sm faint">{humanDate(l.date)}</span>
+              <div className="row" style={{ gap: 10, justifyContent: 'flex-end' }}>
+                <span className="mono text-sm">{l.weight} × {l.reps}</span>
+                <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => onDeletePR(exercise.name, l.id)}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Sheet>
+  )
+}
+
+function WorkoutPlan({
+  schedule, completions, exerciseLogs, onToggle, profile, setWorkoutProfile,
+  onSwap, onAddExercise, onRemoveExercise, onLogPR, onDeletePR,
+}) {
   const [dayOpen, setDayOpen] = useState(null) // date key
   const [editing, setEditing] = useState(false)
+  const [addingTo, setAddingTo] = useState(null) // day string
+  const [timerFor, setTimerFor] = useState(null) // exercise
+  const [prFor, setPrFor] = useState(null) // exercise
   const today = todayKey()
   const weekKeys = currentWeekKeys()
 
@@ -100,6 +236,7 @@ function WorkoutPlan({ schedule, completions, onToggle, onEditPlan, profile, set
 
   const todaysWorkout = dayFor(today)
   const openDay = dayOpen ? dayFor(dayOpen) : null
+  const todayWeekday = weekdayShort(today)
 
   if (editing) {
     return <Questionnaire initial={profile} onSubmit={(p) => { setWorkoutProfile(p); setEditing(false) }} />
@@ -115,7 +252,7 @@ function WorkoutPlan({ schedule, completions, onToggle, onEditPlan, profile, set
         <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>Edit plan</button>
       </div>
 
-      <div className="card">
+      <div className="card hero-card" style={{ '--hero-tint': 'var(--accent-workout)', '--hero-glow': 'var(--accent-workout)' }}>
         <div className="row">
           <div>
             <div className="text-sm muted" style={{ fontWeight: 600 }}>Today</div>
@@ -125,17 +262,25 @@ function WorkoutPlan({ schedule, completions, onToggle, onEditPlan, profile, set
         </div>
         {!todaysWorkout?.rest && (
           <>
-            <div style={{ marginTop: 14 }}>
-              {todaysWorkout?.exercises.map((ex) => (
-                <div key={ex.name} className="row" style={{ padding: '7px 0', borderTop: '1px solid var(--border-soft)' }}>
-                  <span className="text-sm">{ex.name}</span>
-                  <span className="mono text-sm faint">{ex.sets}×{ex.reps}</span>
-                </div>
+            <div style={{ marginTop: 6 }}>
+              {todaysWorkout?.exercises.map((ex, i) => (
+                <ExerciseRow
+                  key={`${ex.name}-${i}`}
+                  day={todayWeekday}
+                  exercise={ex}
+                  index={i}
+                  exerciseLogs={exerciseLogs}
+                  onSwap={onSwap}
+                  onRemove={onRemoveExercise}
+                  onOpenTimer={setTimerFor}
+                  onOpenPR={setPrFor}
+                />
               ))}
             </div>
+            <button className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setAddingTo(todayWeekday)}>+ Add exercise</button>
             <button
               className={`btn btn-block ${completions[today] ? 'btn-secondary' : 'btn-primary'}`}
-              style={{ marginTop: 16 }}
+              style={{ marginTop: 12 }}
               onClick={() => onToggle(today)}
             >
               {completions[today] ? '✓ Completed' : 'Mark complete'}
@@ -190,18 +335,26 @@ function WorkoutPlan({ schedule, completions, onToggle, onEditPlan, profile, set
       <Sheet open={!!dayOpen} onClose={() => setDayOpen(null)} title={openDay ? `${openDay.rest ? 'Rest' : openDay.label} — ${dayOpen && humanDate(dayOpen)}` : ''}>
         {openDay && !openDay.rest && (
           <>
-            {openDay.note && <p className="muted text-sm" style={{ marginBottom: 14 }}>{openDay.note}</p>}
-            <div className="stack">
-              {openDay.exercises.map((ex) => (
-                <div key={ex.name} className="row">
-                  <span className="text-sm">{ex.name}</span>
-                  <span className="mono text-sm faint">{ex.sets}×{ex.reps} · {ex.rest}</span>
-                </div>
+            {openDay.note && <p className="muted text-sm" style={{ marginBottom: 4 }}>{openDay.note}</p>}
+            <div>
+              {openDay.exercises.map((ex, i) => (
+                <ExerciseRow
+                  key={`${ex.name}-${i}`}
+                  day={openDay.day}
+                  exercise={ex}
+                  index={i}
+                  exerciseLogs={exerciseLogs}
+                  onSwap={onSwap}
+                  onRemove={onRemoveExercise}
+                  onOpenTimer={setTimerFor}
+                  onOpenPR={setPrFor}
+                />
               ))}
             </div>
+            <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={() => setAddingTo(openDay.day)}>+ Add exercise</button>
             <button
               className={`btn btn-block ${dayOpen && completions[dayOpen] ? 'btn-secondary' : 'btn-primary'}`}
-              style={{ marginTop: 18 }}
+              style={{ marginTop: 14 }}
               onClick={() => onToggle(dayOpen)}
             >
               {dayOpen && completions[dayOpen] ? '✓ Completed' : 'Mark complete'}
@@ -210,6 +363,27 @@ function WorkoutPlan({ schedule, completions, onToggle, onEditPlan, profile, set
         )}
         {openDay?.rest && <p className="muted text-sm">Recovery day — no exercises scheduled.</p>}
       </Sheet>
+
+      <AddExerciseSheet
+        open={!!addingTo}
+        onClose={() => setAddingTo(null)}
+        onSubmit={(exercise) => onAddExercise(addingTo, exercise)}
+      />
+
+      <RestTimer
+        open={!!timerFor}
+        onClose={() => setTimerFor(null)}
+        seconds={timerFor ? parseRestSeconds(timerFor.rest) : 60}
+        exerciseName={timerFor?.name}
+      />
+
+      <PRSheet
+        exercise={prFor}
+        onClose={() => setPrFor(null)}
+        exerciseLogs={exerciseLogs}
+        onLogPR={onLogPR}
+        onDeletePR={onDeletePR}
+      />
     </div>
   )
 }

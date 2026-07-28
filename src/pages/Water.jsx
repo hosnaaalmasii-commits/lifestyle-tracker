@@ -38,7 +38,7 @@ export default function Water() {
         <h1>Stay hydrated</h1>
       </div>
 
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '26px 18px' }}>
+      <div className="card hero-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '26px 18px', '--hero-tint': 'var(--accent-water)', '--hero-glow': 'var(--accent-water)' }}>
         <Ring value={ratio} size={160} stroke={15} color="var(--accent-water)">
           <div
             className="mono"

@@ -31,11 +31,27 @@ function buildExerciseList(regions, scheme, seedOffset) {
   regions.forEach((region, i) => {
     const pool = EXERCISES[region] || EXERCISES.fullBody
     pick(pool, perRegion, seedOffset + i).forEach((name) =>
-      list.push({ name, sets: scheme.sets, reps: scheme.reps, rest: scheme.rest })
+      list.push({ name, sets: scheme.sets, reps: scheme.reps, rest: scheme.rest, region })
     )
   })
   return list
 }
+
+// Next exercise in the same region's pool, cycling past the current one —
+// used by the "swap exercise" control.
+export function getAlternateExercise(region, currentName) {
+  const pool = EXERCISES[region] || EXERCISES.fullBody
+  const idx = pool.indexOf(currentName)
+  const next = pool[(idx + 1) % pool.length]
+  return next === currentName ? pool[(idx + 2) % pool.length] : next
+}
+
+// Fallback for exercises generated before regions were tagged.
+export function findRegionForExercise(name) {
+  return Object.entries(EXERCISES).find(([, pool]) => pool.includes(name))?.[0] || null
+}
+
+export { EXERCISES }
 
 const DAY_ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 

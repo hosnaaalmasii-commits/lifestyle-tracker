@@ -1,4 +1,4 @@
-import { streakFromDateSet } from './streaks'
+import { streakFromDateSet, longestStreakFromDateSet } from './streaks'
 
 const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
 
@@ -29,6 +29,21 @@ export function computeBadges(data) {
   const moodCount = data.mood.length
   const weightCount = data.weight.length
   const fullDays = fullNutritionDays(data.nutrition)
+  const moodDates = new Set(data.mood.map((m) => m.date))
+  const moodStreak = streakFromDateSet(moodDates)
+  const longestWaterStreak = longestStreakFromDateSet(waterGoalDates)
+  const longestWorkoutStreak = longestStreakFromDateSet(workoutDates)
+  const prCount = Object.values(data.workouts.exerciseLogs || {}).reduce((sum, logs) => sum + logs.length, 0)
+  const usedAllSections = ['water', 'sleep', 'workouts', 'weight', 'mood', 'nutrition', 'photos'].every((k) => {
+    if (k === 'water') return Object.keys(data.water).length > 0
+    if (k === 'sleep') return Object.keys(data.sleep).length > 0
+    if (k === 'workouts') return workoutTotal > 0
+    if (k === 'weight') return weightCount > 0
+    if (k === 'mood') return moodCount > 0
+    if (k === 'nutrition') return fullDays > 0 || Object.keys(data.nutrition).length > 0
+    if (k === 'photos') return photoCount > 0
+    return false
+  })
 
   const list = [
     {
@@ -114,6 +129,55 @@ export function computeBadges(data) {
       description: 'Log your weight 10 times',
       icon: '📈',
       unlocked: weightCount >= 10,
+    },
+    {
+      id: 'checked-in',
+      name: 'Checked In',
+      description: 'Log your mood 5 days in a row',
+      icon: '💬',
+      unlocked: moodStreak >= 5,
+    },
+    {
+      id: 'century-water',
+      name: 'Century Club',
+      description: 'Hit your water goal on 100 different days',
+      icon: '💯',
+      unlocked: waterGoalDates.size >= 100,
+    },
+    {
+      id: 'unbreakable-water',
+      name: 'Unbreakable',
+      description: 'Reach a 60-day water streak',
+      icon: '🛡️',
+      unlocked: longestWaterStreak >= 60,
+    },
+    {
+      id: 'century-workout',
+      name: 'Centurion',
+      description: 'Complete 100 workouts in total',
+      icon: '👑',
+      unlocked: workoutTotal >= 100,
+    },
+    {
+      id: 'personal-best',
+      name: 'Personal Best',
+      description: 'Log your first exercise PR',
+      icon: '💪',
+      unlocked: prCount >= 1,
+    },
+    {
+      id: 'well-rounded',
+      name: 'Well Rounded',
+      description: 'Use every section of the app at least once',
+      icon: '🧭',
+      unlocked: usedAllSections,
+    },
+    {
+      id: 'marathon-workout',
+      name: 'Marathon',
+      description: 'Reach a 30-day workout streak',
+      icon: '🏃',
+      unlocked: longestWorkoutStreak >= 30,
     },
   ]
 

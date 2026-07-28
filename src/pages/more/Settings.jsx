@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
+import { THEME_PRESETS } from '../../utils/colorPresets'
 import BackHeader from '../../components/BackHeader'
 import SegmentedControl from '../../components/SegmentedControl'
 import ColorPicker from '../../components/ColorPicker'
@@ -11,6 +12,17 @@ const THEME_OPTIONS = [
   { value: 'dark', label: 'Dark' },
 ]
 
+const FONT_OPTIONS = [
+  { value: 'fraunces', label: 'Fraunces' },
+  { value: 'playfair', label: 'Playfair' },
+  { value: 'space', label: 'Modern' },
+]
+
+const DENSITY_OPTIONS = [
+  { value: 'comfortable', label: 'Comfortable' },
+  { value: 'compact', label: 'Compact' },
+]
+
 const COLOR_FIELDS = [
   { key: 'accent', label: 'Main accent' },
   { key: 'ring', label: 'Progress ring' },
@@ -20,7 +32,11 @@ const COLOR_FIELDS = [
 ]
 
 export default function Settings({ onBack }) {
-  const { data, setThemeMode, setColor, resetColors, setWeightUnit, exportData, importData, clearAll } = useApp()
+  const {
+    data, setThemeMode, setColor, resetColors, applyThemePreset,
+    setHeadingFont, setDensity, setUseGradientAccents,
+    setWeightUnit, exportData, importData, clearAll,
+  } = useApp()
   const importRef = useRef(null)
   const [confirmClear, setConfirmClear] = useState(false)
   const [importError, setImportError] = useState('')
@@ -47,11 +63,57 @@ export default function Settings({ onBack }) {
       <BackHeader eyebrow="More" title="Settings" onBack={onBack} />
 
       <div className="section-title">Appearance</div>
-      <div className="card">
+      <div className="card stack">
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Theme</label>
           <SegmentedControl options={THEME_OPTIONS} value={data.settings.themeMode} onChange={setThemeMode} />
         </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Heading font</label>
+          <SegmentedControl options={FONT_OPTIONS} value={data.settings.headingFont} onChange={setHeadingFont} />
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Layout density</label>
+          <SegmentedControl options={DENSITY_OPTIONS} value={data.settings.density} onChange={setDensity} />
+        </div>
+        <div className="row">
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Gradient accents</div>
+            <div className="text-sm faint">Blend the ring &amp; primary buttons into a second color</div>
+          </div>
+          <button
+            className={`switch${data.settings.useGradientAccents ? ' on' : ''}`}
+            onClick={() => setUseGradientAccents(!data.settings.useGradientAccents)}
+            aria-label="Gradient accents"
+          />
+        </div>
+      </div>
+
+      <div className="section-title">Theme presets</div>
+      <div className="scroll-x">
+        {THEME_PRESETS.map((preset) => (
+          <button
+            key={preset.name}
+            onClick={() => applyThemePreset(preset.colors)}
+            style={{
+              flexShrink: 0, width: 92, background: 'var(--surface)', border: '1px solid var(--border-soft)',
+              borderRadius: 'var(--radius-md)', padding: '12px 8px', cursor: 'pointer', textAlign: 'center',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', gap: -6 }}>
+              {[preset.colors.accent, preset.colors.water, preset.colors.workout].map((c, i) => (
+                <span
+                  key={i}
+                  style={{
+                    width: 22, height: 22, borderRadius: '50%', background: c,
+                    border: '2px solid var(--surface)', marginLeft: i === 0 ? 0 : -8,
+                  }}
+                />
+              ))}
+            </div>
+            <div className="text-sm" style={{ marginTop: 8, fontWeight: 600, lineHeight: 1.2 }}>{preset.name}</div>
+          </button>
+        ))}
       </div>
 
       <div className="section-title">Colors</div>
@@ -59,6 +121,9 @@ export default function Settings({ onBack }) {
         {COLOR_FIELDS.map((f) => (
           <ColorPicker key={f.key} label={f.label} value={data.settings.colors[f.key]} onChange={(hex) => setColor(f.key, hex)} />
         ))}
+        {data.settings.useGradientAccents && (
+          <ColorPicker label="Gradient end" value={data.settings.colors.gradientEnd} onChange={(hex) => setColor('gradientEnd', hex)} />
+        )}
         <button className="btn btn-ghost btn-sm" onClick={resetColors}>Reset to defaults</button>
       </div>
 
