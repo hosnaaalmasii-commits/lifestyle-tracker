@@ -19,11 +19,18 @@ export const COLOR_PRESETS = [
   { name: 'Ocean', hex: '#4E8FB0' },
   { name: 'Moss', hex: '#6B7F52' },
   { name: 'Sage', hex: '#8DA377' },
-  { name: 'Gold', hex: '#C99A3F' },
   { name: 'Terracotta', hex: '#B0704A' },
   { name: 'Coral', hex: '#C97B63' },
   { name: 'Rose', hex: '#C06C84' },
   { name: 'Charcoal', hex: '#4A4A45' },
+  // Luxury metallics
+  { name: 'Champagne Gold', hex: '#D4B96A' },
+  { name: 'Antique Gold', hex: '#C9A227' },
+  { name: 'Rose Gold', hex: '#B76E79' },
+  { name: 'Bronze', hex: '#A97142' },
+  { name: 'Platinum', hex: '#B9B4A8' },
+  { name: 'Pearl', hex: '#E4D9C0' },
+  { name: 'Onyx', hex: '#2B2620' },
 ]
 
 export const DEFAULT_COLORS = {
@@ -42,4 +49,6 @@ export const THEME_PRESETS = [
   { name: 'Sage & Plum', colors: { accent: '#8E4585', ring: '#9B7EBD', water: '#6B7F52', sleep: '#8DA377', workout: '#8E4585', gradientEnd: '#CDA4DE' } },
   { name: 'Orchid Bloom', colors: { accent: '#C77DD2', ring: '#C77DD2', water: '#4E9490', sleep: '#9B7EBD', workout: '#C06C84', gradientEnd: '#F0C6F5' } },
   { name: 'Moss & Mauve', colors: { accent: '#9B7EBD', ring: '#9966CC', water: '#6B7F52', sleep: '#6B7F52', workout: '#B0704A', gradientEnd: '#CDA4DE' } },
+  { name: 'Champagne Gold', colors: { accent: '#C9A227', ring: '#D4B96A', water: '#7FA8B0', sleep: '#9B8A6B', workout: '#A97142', gradientEnd: '#F0DFA8' } },
+  { name: 'Onyx & Gold', colors: { accent: '#C9A227', ring: '#D4B96A', water: '#5B6B75', sleep: '#6B5B4A', workout: '#8C6B2E', gradientEnd: '#E8C87A' } },
 ]
