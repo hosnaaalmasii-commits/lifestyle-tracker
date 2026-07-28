@@ -1,0 +1,123 @@
+import { useRef, useState } from 'react'
+import { useApp } from '../../context/AppContext'
+import BackHeader from '../../components/BackHeader'
+import SegmentedControl from '../../components/SegmentedControl'
+import ColorPicker from '../../components/ColorPicker'
+import ConfirmDialog from '../../components/ConfirmDialog'
+
+const THEME_OPTIONS = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+]
+
+const COLOR_FIELDS = [
+  { key: 'accent', label: 'Main accent' },
+  { key: 'ring', label: 'Progress ring' },
+  { key: 'water', label: 'Water section' },
+  { key: 'sleep', label: 'Sleep section' },
+  { key: 'workout', label: 'Workout section' },
+]
+
+export default function Settings({ onBack }) {
+  const { data, setThemeMode, setColor, resetColors, setWeightUnit, exportData, importData, clearAll } = useApp()
+  const importRef = useRef(null)
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [importError, setImportError] = useState('')
+  const [importedOk, setImportedOk] = useState(false)
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportError('')
+    setImportedOk(false)
+    try {
+      const text = await file.text()
+      importData(text)
+      setImportedOk(true)
+    } catch {
+      setImportError('Could not read that file — make sure it\'s a backup exported from this app.')
+    } finally {
+      e.target.value = ''
+    }
+  }
+
+  return (
+    <div className="page">
+      <BackHeader eyebrow="More" title="Settings" onBack={onBack} />
+
+      <div className="section-title">Appearance</div>
+      <div className="card">
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Theme</label>
+          <SegmentedControl options={THEME_OPTIONS} value={data.settings.themeMode} onChange={setThemeMode} />
+        </div>
+      </div>
+
+      <div className="section-title">Colors</div>
+      <div className="card">
+        {COLOR_FIELDS.map((f) => (
+          <ColorPicker key={f.key} label={f.label} value={data.settings.colors[f.key]} onChange={(hex) => setColor(f.key, hex)} />
+        ))}
+        <button className="btn btn-ghost btn-sm" onClick={resetColors}>Reset to defaults</button>
+      </div>
+
+      <div className="section-title">Units</div>
+      <div className="card">
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Weight unit</label>
+          <SegmentedControl
+            options={[{ value: 'kg', label: 'Kilograms' }, { value: 'lb', label: 'Pounds' }]}
+            value={data.settings.weightUnit}
+            onChange={setWeightUnit}
+          />
+        </div>
+      </div>
+
+      <div className="section-title">Your data</div>
+      <div className="card stack">
+        <div className="row">
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Export backup</div>
+            <div className="text-sm faint">Save everything as a JSON file</div>
+          </div>
+          <button className="btn btn-secondary btn-sm" onClick={exportData}>Export</button>
+        </div>
+        <div className="row">
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Import backup</div>
+            <div className="text-sm faint">Replace current data from a file</div>
+          </div>
+          <button className="btn btn-secondary btn-sm" onClick={() => importRef.current?.click()}>Import</button>
+          <input ref={importRef} type="file" accept="application/json" hidden onChange={handleImportFile} />
+        </div>
+        {importedOk && <div className="text-sm" style={{ color: 'var(--success)' }}>Backup imported successfully.</div>}
+        {importError && <div className="text-sm" style={{ color: 'var(--danger)' }}>{importError}</div>}
+      </div>
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="row">
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Clear everything</div>
+            <div className="text-sm faint">Erase all local data on this device</div>
+          </div>
+          <button className="btn btn-danger btn-sm" onClick={() => setConfirmClear(true)}>Clear</button>
+        </div>
+      </div>
+
+      <p className="text-sm faint" style={{ textAlign: 'center', margin: '28px 0 8px' }}>
+        Lifestyle Tracker · data stays on this device
+      </p>
+
+      <ConfirmDialog
+        open={confirmClear}
+        title="Clear everything?"
+        message="This permanently deletes all water, sleep, workout, weight, mood, nutrition and photo data on this device. This can't be undone."
+        confirmLabel="Clear everything"
+        danger
+        onCancel={() => setConfirmClear(false)}
+        onConfirm={() => { clearAll(); setConfirmClear(false) }}
+      />
+    </div>
+  )
+}
