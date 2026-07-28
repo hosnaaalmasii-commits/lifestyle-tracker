@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { THEME_PRESETS } from '../../utils/colorPresets'
+import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
+import { PERSONALITIES } from '../../utils/coachContext'
 import BackHeader from '../../components/BackHeader'
 import SegmentedControl from '../../components/SegmentedControl'
 import ColorPicker from '../../components/ColorPicker'
@@ -41,6 +43,38 @@ export default function Settings({ onBack }) {
   const [confirmClear, setConfirmClear] = useState(false)
   const [importError, setImportError] = useState('')
   const [importedOk, setImportedOk] = useState(false)
+
+  const [apiKeyInput, setApiKeyInput] = useState(getApiKey())
+  const [showKey, setShowKey] = useState(false)
+  const [coachSettings, setCoachSettingsState] = useState(getCoachSettings())
+  const [testStatus, setTestStatus] = useState('idle') // idle | testing | ok | error
+  const [testMessage, setTestMessage] = useState('')
+
+  const saveKey = (value) => {
+    setApiKeyInput(value)
+    setApiKey(value)
+    setTestStatus('idle')
+  }
+
+  const updateCoachSetting = (partial) => {
+    setCoachSettingsState(setCoachSettings(partial))
+  }
+
+  const testConnection = async () => {
+    setTestStatus('testing')
+    setTestMessage('')
+    try {
+      await sendToClaude({
+        system: 'Reply with exactly one word: "Connected".',
+        messages: [{ role: 'user', content: 'ping' }],
+        maxTokens: 10,
+      })
+      setTestStatus('ok')
+    } catch (e) {
+      setTestStatus('error')
+      setTestMessage(e instanceof ClaudeApiError ? e.message : 'Something went wrong.')
+    }
+  }
 
   const handleImportFile = async (e) => {
     const file = e.target.files?.[0]
@@ -139,6 +173,57 @@ export default function Settings({ onBack }) {
         </div>
       </div>
 
+      <div className="section-title">AI Coach</div>
+      <div className="card stack">
+        <p className="text-sm muted" style={{ margin: 0 }}>
+          Bring your own Claude API key to unlock the in-app coach. Requests go straight from this browser to Anthropic — never through any server of ours, and your key is stored only in this browser's local storage (it's excluded from data export/backup).
+        </p>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Anthropic API key</label>
+          <div className="row" style={{ gap: 8 }}>
+            <input
+              className="input"
+              style={{ flex: 1 }}
+              type={showKey ? 'text' : 'password'}
+              placeholder="sk-ant-…"
+              value={apiKeyInput}
+              onChange={(e) => saveKey(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowKey((s) => !s)}>{showKey ? 'Hide' : 'Show'}</button>
+          </div>
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Model</label>
+          <select className="input" value={coachSettings.model} onChange={(e) => updateCoachSetting({ model: e.target.value })}>
+            {MODEL_OPTIONS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+          </select>
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Coach personality</label>
+          <div className="scroll-x">
+            {PERSONALITIES.map((p) => (
+              <button
+                key={p.id}
+                className={`chip${p.id === coachSettings.personality ? ' selected' : ''}`}
+                onClick={() => updateCoachSetting({ personality: p.id })}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="row">
+          <button className="btn btn-secondary btn-sm" disabled={!apiKeyInput || testStatus === 'testing'} onClick={testConnection}>
+            {testStatus === 'testing' ? 'Testing…' : 'Test connection'}
+          </button>
+          {apiKeyInput && <button className="btn btn-ghost btn-sm" onClick={() => saveKey('')}>Remove key</button>}
+        </div>
+        {testStatus === 'ok' && <div className="text-sm" style={{ color: 'var(--success)' }}>Connected — your coach is ready.</div>}
+        {testStatus === 'error' && <div className="text-sm" style={{ color: 'var(--danger)' }}>{testMessage}</div>}
+      </div>
+
       <div className="section-title">Your data</div>
       <div className="card stack">
         <div className="row">
@@ -164,7 +249,7 @@ export default function Settings({ onBack }) {
         <div className="row">
           <div>
             <div style={{ fontWeight: 600, fontSize: 14 }}>Clear everything</div>
-            <div className="text-sm faint">Erase all local data on this device</div>
+            <div className="text-sm faint">Erase all local data, including your API key</div>
           </div>
           <button className="btn btn-danger btn-sm" onClick={() => setConfirmClear(true)}>Clear</button>
         </div>
@@ -177,11 +262,18 @@ export default function Settings({ onBack }) {
       <ConfirmDialog
         open={confirmClear}
         title="Clear everything?"
-        message="This permanently deletes all water, sleep, workout, weight, mood, nutrition and photo data on this device. This can't be undone."
+        message="This permanently deletes all water, sleep, workout, weight, mood, nutrition and photo data, plus your saved API key and coach chat history, on this device. This can't be undone."
         confirmLabel="Clear everything"
         danger
         onCancel={() => setConfirmClear(false)}
-        onConfirm={() => { clearAll(); setConfirmClear(false) }}
+        onConfirm={() => {
+          clearAll()
+          saveKey('')
+          Object.keys(localStorage)
+            .filter((k) => k.startsWith('lifestyle-tracker-daily-note-') || k === 'lifestyle-tracker-coach-chat')
+            .forEach((k) => localStorage.removeItem(k))
+          setConfirmClear(false)
+        }}
       />
     </div>
   )

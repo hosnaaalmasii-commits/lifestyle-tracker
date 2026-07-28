@@ -3,13 +3,15 @@ import Mood from './more/Mood'
 import Nutrition from './more/Nutrition'
 import Badges from './more/Badges'
 import Insights from './more/Insights'
+import Coach from './more/Coach'
 import Settings from './more/Settings'
 
 const ITEMS = [
+  { id: 'coach', label: 'Coach', desc: 'AI chat grounded in your data', icon: '✨' },
   { id: 'weight', label: 'Weight', desc: 'Trend over time', icon: '⚖️' },
   { id: 'mood', label: 'Mood', desc: 'Emoji scale & notes', icon: '🙂' },
   { id: 'nutrition', label: 'Nutrition', desc: 'Daily checklist', icon: '🥗' },
-  { id: 'insights', label: 'Insights', desc: 'Patterns in your data', icon: '✨' },
+  { id: 'insights', label: 'Insights', desc: 'Patterns in your data', icon: '📈' },
   { id: 'badges', label: 'Badges & Level', desc: 'Achievements, XP, challenges', icon: '🏅' },
   { id: 'settings', label: 'Settings', desc: 'Colors, theme, data', icon: '⚙️' },
 ]
@@ -19,6 +21,7 @@ export default function More({ view, setView }) {
   if (view === 'mood') return <Mood onBack={() => setView(null)} />
   if (view === 'nutrition') return <Nutrition onBack={() => setView(null)} />
   if (view === 'insights') return <Insights onBack={() => setView(null)} />
+  if (view === 'coach') return <Coach onBack={() => setView(null)} setView={setView} />
   if (view === 'badges') return <Badges onBack={() => setView(null)} />
   if (view === 'settings') return <Settings onBack={() => setView(null)} />
 

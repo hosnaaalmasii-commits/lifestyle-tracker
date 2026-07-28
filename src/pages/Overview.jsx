@@ -83,6 +83,20 @@ export default function Overview({ onNavigate }) {
         <LevelBar xp={xp} compact />
       </button>
 
+      <button
+        className="card"
+        style={{ marginTop: 12, textAlign: 'left', cursor: 'pointer' }}
+        onClick={() => onNavigate('more', 'coach')}
+      >
+        <div className="row" style={{ gap: 12, justifyContent: 'flex-start' }}>
+          <span style={{ fontSize: 20 }}>✨</span>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Ask your coach</div>
+            <div className="text-sm faint">Chat about today, grounded in your real data</div>
+          </div>
+        </div>
+      </button>
+
       {topInsights.length > 0 && (
         <>
           <div className="section-title">Insights</div>
