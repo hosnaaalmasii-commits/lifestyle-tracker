@@ -261,3 +261,349 @@
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3px); }
 }
+
+/* ==========================================================================
+   Terminal layout — the Fintech-mode Overview screen. A wallet-card
+   carousel, a multi-ring "flight dial", a boarding-pass ticket, a weekly
+   seat-map, passport-stamp badges and a bento grid replace the plain
+   vertical stack of cards used everywhere else. Scoped to .terminal so it
+   never leaks into other pages, which keep the simpler card-based skin
+   above.
+   ========================================================================== */
+
+.terminal { position: relative; }
+
+.terminal-radar {
+  position: absolute;
+  top: -20px; left: -18px; right: -18px;
+  height: 420px;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(70% 60% at 50% 20%, #000 0%, transparent 75%);
+  mask-image: radial-gradient(70% 60% at 50% 20%, #000 0%, transparent 75%);
+}
+
+.terminal-topbar { margin-bottom: 4px; }
+
+.terminal-dot { color: var(--success); }
+
+.terminal .headline {
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: 30px;
+  margin: 4px 0 0;
+  letter-spacing: -0.01em;
+}
+
+/* ---- Wallet card rail ---- */
+
+.wallet-rail {
+  display: flex;
+  gap: 14px;
+  padding: 6px 2px 4px;
+  margin: 14px -2px 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  perspective: 900px;
+}
+.wallet-rail::-webkit-scrollbar { display: none; }
+
+.wallet-card {
+  scroll-snap-align: start;
+  flex: 0 0 78%;
+  max-width: 300px;
+  border-radius: var(--radius-lg);
+  padding: 20px 20px 18px;
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  box-shadow: 0 20px 44px -14px rgba(0, 0, 0, 0.6);
+  transform-style: preserve-3d;
+  transition: transform 0.15s ease-out;
+  will-change: transform;
+}
+
+.wallet-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.16), transparent 55%);
+  pointer-events: none;
+}
+
+.wallet-sheen {
+  position: absolute; inset: 0;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 20%), rgba(255, 255, 255, 0.35), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.wallet-card:hover .wallet-sheen { opacity: 1; }
+
+.wallet-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.82;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wallet-chip {
+  width: 22px; height: 15px; border-radius: 3px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.15));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.wallet-number {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1.1;
+  margin-top: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-suffix { font-size: 15px; font-weight: 600; opacity: 0.75; }
+
+.wallet-sub { font-size: 12.5px; opacity: 0.85; margin-top: 2px; }
+
+.wallet-card svg:not(.wallet-sheen-svg) { position: relative; z-index: 1; }
+
+.wallet-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 10px 0 4px;
+}
+.wallet-dots span {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--border);
+}
+.wallet-dots span.on { width: 16px; border-radius: 3px; background: var(--fintech-grad-from); }
+
+/* ---- Flight dial ---- */
+
+.flight-dial-section {
+  margin-top: 22px;
+  background: linear-gradient(180deg, var(--surface-raised), var(--surface));
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 26px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.flight-dial-section::before {
+  content: '';
+  position: absolute;
+  inset: -60%;
+  background: conic-gradient(from 0deg, transparent 0 85%, rgba(255, 255, 255, 0.1) 92%, transparent 100%);
+  animation: dial-sweep 5s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .flight-dial-section::before { animation: none; } }
+@keyframes dial-sweep { to { transform: rotate(360deg); } }
+
+.flight-dial-wrap { position: relative; z-index: 1; }
+
+.flight-dial-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+
+.flight-dial-score { font-size: 46px; }
+
+.dial-legend {
+  display: flex;
+  gap: 18px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.dial-legend-item { display: flex; align-items: center; gap: 7px; }
+.dial-swatch { width: 9px; height: 9px; border-radius: 50%; }
+.dial-legend-label { font-size: 12.5px; color: var(--text-soft); }
+.dial-legend-value { font-size: 12.5px; color: var(--text); font-weight: 600; }
+
+/* ---- Weekly manifest (seat map) ---- */
+
+.manifest {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 16px 14px;
+  justify-content: space-between;
+  box-shadow: var(--shadow-md);
+}
+
+.seat { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+
+.seat-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--text-faint); }
+
+.seat-cell {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-soft);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+}
+
+.seat.filled .seat-cell {
+  background: linear-gradient(155deg, var(--fintech-grad-from), var(--fintech-grad-to));
+  border-color: transparent;
+  box-shadow: 0 4px 12px -3px color-mix(in srgb, var(--fintech-grad-to) 60%, transparent);
+}
+
+.seat.today .seat-cell {
+  border-color: var(--fintech-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--fintech-accent) 40%, transparent);
+}
+
+/* ---- Boarding pass ---- */
+
+.boarding-pass {
+  display: flex;
+  width: 100%;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  text-align: left;
+}
+
+.pass-main { flex: 1; padding: 20px 18px 16px; }
+
+.pass-route { font-family: var(--font-heading); font-weight: 700; font-size: 22px; margin: 6px 0 10px; }
+
+.pass-meta { display: flex; gap: 18px; font-family: var(--font-mono); font-size: 11px; color: var(--text-soft); }
+.pass-meta b { color: var(--text); display: block; font-size: 13px; margin-top: 2px; font-weight: 700; }
+
+.pass-perf {
+  width: 0;
+  border-left: 2px dashed var(--border);
+  position: relative;
+}
+.pass-perf::before, .pass-perf::after {
+  content: '';
+  position: absolute;
+  left: -9px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--bg);
+}
+.pass-perf::before { top: -9px; }
+.pass-perf::after { bottom: -9px; }
+
+.pass-stub {
+  width: 78px;
+  background: linear-gradient(160deg, var(--fintech-accent), var(--fintech-grad-to));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+}
+
+.barcode { display: flex; gap: 2px; align-items: flex-end; height: 30px; }
+.barcode span { width: 2px; background: rgba(0, 0, 0, 0.4); display: block; }
+
+.pass-go {
+  writing-mode: vertical-rl;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #1b1204;
+  font-weight: 700;
+}
+
+/* ---- Passport stamps ---- */
+
+.stamps-panel {
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0 2px, transparent 2px 14px),
+    var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 20px 8px;
+  display: flex;
+  justify-content: space-around;
+}
+
+.stamps-empty { justify-content: center; padding: 24px; }
+
+.stamp { width: 78px; height: 78px; }
+.stamp:nth-child(1) { transform: rotate(-8deg); }
+.stamp:nth-child(2) { transform: rotate(6deg); margin-top: 8px; }
+.stamp:nth-child(3) { transform: rotate(-4deg); }
+
+/* ---- Bento grid ---- */
+
+.bento {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: auto auto;
+  gap: 12px;
+}
+
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.tile-mascot {
+  grid-column: span 2;
+  grid-row: span 2;
+  background: linear-gradient(160deg, var(--fintech-grad-from), var(--fintech-grad-to));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 210px;
+  border: none;
+  color: #fff;
+}
+
+.tile-mascot::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(from 120deg, transparent 0 20%, rgba(255, 255, 255, 0.16) 30%, transparent 40% 100%);
+  animation: holo-sweep 7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .tile-mascot::before { animation: none; } }
+@keyframes holo-sweep { to { transform: rotate(360deg); } }
+
+.tile-xp { grid-column: span 2; }
+.tile-streak { grid-column: span 1; }
+.tile-badges { grid-column: span 1; }
+
+.tile-num { font-size: 24px; margin-top: 8px; }
+
+.xp-track {
+  height: 6px; border-radius: 3px; background: var(--border-soft);
+  margin-top: 10px; overflow: hidden;
+}
+.xp-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--fintech-grad-from), var(--fintech-grad-to));
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+}

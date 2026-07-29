@@ -4,7 +4,7 @@ import { todayKey, humanDateFull, lastNDayKeys, addDaysToKey } from '../utils/da
 import { streakFromDateSet } from '../utils/streaks'
 import { computeInsights } from '../utils/insights'
 import { computeBadges } from '../utils/badges'
-import { computeXP } from '../utils/gamification'
+import { computeXP, levelProgress } from '../utils/gamification'
 import { computeConsistencyScore } from '../utils/consistencyScore'
 import Ring from '../components/Ring'
 import MiniCard from '../components/MiniCard'
@@ -15,13 +15,16 @@ import MoodCheckIn from '../components/MoodCheckIn'
 import { activeContractsToday, getTriggerType } from '../utils/habitContracts'
 import { getMicroHabit } from '../utils/microHabits'
 import { getGPSStatus } from '../utils/lifestyleGPS'
-import { faceIconForEmoji } from '../utils/moodActions'
+import { faceIconForEmoji, MOOD_SCALE } from '../utils/moodActions'
 import Icon from '../components/Icon'
 import MascotCard from '../components/MascotCard'
 import Sparkline from '../components/Sparkline'
 import ChangeIndicator from '../components/ChangeIndicator'
+import OverviewTerminal from './OverviewTerminal'
 
 const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
+const QUALITY_LABELS = ['Rough', 'Poor', 'Okay', 'Good', 'Great']
+const WEEKDAY_LETTER = { Mon: 'M', Tue: 'T', Wed: 'W', Thu: 'T', Fri: 'F', Sat: 'S', Sun: 'S' }
 
 export default function Overview({ onNavigate }) {
   const { data } = useApp()
@@ -35,7 +38,8 @@ export default function Overview({ onNavigate }) {
 
   const todaysWorkout = data.workouts.schedule.find((d) => d.day === weekdayAbbrev(today))
   const isRestDay = !todaysWorkout || todaysWorkout.rest
-  const workoutRatio = isRestDay ? 1 : (data.workouts.completions[today] ? 1 : 0)
+  const workoutCompleted = !!data.workouts.completions[today]
+  const workoutRatio = isRestDay ? 1 : (workoutCompleted ? 1 : 0)
 
   const score = Math.round(((waterRatio + sleepRatio + workoutRatio) / 3) * 100)
 
@@ -54,12 +58,15 @@ export default function Overview({ onNavigate }) {
   const workoutStreak = streakFromDateSet(new Set(Object.keys(data.workouts.completions).filter((k) => data.workouts.completions[k])))
 
   const todaysMood = [...data.mood].reverse().find((m) => m.date === today)
+  const moodLabel = todaysMood ? (MOOD_SCALE.find((m) => m.emoji === todaysMood.emoji)?.label || 'Logged') : 'Not logged'
   const latestWeight = data.weight[data.weight.length - 1]
   const nutritionToday = data.nutrition[today] || {}
   const nutritionCount = NUTRITION_KEYS.filter((k) => nutritionToday[k]).length
 
   const badges = computeBadges(data)
-  const xp = computeXP(data, badges.filter((b) => b.unlocked).length)
+  const unlockedBadges = badges.filter((b) => b.unlocked)
+  const xp = computeXP(data, unlockedBadges.length)
+  const levelInfo = levelProgress(xp)
   const topInsights = computeInsights(data).slice(0, 2)
 
   const { useGradientAccents, uiStyle } = data.settings
@@ -76,43 +83,118 @@ export default function Overview({ onNavigate }) {
   const waterDelta = data.water[yesterday] != null ? waterToday - data.water[yesterday] : null
   const sleepDelta = data.sleep[yesterday] != null && sleepToday ? +(sleepToday.hours - data.sleep[yesterday].hours).toFixed(1) : null
 
+  // ---- Terminal-layout-only data (only computed for meaningful cost when used, but cheap enough to always derive) ----
+  const walletCards = [
+    {
+      key: 'water', eyebrow: 'Water', value: waterToday, valueSuffix: 'ml',
+      sub: `of ${data.settings.waterGoalMl} ml goal`, trend: waterTrend,
+      gradient: 'linear-gradient(140deg, var(--accent-water), var(--fintech-grad-to))',
+    },
+    {
+      key: 'sleep', eyebrow: 'Sleep', value: sleepToday ? sleepToday.hours : '—', valueSuffix: sleepToday ? 'h' : '',
+      sub: sleepToday ? `Quality: ${QUALITY_LABELS[sleepToday.quality - 1] || '—'}` : `Goal: ${data.settings.sleepGoalHours}h`,
+      trend: sleepTrend,
+      gradient: 'linear-gradient(140deg, var(--accent-sleep), var(--fintech-grad-from))',
+    },
+    {
+      key: 'workout', eyebrow: 'Workout',
+      value: isRestDay ? 'Rest day' : (todaysWorkout?.label || 'Not set up'),
+      sub: isRestDay ? 'Recovery day' : `${todaysWorkout?.exercises.length || 0} exercises · ${workoutCompleted ? 'done' : 'not started'}`,
+      gradient: 'linear-gradient(140deg, var(--accent-workout), var(--fintech-accent))',
+    },
+    {
+      key: 'mood', eyebrow: 'Mood', value: moodLabel,
+      sub: todaysMood ? 'Logged today' : 'Tap to log',
+      gradient: 'linear-gradient(140deg, var(--fintech-accent), var(--fintech-grad-to))',
+    },
+  ]
+
+  const dialRings = [
+    { key: 'water', label: 'Water', ratio: waterRatio, color: 'var(--accent-water)' },
+    { key: 'sleep', label: 'Sleep', ratio: sleepRatio, color: 'var(--accent-sleep)' },
+    { key: 'workout', label: 'Workout', ratio: workoutRatio, color: 'var(--accent-workout)' },
+  ]
+
+  const weekDays = last7.map((k) => ({
+    key: k,
+    label: WEEKDAY_LETTER[weekdayAbbrev(k)],
+    filled: !!data.workouts.completions[k],
+    today: k === today,
+  }))
+
+  const workoutPass = isRestDay
+    ? { eyebrow: 'Recovery day', title: 'Rest & reset', meta: [{ label: 'Status', value: 'Scheduled rest' }], stubLabel: 'Rest', done: true }
+    : {
+      eyebrow: `${todaysWorkout.label} · Strength`,
+      title: workoutCompleted ? 'Completed' : todaysWorkout.label,
+      meta: [
+        { label: 'Exercises', value: todaysWorkout.exercises.length },
+        { label: 'Sets', value: todaysWorkout.exercises.reduce((s, e) => s + e.sets, 0) },
+      ],
+      stubLabel: workoutCompleted ? 'Done' : 'Start',
+      done: workoutCompleted,
+    }
+
+  const stampBadges = unlockedBadges.slice(0, 3)
+  const streakTile = Math.max(waterStreak, sleepStreak, workoutStreak)
+
   return (
     <div className="page">
       <Confetti trigger={confettiTick} />
-      <div className="page-header">
-        <div className="eyebrow">{humanDateFull(today)}</div>
-        <h1>Today</h1>
-      </div>
 
-      <div className="card hero-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 18px' }}>
-        <Ring
-          value={score / 100}
-          size={168}
-          stroke={15}
-          color="var(--accent-ring)"
-          gradientTo={(fintechOn || useGradientAccents) ? 'var(--accent-gradient-end)' : undefined}
-        >
-          <div className="mono" style={{ fontSize: 36, fontWeight: 700, lineHeight: 1 }}>{score}</div>
-          <div className="text-sm muted" style={{ marginTop: 4 }}>daily score</div>
-        </Ring>
-        <div style={{ display: 'flex', gap: 18, marginTop: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <StreakBadge days={waterStreak} label="water" />
-          <StreakBadge days={sleepStreak} label="sleep" />
-          <StreakBadge days={workoutStreak} label="workout" />
-        </div>
-        <div
-          style={{
-            marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-soft)',
-            width: '100%', display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8,
-          }}
-        >
-          <span className="text-sm muted">Consistency</span>
-          <span className="mono" style={{ fontWeight: 700 }}>{consistency.score}</span>
-          <span className="text-sm" style={{ color: 'var(--accent)', fontWeight: 600 }}>{consistency.label}</span>
-        </div>
-      </div>
+      {fintechOn ? (
+        <OverviewTerminal
+          today={today}
+          score={score}
+          xp={xp}
+          levelInfo={levelInfo}
+          wallet={walletCards}
+          dialRings={dialRings}
+          weekDays={weekDays}
+          workoutPass={workoutPass}
+          stampBadges={stampBadges}
+          streakTile={streakTile}
+          badgeTotals={`${unlockedBadges.length}/${badges.length}`}
+          onNavigate={onNavigate}
+        />
+      ) : (
+        <>
+          <div className="page-header">
+            <div className="eyebrow">{humanDateFull(today)}</div>
+            <h1>Today</h1>
+          </div>
 
-      <MascotCard xp={xp} onClick={() => onNavigate('more', 'badges')} />
+          <div className="card hero-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 18px' }}>
+            <Ring
+              value={score / 100}
+              size={168}
+              stroke={15}
+              color="var(--accent-ring)"
+              gradientTo={useGradientAccents ? 'var(--accent-gradient-end)' : undefined}
+            >
+              <div className="mono" style={{ fontSize: 36, fontWeight: 700, lineHeight: 1 }}>{score}</div>
+              <div className="text-sm muted" style={{ marginTop: 4 }}>daily score</div>
+            </Ring>
+            <div style={{ display: 'flex', gap: 18, marginTop: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <StreakBadge days={waterStreak} label="water" />
+              <StreakBadge days={sleepStreak} label="sleep" />
+              <StreakBadge days={workoutStreak} label="workout" />
+            </div>
+            <div
+              style={{
+                marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-soft)',
+                width: '100%', display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8,
+              }}
+            >
+              <span className="text-sm muted">Consistency</span>
+              <span className="mono" style={{ fontWeight: 700 }}>{consistency.score}</span>
+              <span className="text-sm" style={{ color: 'var(--accent)', fontWeight: 600 }}>{consistency.label}</span>
+            </div>
+          </div>
+
+          <MascotCard xp={xp} onClick={() => onNavigate('more', 'badges')} />
+        </>
+      )}
 
       {activeContracts.length > 0 && (
         <button
@@ -143,9 +225,11 @@ export default function Overview({ onNavigate }) {
         </button>
       )}
 
-      <button className="card" style={{ marginTop: 12, textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('more', 'badges')}>
-        <LevelBar xp={xp} compact />
-      </button>
+      {!fintechOn && (
+        <button className="card" style={{ marginTop: 12, textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('more', 'badges')}>
+          <LevelBar xp={xp} compact />
+        </button>
+      )}
 
       <button className="card row" style={{ marginTop: 12, cursor: 'pointer' }} onClick={() => onNavigate('more', 'gps')}>
         <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
@@ -226,35 +310,39 @@ export default function Overview({ onNavigate }) {
         />
       </div>
 
-      <div className="section-title">Today's focus</div>
-      <div className="stack">
-        <SummaryRow
-          color="var(--accent-water)"
-          label="Water"
-          value={`${waterToday} / ${data.settings.waterGoalMl} ml`}
-          ratio={waterRatio}
-          trend={waterTrend}
-          delta={waterDelta}
-          onClick={() => onNavigate('water')}
-        />
-        <SummaryRow
-          color="var(--accent-sleep)"
-          label="Sleep"
-          value={sleepToday ? `${sleepToday.hours}h logged` : `Goal: ${data.settings.sleepGoalHours}h`}
-          ratio={sleepRatio}
-          trend={sleepTrend}
-          delta={sleepDelta}
-          deltaSuffix="h"
-          onClick={() => onNavigate('sleep')}
-        />
-        <SummaryRow
-          color="var(--accent-workout)"
-          label="Workout"
-          value={isRestDay ? 'Rest day' : (data.workouts.completions[today] ? 'Completed' : todaysWorkout?.label || 'Not set up')}
-          ratio={workoutRatio}
-          onClick={() => onNavigate('workouts')}
-        />
-      </div>
+      {!fintechOn && (
+        <>
+          <div className="section-title">Today's focus</div>
+          <div className="stack">
+            <SummaryRow
+              color="var(--accent-water)"
+              label="Water"
+              value={`${waterToday} / ${data.settings.waterGoalMl} ml`}
+              ratio={waterRatio}
+              trend={waterTrend}
+              delta={waterDelta}
+              onClick={() => onNavigate('water')}
+            />
+            <SummaryRow
+              color="var(--accent-sleep)"
+              label="Sleep"
+              value={sleepToday ? `${sleepToday.hours}h logged` : `Goal: ${data.settings.sleepGoalHours}h`}
+              ratio={sleepRatio}
+              trend={sleepTrend}
+              delta={sleepDelta}
+              deltaSuffix="h"
+              onClick={() => onNavigate('sleep')}
+            />
+            <SummaryRow
+              color="var(--accent-workout)"
+              label="Workout"
+              value={isRestDay ? 'Rest day' : (workoutCompleted ? 'Completed' : todaysWorkout?.label || 'Not set up')}
+              ratio={workoutRatio}
+              onClick={() => onNavigate('workouts')}
+            />
+          </div>
+        </>
+      )}
     </div>
   )
 }
