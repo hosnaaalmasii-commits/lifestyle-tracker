@@ -4,6 +4,7 @@ import { todayKey } from '../../utils/dates'
 import { hasApiKey, sendToClaude, getCoachSettings, setCoachSettings, ClaudeApiError } from '../../utils/claudeApi'
 import { PERSONALITIES, getPersonality, buildSystemPrompt } from '../../utils/coachContext'
 import BackHeader from '../../components/BackHeader'
+import Icon from '../../components/Icon'
 
 const CHAT_STORAGE = 'lifestyle-tracker-coach-chat'
 const NOTE_STORAGE_PREFIX = 'lifestyle-tracker-daily-note-'
@@ -96,7 +97,7 @@ export default function Coach({ onBack, setView }) {
       <div className="page">
         <BackHeader eyebrow="More" title="Coach" onBack={onBack} />
         <div className="empty-state">
-          <div className="icon">✨</div>
+          <div className="icon"><Icon name="sparkle" size={26} /></div>
           <p>Connect your own Claude API key to talk to an AI coach that knows your actual data — nothing is sent anywhere until you add a key.</p>
           <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={() => setView('settings')}>Set up in Settings</button>
         </div>
@@ -110,7 +111,7 @@ export default function Coach({ onBack, setView }) {
         eyebrow="More"
         title="Coach"
         onBack={onBack}
-        action={<button className="btn btn-ghost btn-sm" onClick={() => setView('settings')}>⚙️</button>}
+        action={<button className="btn btn-ghost btn-sm" onClick={() => setView('settings')}><Icon name="gear" size={16} /></button>}
       />
 
       <div className="scroll-x" style={{ marginBottom: 16 }}>

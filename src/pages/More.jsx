@@ -7,17 +7,18 @@ import Coach from './more/Coach'
 import HabitContracts from './more/HabitContracts'
 import LifestyleGPS from './more/LifestyleGPS'
 import Settings from './more/Settings'
+import Icon from '../components/Icon'
 
 const ITEMS = [
-  { id: 'coach', label: 'Coach', desc: 'AI chat grounded in your data', icon: '✨' },
-  { id: 'gps', label: 'Lifestyle GPS', desc: 'Your phased roadmap', icon: '🧭' },
-  { id: 'contracts', label: 'Habit Contracts', desc: 'If-then agreements with yourself', icon: '🤝' },
-  { id: 'weight', label: 'Weight', desc: 'Trend over time', icon: '⚖️' },
-  { id: 'mood', label: 'Mood', desc: 'Emoji scale & notes', icon: '🙂' },
-  { id: 'nutrition', label: 'Nutrition', desc: 'Daily checklist', icon: '🥗' },
-  { id: 'insights', label: 'Insights', desc: 'Patterns in your data', icon: '📈' },
-  { id: 'badges', label: 'Badges & Level', desc: 'Achievements, XP, challenges', icon: '🏅' },
-  { id: 'settings', label: 'Settings', desc: 'Colors, theme, data', icon: '⚙️' },
+  { id: 'coach', label: 'Coach', desc: 'AI chat grounded in your data', icon: 'sparkle' },
+  { id: 'gps', label: 'Lifestyle GPS', desc: 'Your phased roadmap', icon: 'compass' },
+  { id: 'contracts', label: 'Habit Contracts', desc: 'If-then agreements with yourself', icon: 'handshake' },
+  { id: 'weight', label: 'Weight', desc: 'Trend over time', icon: 'scale' },
+  { id: 'mood', label: 'Mood', desc: 'Scale & notes', icon: 'faceGood' },
+  { id: 'nutrition', label: 'Nutrition', desc: 'Daily checklist', icon: 'apple' },
+  { id: 'insights', label: 'Insights', desc: 'Patterns in your data', icon: 'trendUp' },
+  { id: 'badges', label: 'Badges & Level', desc: 'Achievements, XP, challenges', icon: 'trophy' },
+  { id: 'settings', label: 'Settings', desc: 'Colors, theme, data', icon: 'gear' },
 ]
 
 export default function More({ view, setView }) {
@@ -48,17 +49,19 @@ export default function More({ view, setView }) {
             <div className="row">
               <div className="row" style={{ gap: 14, justifyContent: 'flex-start' }}>
                 <span style={{
-                  width: 40, height: 40, borderRadius: '50%', background: 'var(--surface-soft)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0,
+                  width: 40, height: 40, borderRadius: '50%',
+                  background: 'color-mix(in srgb, var(--accent) 12%, var(--surface-soft))',
+                  color: 'var(--accent)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                  {item.icon}
+                  <Icon name={item.icon} size={19} />
                 </span>
                 <div>
                   <div style={{ fontWeight: 600 }}>{item.label}</div>
                   <div className="text-sm faint">{item.desc}</div>
                 </div>
               </div>
-              <span className="faint" aria-hidden>›</span>
+              <span className="faint" aria-hidden><Icon name="chevronRight" size={16} /></span>
             </div>
           </button>
         ))}

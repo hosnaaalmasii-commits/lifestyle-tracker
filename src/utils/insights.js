@@ -37,7 +37,7 @@ export function computeInsights(data) {
     if (streak >= 3 && !r.doneToday) {
       insights.push({
         id: `risk-${r.label}`,
-        icon: '⚡',
+        icon: 'alertTriangle',
         tone: 'warning',
         text: `Your ${streak}-day ${r.label} streak is on the line — log today to keep it going.`,
       })
@@ -59,14 +59,14 @@ export function computeInsights(data) {
     if (cur.hits > prev.hits) {
       insights.push({
         id: `recap-up-${f.label}`,
-        icon: '📈',
+        icon: 'trendUp',
         tone: 'positive',
         text: `${cap(f.label)} goal met ${cur.hits}/${cur.total} days this week, up from ${prev.hits}/${prev.total} last week.`,
       })
     } else if (cur.hits < prev.hits && thisWeek.length >= 4) {
       insights.push({
         id: `recap-down-${f.label}`,
-        icon: '📉',
+        icon: 'trendDown',
         tone: 'neutral',
         text: `${cap(f.label)} goal met ${cur.hits}/${cur.total} days this week, down from ${prev.hits}/${prev.total} last week.`,
       })
@@ -89,7 +89,7 @@ export function computeInsights(data) {
   if (moodOnWorkoutDays.length >= 3 && moodOnRestDays.length >= 3 && wAvg - rAvg >= 0.4) {
     insights.push({
       id: 'corr-mood-workout',
-      icon: '✨',
+      icon: 'sparkle',
       tone: 'positive',
       text: `Your mood tends to be higher on workout days (avg ${wAvg.toFixed(1)}/5 vs ${rAvg.toFixed(1)}/5).`,
     })
@@ -107,7 +107,7 @@ export function computeInsights(data) {
   if (sleepQualityOnWaterGoalDays.length >= 3 && sleepQualityOtherDays.length >= 3 && sq1 - sq2 >= 0.4) {
     insights.push({
       id: 'corr-sleep-water',
-      icon: '✨',
+      icon: 'sparkle',
       tone: 'positive',
       text: `You sleep better on days you hit your water goal (quality ${sq1.toFixed(1)}/5 vs ${sq2.toFixed(1)}/5).`,
     })
@@ -129,7 +129,7 @@ export function computeInsights(data) {
   if (nutritionOnLowMoodDays.length >= 3 && nutritionOnOtherDays.length >= 3 && n2 - n1 >= 0.8) {
     insights.push({
       id: 'corr-mood-nutrition',
-      icon: '🔍',
+      icon: 'search',
       tone: 'neutral',
       text: `On lower-mood days, your nutrition checklist tends to slip (${n1.toFixed(1)}/5 vs ${n2.toFixed(1)}/5) — worth having an easy backup meal ready for those days.`,
     })
@@ -141,7 +141,7 @@ export function computeInsights(data) {
   if (moodStreak >= 5 && !moodDates.has(today)) {
     insights.push({
       id: 'risk-mood',
-      icon: '⚡',
+      icon: 'alertTriangle',
       tone: 'warning',
       text: `Your ${moodStreak}-day mood check-in streak is on the line — a 10-second log keeps it going.`,
     })
@@ -151,15 +151,15 @@ export function computeInsights(data) {
   const waterEntries = Object.entries(data.water)
   if (waterEntries.length > 0) {
     const [bestDate, bestMl] = waterEntries.reduce((a, b) => (b[1] > a[1] ? b : a))
-    insights.push({ id: 'pr-water', icon: '🏅', tone: 'neutral', text: `Best water day: ${bestMl} ml on ${bestDate.slice(5)}.` })
+    insights.push({ id: 'pr-water', icon: 'medal', tone: 'neutral', text: `Best water day: ${bestMl} ml on ${bestDate.slice(5)}.` })
   }
   const longestWater = longestStreakFromDateSet(waterDates)
   if (longestWater >= 3) {
-    insights.push({ id: 'pr-water-streak', icon: '🏅', tone: 'neutral', text: `Longest water streak: ${longestWater} days.` })
+    insights.push({ id: 'pr-water-streak', icon: 'medal', tone: 'neutral', text: `Longest water streak: ${longestWater} days.` })
   }
   const longestWorkout = longestStreakFromDateSet(workoutDates)
   if (longestWorkout >= 3) {
-    insights.push({ id: 'pr-workout-streak', icon: '🏅', tone: 'neutral', text: `Longest workout streak: ${longestWorkout} days.` })
+    insights.push({ id: 'pr-workout-streak', icon: 'medal', tone: 'neutral', text: `Longest workout streak: ${longestWorkout} days.` })
   }
 
   return insights

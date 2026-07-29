@@ -10,6 +10,7 @@ import StreakBadge from '../components/StreakBadge'
 import Sheet from '../components/Sheet'
 import RestTimer from '../components/RestTimer'
 import PainCheckIn from '../components/PainCheckIn'
+import Icon from '../components/Icon'
 
 export default function Workouts() {
   const {
@@ -62,7 +63,11 @@ function TierTabs({ value, onChange, suggestedTier }) {
         >
           <div style={{ fontSize: 12.5, fontWeight: 600, color: value === t.id ? 'var(--accent-workout)' : 'var(--text)' }}>
             {t.label}
-            {t.id === suggestedTier && <span style={{ marginLeft: 4 }} title="Suggested">✨</span>}
+            {t.id === suggestedTier && (
+              <span style={{ marginLeft: 4, color: 'var(--accent-workout)', display: 'inline-flex', verticalAlign: -2 }} title="Suggested">
+                <Icon name="sparkle" size={11} />
+              </span>
+            )}
           </div>
           <div className="mono" style={{ fontSize: 10, color: 'var(--text-faint)' }}>{t.minutes}</div>
         </button>
@@ -142,8 +147,8 @@ function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onO
   return (
     <div style={{ padding: '10px 0', borderTop: '1px solid var(--border-soft)' }}>
       <div className="row">
-        <span className="text-sm" style={{ fontWeight: 500 }}>
-          {isFlagged && <span title="Targets an area you flagged today" style={{ marginRight: 5 }}>⚠️</span>}
+        <span className="text-sm" style={{ fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          {isFlagged && <span title="Targets an area you flagged today" style={{ color: 'var(--warning)', display: 'inline-flex' }}><Icon name="alertTriangle" size={13} /></span>}
           {exercise.name}
         </span>
         <span className="mono text-sm faint">{exercise.sets}×{exercise.reps}</span>
@@ -152,12 +157,12 @@ function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onO
         <span className="text-sm faint">{pr ? `PR: ${pr.weight}×${pr.reps}` : exercise.rest}</span>
         <div className="row" style={{ gap: 4, justifyContent: 'flex-end' }}>
           {editable && !exercise.custom && (
-            <IconButton label="Swap exercise" onClick={() => onSwap(day, index)}>🔁</IconButton>
+            <IconButton label="Swap exercise" onClick={() => onSwap(day, index)}><Icon name="repeat" size={14} /></IconButton>
           )}
-          <IconButton label="Rest timer" onClick={() => onOpenTimer(exercise)}>⏱</IconButton>
-          {!isFinisher && <IconButton label="Log PR" onClick={() => onOpenPR(exercise)}>🏋</IconButton>}
+          <IconButton label="Rest timer" onClick={() => onOpenTimer(exercise)}><Icon name="timer" size={14} /></IconButton>
+          {!isFinisher && <IconButton label="Log PR" onClick={() => onOpenPR(exercise)}><Icon name="dumbbell" size={14} /></IconButton>}
           {editable && exercise.custom && (
-            <IconButton label="Remove exercise" onClick={() => onRemove(day, index)}>🗑</IconButton>
+            <IconButton label="Remove exercise" onClick={() => onRemove(day, index)}><Icon name="trash" size={14} /></IconButton>
           )}
         </div>
       </div>
@@ -305,11 +310,16 @@ function WorkoutPlan({
         </div>
         {!todaysWorkout?.rest && (
           <>
-            <p className="text-sm" style={{ marginTop: 8, marginBottom: 0, color: 'var(--text-soft)' }}>
-              <span aria-hidden>✨</span> {suggestion.reason}
+            <p className="text-sm row" style={{ marginTop: 8, marginBottom: 0, color: 'var(--text-soft)', gap: 6, justifyContent: 'flex-start' }}>
+              <span aria-hidden style={{ display: 'inline-flex', color: 'var(--accent-workout)' }}><Icon name="sparkle" size={13} /></span> {suggestion.reason}
             </p>
-            <button className="btn btn-ghost btn-sm" style={{ marginTop: 4, padding: '4px 0' }} onClick={() => setPainOpen(true)}>
-              {todayPain.length > 0 ? `⚠️ Flagged today: ${todayPain.map((id) => PAIN_AREAS.find((a) => a.id === id)?.label || id).join(', ')}` : "How's your body feeling?"}
+            <button className="btn btn-ghost btn-sm row" style={{ marginTop: 4, padding: '4px 0', gap: 6, justifyContent: 'flex-start' }} onClick={() => setPainOpen(true)}>
+              {todayPain.length > 0 ? (
+                <>
+                  <Icon name="alertTriangle" size={13} style={{ color: 'var(--warning)' }} />
+                  {`Flagged today: ${todayPain.map((id) => PAIN_AREAS.find((a) => a.id === id)?.label || id).join(', ')}`}
+                </>
+              ) : "How's your body feeling?"}
             </button>
             <div className="row" style={{ marginTop: 6, marginBottom: 4 }}>
               <span className="text-sm muted">Not feeling motivated today</span>
@@ -320,8 +330,9 @@ function WorkoutPlan({
               />
             </div>
             {calendarStatus?.connected && (
-              <p className="text-sm faint" style={{ margin: '2px 0 4px' }}>
-                📅 Today's calendar: {calendarStatus.busyMinutesToday >= 360 ? 'packed' : calendarStatus.busyMinutesToday >= 180 ? 'busy' : 'light'}
+              <p className="text-sm faint row" style={{ margin: '2px 0 4px', gap: 6, justifyContent: 'flex-start' }}>
+                <Icon name="calendar" size={13} />
+                Today's calendar: {calendarStatus.busyMinutesToday >= 360 ? 'packed' : calendarStatus.busyMinutesToday >= 180 ? 'busy' : 'light'}
               </p>
             )}
             <TierTabs value={todayTier} onChange={setTodayTier} suggestedTier={suggestion.tier} />
@@ -350,7 +361,7 @@ function WorkoutPlan({
               style={{ marginTop: 12 }}
               onClick={() => onToggle(today)}
             >
-              {completions[today] ? '✓ Completed' : 'Mark complete'}
+              {completions[today] ? <span className="row" style={{ gap: 6, justifyContent: 'center' }}><Icon name="check" size={14} />Completed</span> : 'Mark complete'}
             </button>
           </>
         )}
@@ -395,7 +406,7 @@ function WorkoutPlan({
                       color: '#fff', fontSize: 13, transition: 'all 0.15s ease',
                     }}
                   >
-                    {done ? '✓' : ''}
+                    {done && <Icon name="check" size={13} />}
                   </span>
                 )}
               </div>
@@ -434,7 +445,7 @@ function WorkoutPlan({
               style={{ marginTop: 14 }}
               onClick={() => onToggle(dayOpen)}
             >
-              {dayOpen && completions[dayOpen] ? '✓ Completed' : 'Mark complete'}
+              {dayOpen && completions[dayOpen] ? <span className="row" style={{ gap: 6, justifyContent: 'center' }}><Icon name="check" size={14} />Completed</span> : 'Mark complete'}
             </button>
           </>
         )}

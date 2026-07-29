@@ -1,3 +1,5 @@
+import Icon from './Icon'
+
 export default function MiniCard({ label, value, sub, icon, accent, onClick }) {
   return (
     <button
@@ -13,10 +15,11 @@ export default function MiniCard({ label, value, sub, icon, accent, onClick }) {
         {icon && (
           <span style={{
             width: 26, height: 26, borderRadius: '50%', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', fontSize: 13,
+            alignItems: 'center', justifyContent: 'center',
+            color: accent || 'var(--text-soft)',
             background: accent ? `color-mix(in srgb, ${accent} 18%, transparent)` : 'var(--surface-soft)',
           }}>
-            {icon}
+            <Icon name={icon} size={14} />
           </span>
         )}
       </div>

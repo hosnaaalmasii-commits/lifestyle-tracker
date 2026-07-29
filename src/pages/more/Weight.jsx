@@ -5,6 +5,7 @@ import BackHeader from '../../components/BackHeader'
 import LineChart from '../../components/LineChart'
 import Sheet from '../../components/Sheet'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import Icon from '../../components/Icon'
 
 export default function Weight({ onBack }) {
   const { data, addWeight, deleteWeight } = useApp()
@@ -55,7 +56,7 @@ export default function Weight({ onBack }) {
 
       <div className="section-title">History</div>
       {entries.length === 0 ? (
-        <div className="empty-state"><div className="icon">⚖️</div><p>No weight logged yet.</p></div>
+        <div className="empty-state"><div className="icon"><Icon name="scale" size={26} /></div><p>No weight logged yet.</p></div>
       ) : gentle ? (
         <p className="muted text-sm">History is hidden while Gentle mode is on.</p>
       ) : (

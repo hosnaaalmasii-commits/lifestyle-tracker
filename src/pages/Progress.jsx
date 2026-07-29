@@ -4,6 +4,7 @@ import { todayKey, humanDate } from '../utils/dates'
 import { resizeImageToDataUrl } from '../utils/image'
 import Sheet from '../components/Sheet'
 import ConfirmDialog from '../components/ConfirmDialog'
+import Icon from '../components/Icon'
 
 export default function Progress() {
   const { data, addPhoto, deletePhoto } = useApp()
@@ -103,7 +104,7 @@ export default function Progress() {
 
       {photos.length === 0 ? (
         <div className="empty-state">
-          <div className="icon">📸</div>
+          <div className="icon"><Icon name="camera" size={26} /></div>
           <p>No photos yet. Add your first to start your timeline.</p>
         </div>
       ) : (

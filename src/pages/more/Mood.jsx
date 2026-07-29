@@ -1,18 +1,12 @@
 import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { todayKey, humanDate, lastNDayKeys } from '../../utils/dates'
+import { MOOD_SCALE, faceIconForEmoji } from '../../utils/moodActions'
 import BackHeader from '../../components/BackHeader'
 import WeeklyBarChart from '../../components/WeeklyBarChart'
 import Sheet from '../../components/Sheet'
 import MoodCheckIn from '../../components/MoodCheckIn'
-
-const MOODS = [
-  { emoji: '😞', value: 1, label: 'Rough' },
-  { emoji: '😕', value: 2, label: 'Low' },
-  { emoji: '😐', value: 3, label: 'Okay' },
-  { emoji: '🙂', value: 4, label: 'Good' },
-  { emoji: '😄', value: 5, label: 'Great' },
-]
+import Icon from '../../components/Icon'
 
 export default function Mood({ onBack }) {
   const { data, addMood } = useApp()
@@ -29,7 +23,7 @@ export default function Mood({ onBack }) {
   const weekValues = weekKeys.map((k) => {
     const dayEntries = entries.filter((m) => m.date === k)
     const last = dayEntries[dayEntries.length - 1]
-    const value = last ? (MOODS.find((m) => m.emoji === last.emoji)?.value || 0) : 0
+    const value = last ? (MOOD_SCALE.find((m) => m.emoji === last.emoji)?.value || 0) : 0
     return { key: k, value }
   })
 
@@ -43,28 +37,30 @@ export default function Mood({ onBack }) {
       />
 
       <div className="card" style={{ textAlign: 'center', padding: '24px 18px' }}>
-        <div style={{ fontSize: 44 }}>{todaysEntry ? todaysEntry.emoji : '—'}</div>
+        <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--accent)' }}>
+          {todaysEntry ? <Icon name={faceIconForEmoji(todaysEntry.emoji)} size={44} /> : <span className="mono faint" style={{ fontSize: 32 }}>—</span>}
+        </div>
         <div className="text-sm muted" style={{ marginTop: 6 }}>{todaysEntry ? 'Logged today' : 'Not logged today'}</div>
         {todaysEntry?.note && <p className="text-sm" style={{ marginTop: 10, fontStyle: 'italic' }}>"{todaysEntry.note}"</p>}
-        <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={() => setCheckInOpen(true)}>
-          🫶 Need a moment? Get a matched suggestion
+        <button className="btn btn-ghost btn-sm row" style={{ marginTop: 10, gap: 6, justifyContent: 'center' }} onClick={() => setCheckInOpen(true)}>
+          <Icon name="heart" size={14} /> Need a moment? Get a matched suggestion
         </button>
       </div>
 
       <div className="section-title">This week</div>
       <div className="card">
-        <WeeklyBarChart values={weekValues} goal={0} color="var(--accent)" formatValue={(v) => MOODS.find((m) => m.value === v)?.label || 'None'} />
+        <WeeklyBarChart values={weekValues} goal={0} color="var(--accent)" formatValue={(v) => MOOD_SCALE.find((m) => m.value === v)?.label || 'None'} />
       </div>
 
       <div className="section-title">History</div>
       {entries.length === 0 ? (
-        <div className="empty-state"><div className="icon">🙂</div><p>No moods logged yet.</p></div>
+        <div className="empty-state"><div className="icon"><Icon name="faceGood" size={26} /></div><p>No moods logged yet.</p></div>
       ) : (
         <div className="stack">
           {[...entries].reverse().slice(0, 30).map((m) => (
             <div key={m.id} className="card row" style={{ padding: '12px 16px' }}>
               <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
-                <span style={{ fontSize: 20 }}>{m.emoji}</span>
+                <span style={{ color: 'var(--accent)' }}><Icon name={faceIconForEmoji(m.emoji)} size={20} /></span>
                 <div>
                   <div className="text-sm">{humanDate(m.date)}</div>
                   {m.note && <div className="text-sm faint">{m.note}</div>}
@@ -77,18 +73,20 @@ export default function Mood({ onBack }) {
 
       <Sheet open={logOpen} onClose={() => setLogOpen(false)} title="How are you feeling?">
         <div className="row" style={{ marginBottom: 20 }}>
-          {MOODS.map((m) => (
+          {MOOD_SCALE.map((m) => (
             <button
               key={m.emoji}
               onClick={() => setEmoji(m.emoji)}
               style={{
-                flex: 1, background: 'none', border: 'none', cursor: 'pointer', fontSize: 30,
-                opacity: emoji === m.emoji ? 1 : 0.4,
+                flex: 1, background: 'none', border: 'none', cursor: 'pointer',
+                color: emoji === m.emoji ? 'var(--accent)' : 'var(--text-faint)',
+                opacity: emoji === m.emoji ? 1 : 0.55,
                 transform: emoji === m.emoji ? 'scale(1.15)' : 'scale(1)',
                 transition: 'all 0.15s ease',
+                display: 'flex', justifyContent: 'center',
               }}
             >
-              {m.emoji}
+              <Icon name={m.icon} size={28} />
             </button>
           ))}
         </div>

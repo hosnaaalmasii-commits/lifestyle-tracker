@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { MOOD_STATES, MOOD_ACTIONS } from '../utils/moodActions'
 import Sheet from './Sheet'
+import Icon from './Icon'
 
 export default function MoodCheckIn({ open, onClose }) {
   const { addMood } = useApp()
@@ -26,11 +27,11 @@ export default function MoodCheckIn({ open, onClose }) {
               onClick={() => setPicked(m.id)}
               style={{
                 background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-                padding: '14px 4px', cursor: 'pointer', textAlign: 'center',
+                padding: '14px 4px', cursor: 'pointer', textAlign: 'center', color: 'var(--text)',
               }}
             >
-              <div style={{ fontSize: 22 }}>{m.emoji}</div>
-              <div className="text-sm" style={{ marginTop: 4, fontWeight: 600 }}>{m.label}</div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}><Icon name={m.icon} size={24} /></div>
+              <div className="text-sm" style={{ marginTop: 6, fontWeight: 600 }}>{m.label}</div>
             </button>
           ))}
         </div>
@@ -38,7 +39,7 @@ export default function MoodCheckIn({ open, onClose }) {
         <div>
           <div className="row" style={{ marginBottom: 16 }}>
             <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
-              <span style={{ fontSize: 26 }}>{state.emoji}</span>
+              <span style={{ color: 'var(--accent)' }}><Icon name={state.icon} size={28} /></span>
               <span style={{ fontWeight: 600 }}>{state.label}</span>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={() => setPicked(null)}>Change</button>
@@ -56,7 +57,9 @@ export default function MoodCheckIn({ open, onClose }) {
             disabled={logged}
             onClick={() => { addMood(state.logAs, `Felt ${state.label.toLowerCase()}`); setLogged(true) }}
           >
-            {logged ? '✓ Logged to today\'s mood' : 'Also log this as today\'s mood'}
+            {logged ? (
+              <span className="row" style={{ gap: 6, justifyContent: 'center' }}><Icon name="check" size={14} /> Logged to today's mood</span>
+            ) : 'Also log this as today\'s mood'}
           </button>
         </div>
       )}

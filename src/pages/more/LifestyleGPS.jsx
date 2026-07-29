@@ -1,6 +1,7 @@
 import { useApp } from '../../context/AppContext'
 import { PHASES, getGPSStatus } from '../../utils/lifestyleGPS'
 import BackHeader from '../../components/BackHeader'
+import Icon from '../../components/Icon'
 
 export default function LifestyleGPS({ onBack }) {
   const { data } = useApp()
@@ -42,7 +43,16 @@ export default function LifestyleGPS({ onBack }) {
             >
               <div className="row" style={{ alignItems: 'flex-start' }}>
                 <div className="row" style={{ gap: 12, justifyContent: 'flex-start', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: 24 }}>{state === 'locked' ? '🔒' : phase.icon}</span>
+                  <span
+                    style={{
+                      width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: state === 'locked' ? 'var(--surface-soft)' : 'color-mix(in srgb, var(--accent) 14%, transparent)',
+                      color: state === 'locked' ? 'var(--text-faint)' : 'var(--accent)',
+                    }}
+                  >
+                    <Icon name={state === 'locked' ? 'lock' : phase.icon} size={20} />
+                  </span>
                   <div>
                     <div style={{ fontWeight: 700 }}>{phase.label}</div>
                     <p className="text-sm muted" style={{ marginTop: 4, lineHeight: 1.5, maxWidth: 260 }}>{phase.description}</p>

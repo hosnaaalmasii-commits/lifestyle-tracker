@@ -15,6 +15,8 @@ import MoodCheckIn from '../components/MoodCheckIn'
 import { activeContractsToday, getTriggerType } from '../utils/habitContracts'
 import { getMicroHabit } from '../utils/microHabits'
 import { getGPSStatus } from '../utils/lifestyleGPS'
+import { faceIconForEmoji } from '../utils/moodActions'
+import Icon from '../components/Icon'
 
 const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
 
@@ -105,7 +107,9 @@ export default function Overview({ onNavigate }) {
           style={{ marginTop: 12, textAlign: 'left', cursor: 'pointer', borderColor: 'color-mix(in srgb, var(--accent) 45%, var(--border-soft))' }}
           onClick={() => onNavigate('more', 'contracts')}
         >
-          <div className="tag" style={{ background: 'transparent', color: 'var(--accent)', padding: 0, marginBottom: 6 }}>🤝 Contract active today</div>
+          <div className="tag row" style={{ background: 'transparent', color: 'var(--accent)', padding: 0, marginBottom: 6, gap: 6, justifyContent: 'flex-start' }}>
+            <Icon name="handshake" size={13} /> Contract active today
+          </div>
           {activeContracts.map((c) => (
             <p key={c.id} style={{ margin: '2px 0', fontSize: 14 }}>
               <span className="faint">If {getTriggerType(c.triggerType)?.label.toLowerCase()} — </span>{c.response}
@@ -117,12 +121,12 @@ export default function Overview({ onNavigate }) {
       {data.calendarStatus?.connected && (
         <button className="card row" style={{ marginTop: 12, cursor: 'pointer' }} onClick={() => onNavigate('workouts')}>
           <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
-            <span style={{ fontSize: 18 }}>📅</span>
+            <span style={{ color: 'var(--accent)' }}><Icon name="calendar" size={18} /></span>
             <span style={{ fontWeight: 600, fontSize: 14 }}>
               Today's calendar: {data.calendarStatus.busyMinutesToday >= 360 ? 'packed' : data.calendarStatus.busyMinutesToday >= 180 ? 'busy' : 'light'}
             </span>
           </div>
-          <span className="faint" aria-hidden>›</span>
+          <span className="faint" aria-hidden><Icon name="chevronRight" size={16} /></span>
         </button>
       )}
 
@@ -132,20 +136,20 @@ export default function Overview({ onNavigate }) {
 
       <button className="card row" style={{ marginTop: 12, cursor: 'pointer' }} onClick={() => onNavigate('more', 'gps')}>
         <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
-          <span style={{ fontSize: 18 }}>{gps.current.icon}</span>
+          <span style={{ color: 'var(--accent)' }}><Icon name={gps.current.icon} size={18} /></span>
           <span style={{ fontWeight: 600, fontSize: 14 }}>{gps.current.label} phase</span>
         </div>
-        <span className="faint" aria-hidden>›</span>
+        <span className="faint" aria-hidden><Icon name="chevronRight" size={16} /></span>
       </button>
 
       <div className="card-row" style={{ marginTop: 12 }}>
         <button className="card" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('more', 'coach')}>
-          <div style={{ fontSize: 20, marginBottom: 8 }}>✨</div>
+          <div style={{ marginBottom: 8, color: 'var(--accent)' }}><Icon name="sparkle" size={20} /></div>
           <div style={{ fontWeight: 600, fontSize: 14 }}>Ask your coach</div>
           <div className="text-sm faint">Grounded in your data</div>
         </button>
         <button className="card" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => setMoodCheckInOpen(true)}>
-          <div style={{ fontSize: 20, marginBottom: 8 }}>🫶</div>
+          <div style={{ marginBottom: 8, color: 'var(--accent)' }}><Icon name="heart" size={20} /></div>
           <div style={{ fontWeight: 600, fontSize: 14 }}>Need a moment?</div>
           <div className="text-sm faint">Quick mood-to-action</div>
         </button>
@@ -154,7 +158,9 @@ export default function Overview({ onNavigate }) {
       <MoodCheckIn open={moodCheckInOpen} onClose={() => setMoodCheckInOpen(false)} />
 
       <div className="card" style={{ marginTop: 12 }}>
-        <div className="tag" style={{ background: 'transparent', color: 'var(--moss)', padding: 0, marginBottom: 6 }}>🌱 Today's micro-habit</div>
+        <div className="tag row" style={{ background: 'transparent', color: 'var(--moss)', padding: 0, marginBottom: 6, gap: 6, justifyContent: 'flex-start' }}>
+          <Icon name="leaf" size={13} /> Today's micro-habit
+        </div>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>{microHabit.text}</p>
       </div>
 
@@ -164,17 +170,17 @@ export default function Overview({ onNavigate }) {
           <div>
             {topInsights.map((ins) => (
               <div key={ins.id} className={`insight-card tone-${ins.tone}`}>
-                <span style={{ fontSize: 18 }}>{ins.icon}</span>
+                <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}><Icon name={ins.icon} size={16} /></span>
                 <span className="text-sm" style={{ lineHeight: 1.5 }}>{ins.text}</span>
               </div>
             ))}
           </div>
           <button
             className="btn btn-ghost btn-sm"
-            style={{ marginTop: 8 }}
+            style={{ marginTop: 8, gap: 4 }}
             onClick={() => onNavigate('more', 'insights')}
           >
-            See all insights →
+            See all insights <Icon name="chevronRight" size={14} />
           </button>
         </>
       )}
@@ -183,23 +189,26 @@ export default function Overview({ onNavigate }) {
       <div className="card-row">
         <MiniCard
           label="Mood"
-          value={todaysMood ? todaysMood.emoji : '—'}
+          value={todaysMood ? <Icon name={faceIconForEmoji(todaysMood.emoji)} size={22} /> : '—'}
           sub={todaysMood ? 'Logged today' : 'Not logged'}
-          icon="🙂"
+          icon="heart"
+          accent="var(--accent)"
           onClick={() => onNavigate('more', 'mood')}
         />
         <MiniCard
           label="Weight"
-          value={data.settings.gentleMode ? (latestWeight ? '🌱' : '—') : (latestWeight ? `${latestWeight.kg}${data.settings.weightUnit}` : '—')}
+          value={data.settings.gentleMode ? (latestWeight ? <Icon name="leaf" size={20} /> : '—') : (latestWeight ? `${latestWeight.kg}${data.settings.weightUnit}` : '—')}
           sub={data.settings.gentleMode ? 'Gentle mode' : (latestWeight ? latestWeight.date.slice(5) : 'No entries')}
-          icon="⚖️"
+          icon="scale"
+          accent="var(--accent)"
           onClick={() => onNavigate('more', 'weight')}
         />
         <MiniCard
           label="Nutrition"
           value={`${nutritionCount}/5`}
           sub="today"
-          icon="🥗"
+          icon="apple"
+          accent="var(--accent)"
           onClick={() => onNavigate('more', 'nutrition')}
         />
       </div>

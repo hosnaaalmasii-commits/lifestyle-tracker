@@ -4,6 +4,7 @@ import { TRIGGER_TYPES, getTriggerType, activeContractsToday } from '../../utils
 import BackHeader from '../../components/BackHeader'
 import Sheet from '../../components/Sheet'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import Icon from '../../components/Icon'
 
 export default function HabitContracts({ onBack }) {
   const { data, addHabitContract, deleteHabitContract } = useApp()
@@ -27,7 +28,7 @@ export default function HabitContracts({ onBack }) {
 
       {contracts.length === 0 ? (
         <div className="empty-state">
-          <div className="icon">🤝</div>
+          <div className="icon"><Icon name="handshake" size={26} /></div>
           <p>No contracts yet. Try "If I slept poorly, I keep today light."</p>
         </div>
       ) : (

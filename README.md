@@ -54,7 +54,9 @@ src/
                             heuristic (sleep, mood, yesterday's training, comeback gap)
     consistencyScore.js     30-day decay-weighted score across water/sleep/workout/
                             mood/nutrition — deliberately not a streak, see file comment
-    moodActions.js          8-state mood -> matched micro-action lookup table
+    moodActions.js          8-state mood -> matched micro-action lookup table, plus
+                            MOOD_SCALE (the 5-point log scale) and faceIconForEmoji()
+                            mapping persisted mood emoji to Icon names for display
     habitContracts.js       if-then contract trigger-type registry + today's-match check
     comeback.js              detects a 4+ day inactivity gap from existing logs
                             (no separate "last opened" field — self-clearing by design)
@@ -74,10 +76,11 @@ src/
                             a freebusy.query call for "how busy is today"; the OAuth
                             Client ID is meant to be public (unlike the Anthropic key)
                             so it's fine to keep in data.settings — see "Google Calendar"
-  components/            reusable UI (Ring, WeeklyBarChart, LineChart, Sheet, TabBar,
-                          ColorPicker, SegmentedControl, LevelBar, ChallengeCard,
-                          Confetti, RestTimer, MoodCheckIn, ComebackScreen,
-                          PainCheckIn, etc.)
+  components/            reusable UI (Icon — the hand-drawn line-icon set replacing
+                          emoji throughout the app, Ring, WeeklyBarChart, LineChart,
+                          Sheet, TabBar, ColorPicker, SegmentedControl, LevelBar,
+                          ChallengeCard, Confetti, RestTimer, MoodCheckIn,
+                          ComebackScreen, PainCheckIn, etc.)
   pages/
     Overview.jsx, Water.jsx, Sleep.jsx, Workouts.jsx, Progress.jsx, More.jsx
     more/                Weight, Mood, Nutrition, Insights, Coach, HabitContracts,

@@ -1,12 +1,29 @@
+// The 5-point daily mood scale. `emoji` is the value actually persisted in
+// data.mood entries (kept as-is for backward compatibility with existing
+// logs) — `icon` is only the display glyph, decoupled from storage.
+export const MOOD_SCALE = [
+  { emoji: '😞', value: 1, label: 'Rough', icon: 'faceRough' },
+  { emoji: '😕', value: 2, label: 'Low', icon: 'faceLow' },
+  { emoji: '😐', value: 3, label: 'Okay', icon: 'faceOkay' },
+  { emoji: '🙂', value: 4, label: 'Good', icon: 'faceGood' },
+  { emoji: '😄', value: 5, label: 'Great', icon: 'faceGreat' },
+]
+
+export function faceIconForEmoji(emoji) {
+  return MOOD_SCALE.find((m) => m.emoji === emoji)?.icon || 'faceOkay'
+}
+
+// The 8-state quick mood-to-action check-in. `logAs` maps back onto the
+// MOOD_SCALE emoji above when the user chooses to also log it as today's mood.
 export const MOOD_STATES = [
-  { id: 'stressed', emoji: '😣', label: 'Stressed', logAs: '😕' },
-  { id: 'tired', emoji: '🥱', label: 'Tired', logAs: '😐' },
-  { id: 'angry', emoji: '😠', label: 'Angry', logAs: '😞' },
-  { id: 'sad', emoji: '😔', label: 'Sad', logAs: '😞' },
-  { id: 'lazy', emoji: '🛋️', label: 'Lazy', logAs: '😐' },
-  { id: 'unmotivated', emoji: '😶', label: 'Unmotivated', logAs: '😐' },
-  { id: 'insecure', emoji: '😟', label: 'Insecure', logAs: '😕' },
-  { id: 'energetic', emoji: '⚡', label: 'Energetic', logAs: '😄' },
+  { id: 'stressed', icon: 'moodStressed', label: 'Stressed', logAs: '😕' },
+  { id: 'tired', icon: 'moodTired', label: 'Tired', logAs: '😐' },
+  { id: 'angry', icon: 'moodAngry', label: 'Angry', logAs: '😞' },
+  { id: 'sad', icon: 'moodSad', label: 'Sad', logAs: '😞' },
+  { id: 'lazy', icon: 'moodLazy', label: 'Lazy', logAs: '😐' },
+  { id: 'unmotivated', icon: 'moodUnmotivated', label: 'Unmotivated', logAs: '😐' },
+  { id: 'insecure', icon: 'moodInsecure', label: 'Insecure', logAs: '😕' },
+  { id: 'energetic', icon: 'moodEnergetic', label: 'Energetic', logAs: '😄' },
 ]
 
 export const MOOD_ACTIONS = {

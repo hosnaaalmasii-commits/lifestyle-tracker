@@ -3,13 +3,14 @@ import { useApp } from '../../context/AppContext'
 import { todayKey, humanDate, addDaysToKey, lastNDayKeys, isToday } from '../../utils/dates'
 import BackHeader from '../../components/BackHeader'
 import WeeklyBarChart from '../../components/WeeklyBarChart'
+import Icon from '../../components/Icon'
 
 const ITEMS = [
-  { key: 'breakfast', label: 'Breakfast', icon: '🍳' },
-  { key: 'lunch', label: 'Lunch', icon: '🥪' },
-  { key: 'dinner', label: 'Dinner', icon: '🍽️' },
-  { key: 'vegetables', label: 'Vegetables', icon: '🥦' },
-  { key: 'snacks', label: 'Mindful snacks', icon: '🍎' },
+  { key: 'breakfast', label: 'Breakfast', icon: 'sun' },
+  { key: 'lunch', label: 'Lunch', icon: 'sandwich' },
+  { key: 'dinner', label: 'Dinner', icon: 'utensils' },
+  { key: 'vegetables', label: 'Vegetables', icon: 'carrot' },
+  { key: 'snacks', label: 'Mindful snacks', icon: 'apple' },
 ]
 
 export default function Nutrition({ onBack }) {
@@ -51,7 +52,7 @@ export default function Nutrition({ onBack }) {
             return (
               <div key={item.key} className="row" style={{ padding: '4px 0' }}>
                 <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
-                  <span>{item.icon}</span>
+                  <span style={{ color: 'var(--accent)' }}><Icon name={item.icon} size={16} /></span>
                   <span className="text-sm" style={{ fontWeight: 500 }}>{item.label}</span>
                 </div>
                 <button

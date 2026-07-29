@@ -8,6 +8,7 @@ import BackHeader from '../../components/BackHeader'
 import LevelBar from '../../components/LevelBar'
 import ChallengeCard from '../../components/ChallengeCard'
 import Confetti from '../../components/Confetti'
+import Icon from '../../components/Icon'
 
 const SEEN_BADGES_KEY = 'lifestyle-tracker-seen-badges'
 
@@ -49,8 +50,9 @@ export default function Badges({ onBack }) {
 
       <div className="card">
         <LevelBar xp={xp} />
-        <button className="btn btn-secondary btn-block" style={{ marginTop: 16 }} disabled={sharing} onClick={handleShare}>
-          {sharing ? 'Preparing…' : '🖼 Share my week'}
+        <button className="btn btn-secondary btn-block" style={{ marginTop: 16, gap: 8 }} disabled={sharing} onClick={handleShare}>
+          <Icon name="share" size={16} />
+          {sharing ? 'Preparing…' : 'Share my week'}
         </button>
       </div>
 
@@ -71,7 +73,16 @@ export default function Badges({ onBack }) {
               opacity: b.unlocked ? 1 : 0.5,
             }}
           >
-            <div style={{ fontSize: 30, filter: b.unlocked ? 'none' : 'grayscale(1)' }}>{b.unlocked ? b.icon : '🔒'}</div>
+            <div
+              style={{
+                width: 44, height: 44, margin: '0 auto', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: b.unlocked ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'var(--surface-soft)',
+                color: b.unlocked ? 'var(--accent)' : 'var(--text-faint)',
+              }}
+            >
+              <Icon name={b.unlocked ? b.icon : 'lock'} size={22} />
+            </div>
             <div style={{ fontWeight: 600, fontSize: 13, marginTop: 8 }}>{b.name}</div>
             <div className="text-sm faint" style={{ marginTop: 4, lineHeight: 1.3 }}>{b.description}</div>
           </div>

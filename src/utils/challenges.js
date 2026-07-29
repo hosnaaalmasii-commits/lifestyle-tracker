@@ -5,7 +5,7 @@ const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
 const TEMPLATES = [
   {
     id: 'hydration-week',
-    icon: '💧',
+    icon: 'droplet',
     title: 'Hydration Week',
     target: 5,
     describe: (t) => `Hit your water goal ${t} days this week`,
@@ -13,7 +13,7 @@ const TEMPLATES = [
   },
   {
     id: 'consistent-sleeper',
-    icon: '🌙',
+    icon: 'moon',
     title: 'Consistent Sleeper',
     target: 5,
     describe: (t) => `Hit your sleep goal ${t} nights this week`,
@@ -21,7 +21,7 @@ const TEMPLATES = [
   },
   {
     id: 'workout-streaker',
-    icon: '🔥',
+    icon: 'flame',
     title: 'Training Streak',
     target: 3,
     describe: (t) => `Complete ${t} workouts this week`,
@@ -29,7 +29,7 @@ const TEMPLATES = [
   },
   {
     id: 'mood-checkin',
-    icon: '🙂',
+    icon: 'chat',
     title: 'Check In',
     target: 4,
     describe: (t) => `Log your mood ${t} days this week`,
@@ -37,7 +37,7 @@ const TEMPLATES = [
   },
   {
     id: 'full-plate-week',
-    icon: '🥗',
+    icon: 'apple',
     title: 'Full Plate',
     target: 3,
     describe: (t) => `Complete every nutrition item ${t} days this week`,

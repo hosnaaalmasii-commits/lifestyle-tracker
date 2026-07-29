@@ -1,6 +1,28 @@
-import { COLOR_PRESETS } from '../utils/colorPresets'
+import { useState } from 'react'
+import { COLOR_GROUPS } from '../utils/colorPresets'
+
+const QUICK_PICKS = COLOR_GROUPS.map((g) => g.swatches[0])
+
+function Swatch({ p, value, onChange, size = 30 }) {
+  const selected = value.toLowerCase() === p.hex.toLowerCase()
+  return (
+    <button
+      key={p.hex}
+      title={p.name}
+      onClick={() => onChange(p.hex)}
+      style={{
+        flexShrink: 0, width: size, height: size, borderRadius: '50%', background: p.hex,
+        border: selected ? '2px solid var(--text)' : '2px solid transparent',
+        boxShadow: '0 0 0 1px var(--border)',
+        cursor: 'pointer',
+      }}
+    />
+  )
+}
 
 export default function ColorPicker({ label, value, onChange }) {
+  const [expanded, setExpanded] = useState(false)
+
   return (
     <div className="field">
       <div className="row" style={{ marginBottom: 10 }}>
@@ -23,21 +45,31 @@ export default function ColorPicker({ label, value, onChange }) {
           </label>
         </div>
       </div>
-      <div className="scroll-x">
-        {COLOR_PRESETS.map((p) => (
-          <button
-            key={p.hex}
-            title={p.name}
-            onClick={() => onChange(p.hex)}
-            style={{
-              flexShrink: 0, width: 30, height: 30, borderRadius: '50%', background: p.hex,
-              border: value.toLowerCase() === p.hex.toLowerCase() ? '2px solid var(--text)' : '2px solid transparent',
-              boxShadow: '0 0 0 1px var(--border)',
-              cursor: 'pointer',
-            }}
-          />
-        ))}
-      </div>
+
+      {!expanded ? (
+        <div className="row" style={{ gap: 8 }}>
+          <div className="scroll-x" style={{ flex: 1 }}>
+            {QUICK_PICKS.map((p) => <Swatch key={p.hex} p={p} value={value} onChange={onChange} />)}
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{ flexShrink: 0, padding: '6px 10px' }} onClick={() => setExpanded(true)}>
+            More shades
+          </button>
+        </div>
+      ) : (
+        <div className="stack" style={{ gap: 10 }}>
+          {COLOR_GROUPS.map((group) => (
+            <div key={group.name}>
+              <div className="text-sm faint" style={{ marginBottom: 6, fontWeight: 600 }}>{group.name}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {group.swatches.map((p) => <Swatch key={p.hex} p={p} value={value} onChange={onChange} size={28} />)}
+              </div>
+            </div>
+          ))}
+          <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start', padding: '4px 0' }} onClick={() => setExpanded(false)}>
+            Show fewer
+          </button>
+        </div>
+      )}
     </div>
   )
 }
