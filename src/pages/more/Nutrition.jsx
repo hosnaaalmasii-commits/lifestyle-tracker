@@ -3,14 +3,14 @@ import { useApp } from '../../context/AppContext'
 import { todayKey, humanDate, addDaysToKey, lastNDayKeys, isToday } from '../../utils/dates'
 import BackHeader from '../../components/BackHeader'
 import WeeklyBarChart from '../../components/WeeklyBarChart'
-import Icon from '../../components/Icon'
+import IconBadge from '../../components/IconBadge'
 
 const ITEMS = [
-  { key: 'breakfast', label: 'Breakfast', icon: 'sun' },
-  { key: 'lunch', label: 'Lunch', icon: 'sandwich' },
-  { key: 'dinner', label: 'Dinner', icon: 'utensils' },
-  { key: 'vegetables', label: 'Vegetables', icon: 'carrot' },
-  { key: 'snacks', label: 'Mindful snacks', icon: 'apple' },
+  { key: 'breakfast', label: 'Breakfast', icon: 'sun', color: '#F5A623' },
+  { key: 'lunch', label: 'Lunch', icon: 'sandwich', color: '#FF6B6B' },
+  { key: 'dinner', label: 'Dinner', icon: 'utensils', color: '#7C6FE0' },
+  { key: 'vegetables', label: 'Vegetables', icon: 'carrot', color: '#2ECC71' },
+  { key: 'snacks', label: 'Mindful snacks', icon: 'apple', color: '#FF9F43' },
 ]
 
 export default function Nutrition({ onBack }) {
@@ -50,9 +50,9 @@ export default function Nutrition({ onBack }) {
           {ITEMS.map((item) => {
             const on = !!day[item.key]
             return (
-              <div key={item.key} className="row" style={{ padding: '4px 0' }}>
+              <div key={item.key} className="row" style={{ padding: '6px 0' }}>
                 <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
-                  <span style={{ color: 'var(--accent)' }}><Icon name={item.icon} size={16} /></span>
+                  <IconBadge icon={item.icon} color={item.color} size={30} iconSize={14} />
                   <span className="text-sm" style={{ fontWeight: 500 }}>{item.label}</span>
                 </div>
                 <button

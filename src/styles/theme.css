@@ -28,6 +28,11 @@
   --accent-fill: var(--accent);
   --ring-fill: var(--accent-ring);
 
+  /* Fintech style gradient — overridden at runtime from the chosen preset */
+  --fintech-grad-from: #7C3AED;
+  --fintech-grad-to: #EC4899;
+  --fintech-accent: #F5C542;
+
   --font-heading: 'Fraunces', Georgia, serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;

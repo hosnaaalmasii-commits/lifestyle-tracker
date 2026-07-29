@@ -1,0 +1,234 @@
+/* ==========================================================================
+   Fintech UI style — a premium dark-mode alternate look (crypto-wallet /
+   travel-app inspired), selectable in Settings alongside the default
+   Classic theme. Scoped entirely under [data-style='fintech'] on <html> so
+   it never leaks into the Classic look and can be toggled independently of
+   light/dark mode. Reuses the same class names as global.css (.card,
+   .btn, .switch, etc.) so every existing page picks up the new look for
+   free — only a handful of pages get bespoke new components on top
+   (hero rings, sparklines, mascot card, icon badges).
+   ========================================================================== */
+
+:root[data-style='fintech'] {
+  color-scheme: dark;
+
+  --bg: #0a0a0f;
+  --bg-soft: #101018;
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-soft: rgba(255, 255, 255, 0.035);
+  --surface-raised: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --text: #f2f2f6;
+  --text-soft: #a4a4b2;
+  --text-faint: #6c6c7a;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+
+  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --radius-sm: 14px;
+  --radius-md: 20px;
+  --radius-lg: 24px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+[data-style='fintech'] body {
+  background: radial-gradient(120% 60% at 50% -10%, rgba(124, 58, 237, 0.12), transparent 60%), var(--bg);
+}
+
+/* ---------- Cards: glassmorphism ---------- */
+
+[data-style='fintech'] .card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+}
+
+[data-style='fintech'] .hero-card {
+  --hero-tint: none;
+  background: linear-gradient(135deg, var(--fintech-grad-from), var(--fintech-grad-to));
+  border: none;
+  box-shadow: 0 16px 40px -8px color-mix(in srgb, var(--fintech-grad-to) 45%, transparent), var(--shadow-md);
+  color: #fff;
+}
+
+[data-style='fintech'] .hero-card::before {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 72%);
+}
+
+[data-style='fintech'] .hero-card .mono,
+[data-style='fintech'] .hero-card .muted,
+[data-style='fintech'] .hero-card .faint,
+[data-style='fintech'] .hero-card .text-sm {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-style='fintech'] .mascot-card {
+  margin-top: 12px;
+  background: linear-gradient(135deg, var(--fintech-grad-to), var(--fintech-grad-from));
+}
+
+/* ---------- Typography: big bold stats, uppercase tracked labels ---------- */
+
+[data-style='fintech'] .stat-number,
+.stat-number {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-faint);
+}
+
+[data-style='fintech'] .page-header h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+[data-style='fintech'] .section-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+/* ---------- Buttons, chips, inputs ---------- */
+
+[data-style='fintech'] .btn-primary {
+  background: linear-gradient(135deg, var(--fintech-grad-from), var(--fintech-grad-to));
+  box-shadow: 0 8px 24px -6px color-mix(in srgb, var(--fintech-grad-to) 55%, transparent);
+}
+
+[data-style='fintech'] .btn-secondary {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+}
+
+[data-style='fintech'] .chip {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+}
+
+[data-style='fintech'] .chip.selected {
+  background: linear-gradient(135deg, var(--fintech-grad-from), var(--fintech-grad-to));
+  border-color: transparent;
+}
+
+[data-style='fintech'] .switch.on {
+  background: linear-gradient(135deg, var(--fintech-grad-from), var(--fintech-grad-to));
+}
+
+[data-style='fintech'] .input,
+[data-style='fintech'] select.input {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+}
+
+[data-style='fintech'] .stepper {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+}
+
+[data-style='fintech'] .stepper button {
+  background: var(--surface-soft);
+  box-shadow: none;
+  color: var(--text);
+}
+
+[data-style='fintech'] .empty-state .icon {
+  background: var(--surface-raised);
+}
+
+[data-style='fintech'] .insight-card {
+  background: var(--surface-raised);
+  border-color: var(--border-soft);
+}
+
+/* ---------- Bottom nav: floating glass pill with glow ---------- */
+
+[data-style='fintech'] .tabbar {
+  padding-bottom: 10px;
+}
+
+[data-style='fintech'] .tabbar-inner {
+  max-width: 480px;
+  margin: 0 12px;
+  border-radius: var(--radius-lg);
+  background: rgba(20, 20, 28, 0.75);
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+}
+
+[data-style='fintech'] .tab-btn.active {
+  color: #fff;
+}
+
+[data-style='fintech'] .tab-btn.active .tab-icon {
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--fintech-accent) 70%, transparent));
+}
+
+/* ---------- New components ---------- */
+
+.icon-badge {
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.change-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.change-indicator.good {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+}
+
+.change-indicator.bad {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+}
+
+.change-indicator.flat {
+  color: var(--text-faint);
+  background: var(--surface-soft);
+}
+
+[data-style='fintech'] .mascot-orb-wrap svg circle:last-of-type {
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.6));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-style='fintech'] .mascot-orb-wrap {
+    animation: mascot-float 3.2s ease-in-out infinite;
+  }
+}
+
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}

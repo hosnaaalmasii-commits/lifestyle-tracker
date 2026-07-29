@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { todayKey } from '../utils/dates'
 import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } from '../utils/workoutGenerator'
 import { DEFAULT_COLORS } from '../utils/colorPresets'
+import { DEFAULT_FINTECH_GRADIENT, getFintechGradient } from '../utils/fintechGradients'
 import { requestGoogleToken, fetchTodayBusyMinutes } from '../utils/googleCalendar'
 
 const STORAGE_KEY = 'lifestyle-tracker-data-v1'
@@ -10,6 +11,8 @@ const DEFAULT_DATA = {
   version: 2,
   settings: {
     themeMode: 'system',
+    uiStyle: 'classic',
+    fintechGradient: DEFAULT_FINTECH_GRADIENT,
     colors: { ...DEFAULT_COLORS },
     waterGoalMl: 2000,
     sleepGoalHours: 8,
@@ -95,12 +98,21 @@ export function AppProvider({ children }) {
   // Apply theme + accent colors + personalization to the document root as CSS variables.
   useEffect(() => {
     const root = document.documentElement
-    const { themeMode, colors, headingFont, density, useGradientAccents } = data.settings
+    const { themeMode, colors, headingFont, density, useGradientAccents, uiStyle, fintechGradient } = data.settings
     if (themeMode === 'system') {
       root.removeAttribute('data-theme')
     } else {
       root.setAttribute('data-theme', themeMode)
     }
+    if (uiStyle === 'fintech') {
+      root.setAttribute('data-style', 'fintech')
+    } else {
+      root.removeAttribute('data-style')
+    }
+    const grad = getFintechGradient(fintechGradient)
+    root.style.setProperty('--fintech-grad-from', grad.from)
+    root.style.setProperty('--fintech-grad-to', grad.to)
+    root.style.setProperty('--fintech-accent', grad.accent)
     root.style.setProperty('--accent', colors.accent)
     root.style.setProperty('--accent-ring', colors.ring)
     root.style.setProperty('--accent-water', colors.water)
@@ -271,6 +283,8 @@ export function AppProvider({ children }) {
     },
 
     setThemeMode: (mode) => setData((d) => ({ ...d, settings: { ...d.settings, themeMode: mode } })),
+    setUiStyle: (style) => setData((d) => ({ ...d, settings: { ...d.settings, uiStyle: style } })),
+    setFintechGradient: (key) => setData((d) => ({ ...d, settings: { ...d.settings, fintechGradient: key } })),
     setColor: (key, hex) => setData((d) => ({ ...d, settings: { ...d.settings, colors: { ...d.settings.colors, [key]: hex } } })),
     resetColors: () => setData((d) => ({ ...d, settings: { ...d.settings, colors: { ...DEFAULT_COLORS } } })),
     applyThemePreset: (colors) => setData((d) => ({ ...d, settings: { ...d.settings, colors: { ...colors } } })),

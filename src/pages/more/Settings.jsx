@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { THEME_PRESETS } from '../../utils/colorPresets'
+import { FINTECH_GRADIENTS } from '../../utils/fintechGradients'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
 import { PERSONALITIES } from '../../utils/coachContext'
 import BackHeader from '../../components/BackHeader'
@@ -25,6 +26,11 @@ const DENSITY_OPTIONS = [
   { value: 'compact', label: 'Compact' },
 ]
 
+const UI_STYLE_OPTIONS = [
+  { value: 'classic', label: 'Classic' },
+  { value: 'fintech', label: 'Fintech' },
+]
+
 const COLOR_FIELDS = [
   { key: 'accent', label: 'Main accent' },
   { key: 'ring', label: 'Progress ring' },
@@ -35,7 +41,7 @@ const COLOR_FIELDS = [
 
 export default function Settings({ onBack }) {
   const {
-    data, setThemeMode, setColor, resetColors, applyThemePreset,
+    data, setThemeMode, setUiStyle, setFintechGradient, setColor, resetColors, applyThemePreset,
     setHeadingFont, setDensity, setUseGradientAccents, setGentleMode,
     setWeightUnit, exportData, importData, clearAll,
     connectGoogleCalendar, disconnectGoogleCalendar,
@@ -112,6 +118,39 @@ export default function Settings({ onBack }) {
   return (
     <div className="page">
       <BackHeader eyebrow="More" title="Settings" onBack={onBack} />
+
+      <div className="section-title">App style</div>
+      <div className="card stack">
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Style</label>
+          <SegmentedControl options={UI_STYLE_OPTIONS} value={data.settings.uiStyle} onChange={setUiStyle} />
+        </div>
+        {data.settings.uiStyle === 'fintech' && (
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Gradient</label>
+            <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
+              {FINTECH_GRADIENTS.map((g) => {
+                const selected = data.settings.fintechGradient === g.key
+                return (
+                  <button
+                    key={g.key}
+                    onClick={() => setFintechGradient(g.key)}
+                    aria-label={g.name}
+                    style={{
+                      width: 52, height: 52, borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
+                      background: `linear-gradient(135deg, ${g.from}, ${g.to})`,
+                      border: selected ? '2px solid var(--text)' : '2px solid transparent',
+                      boxShadow: selected ? '0 0 0 2px var(--surface)' : 'none',
+                      padding: 0,
+                    }}
+                    title={g.name}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="section-title">Appearance</div>
       <div className="card stack">

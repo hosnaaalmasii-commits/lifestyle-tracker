@@ -6,6 +6,8 @@ import LineChart from '../../components/LineChart'
 import Sheet from '../../components/Sheet'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Icon from '../../components/Icon'
+import Sparkline from '../../components/Sparkline'
+import ChangeIndicator from '../../components/ChangeIndicator'
 
 export default function Weight({ onBack }) {
   const { data, addWeight, deleteWeight } = useApp()
@@ -40,11 +42,7 @@ export default function Weight({ onBack }) {
             </div>
             <div className="text-sm faint">{latest ? humanDate(latest.date) : 'No entries yet'}</div>
           </div>
-          {!gentle && delta != null && (
-            <span className="mono text-sm" style={{ color: delta === 0 ? 'var(--text-soft)' : delta < 0 ? 'var(--success)' : 'var(--warning)' }}>
-              {delta > 0 ? '+' : ''}{delta} {unit}
-            </span>
-          )}
+          {!gentle && delta != null && <ChangeIndicator value={delta} suffix={` ${unit}`} goodDirection="down" />}
         </div>
         {!gentle && (
           <div style={{ marginTop: 18 }}>
@@ -61,15 +59,16 @@ export default function Weight({ onBack }) {
         <p className="muted text-sm">History is hidden while Gentle mode is on.</p>
       ) : (
         <div className="stack">
-          {[...entries].reverse().map((w) => (
+          {entries.map((w, i) => (
             <div key={w.id} className="card row" style={{ padding: '12px 16px' }}>
               <span className="text-sm">{humanDate(w.date)}</span>
               <div className="row" style={{ gap: 12, justifyContent: 'flex-end' }}>
+                <Sparkline values={entries.slice(Math.max(0, i - 6), i + 1).map((e) => e.kg)} color="var(--accent)" />
                 <span className="mono">{w.kg} {unit}</span>
                 <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => setToDelete(w)}>Delete</button>
               </div>
             </div>
-          ))}
+          )).reverse()}
         </div>
       )}
 

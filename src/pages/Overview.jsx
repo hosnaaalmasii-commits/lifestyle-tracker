@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
-import { todayKey, humanDateFull } from '../utils/dates'
+import { todayKey, humanDateFull, lastNDayKeys, addDaysToKey } from '../utils/dates'
 import { streakFromDateSet } from '../utils/streaks'
 import { computeInsights } from '../utils/insights'
 import { computeBadges } from '../utils/badges'
@@ -17,6 +17,9 @@ import { getMicroHabit } from '../utils/microHabits'
 import { getGPSStatus } from '../utils/lifestyleGPS'
 import { faceIconForEmoji } from '../utils/moodActions'
 import Icon from '../components/Icon'
+import MascotCard from '../components/MascotCard'
+import Sparkline from '../components/Sparkline'
+import ChangeIndicator from '../components/ChangeIndicator'
 
 const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
 
@@ -65,6 +68,13 @@ export default function Overview({ onNavigate }) {
   const microHabit = getMicroHabit(data)
   const gps = getGPSStatus(data)
 
+  const last7 = lastNDayKeys(7)
+  const waterTrend = last7.map((k) => data.water[k] || 0)
+  const sleepTrend = last7.map((k) => data.sleep[k]?.hours || 0)
+  const yesterday = addDaysToKey(today, -1)
+  const waterDelta = data.water[yesterday] != null ? waterToday - data.water[yesterday] : null
+  const sleepDelta = data.sleep[yesterday] != null && sleepToday ? +(sleepToday.hours - data.sleep[yesterday].hours).toFixed(1) : null
+
   return (
     <div className="page">
       <Confetti trigger={confettiTick} />
@@ -100,6 +110,8 @@ export default function Overview({ onNavigate }) {
           <span className="text-sm" style={{ color: 'var(--accent)', fontWeight: 600 }}>{consistency.label}</span>
         </div>
       </div>
+
+      <MascotCard xp={xp} onClick={() => onNavigate('more', 'badges')} />
 
       {activeContracts.length > 0 && (
         <button
@@ -220,6 +232,8 @@ export default function Overview({ onNavigate }) {
           label="Water"
           value={`${waterToday} / ${data.settings.waterGoalMl} ml`}
           ratio={waterRatio}
+          trend={waterTrend}
+          delta={waterDelta}
           onClick={() => onNavigate('water')}
         />
         <SummaryRow
@@ -227,6 +241,9 @@ export default function Overview({ onNavigate }) {
           label="Sleep"
           value={sleepToday ? `${sleepToday.hours}h logged` : `Goal: ${data.settings.sleepGoalHours}h`}
           ratio={sleepRatio}
+          trend={sleepTrend}
+          delta={sleepDelta}
+          deltaSuffix="h"
           onClick={() => onNavigate('sleep')}
         />
         <SummaryRow
@@ -247,7 +264,8 @@ function weekdayAbbrev(key) {
   return days[new Date(y, m - 1, d).getDay()]
 }
 
-function SummaryRow({ color, label, value, ratio, onClick }) {
+function SummaryRow({ color, label, value, ratio, trend, delta, deltaSuffix = '', onClick }) {
+  const hasTrend = trend && trend.some((v) => v > 0)
   return (
     <button className="card" onClick={onClick} style={{ textAlign: 'left', cursor: 'pointer' }}>
       <div className="row">
@@ -255,7 +273,11 @@ function SummaryRow({ color, label, value, ratio, onClick }) {
           <span className="badge-dot" style={{ background: color }} />
           <span style={{ fontWeight: 600 }}>{label}</span>
         </div>
-        <span className="mono text-sm muted">{value}</span>
+        <div className="row" style={{ gap: 10, justifyContent: 'flex-end', width: 'auto' }}>
+          {hasTrend && <Sparkline values={trend} color={color} />}
+          <span className="mono text-sm muted">{value}</span>
+          {delta != null && <ChangeIndicator value={delta} suffix={deltaSuffix} />}
+        </div>
       </div>
       <div style={{ height: 6, borderRadius: 4, background: 'var(--border-soft)', marginTop: 12, overflow: 'hidden' }}>
         <div style={{ width: `${Math.round(ratio * 100)}%`, height: '100%', background: color, borderRadius: 4, transition: 'width 0.5s ease' }} />
