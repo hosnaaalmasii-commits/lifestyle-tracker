@@ -113,14 +113,28 @@ export function AppProvider({ children }) {
     root.style.setProperty('--fintech-grad-from', grad.from)
     root.style.setProperty('--fintech-grad-to', grad.to)
     root.style.setProperty('--fintech-accent', grad.accent)
-    root.style.setProperty('--accent', colors.accent)
-    root.style.setProperty('--accent-ring', colors.ring)
-    root.style.setProperty('--accent-water', colors.water)
-    root.style.setProperty('--accent-sleep', colors.sleep)
-    root.style.setProperty('--accent-workout', colors.workout)
-    root.style.setProperty('--accent-gradient-end', colors.gradientEnd)
-    root.style.setProperty('--accent-fill', useGradientAccents ? `linear-gradient(135deg, ${colors.accent}, ${colors.gradientEnd})` : colors.accent)
-    root.style.setProperty('--ring-fill', useGradientAccents ? `linear-gradient(135deg, ${colors.ring}, ${colors.gradientEnd})` : colors.ring)
+
+    const fintechOn = uiStyle === 'fintech'
+    // Under Fintech, every accent throughout the app (rings, streak flame,
+    // mini-card icons, section dots) switches to the chosen gradient family
+    // instead of the user's Classic accent — otherwise only card chrome
+    // changes and the app barely reads as redesigned.
+    const accent = fintechOn ? grad.from : colors.accent
+    const ring = fintechOn ? grad.from : colors.ring
+    const water = fintechOn ? grad.from : colors.water
+    const sleep = fintechOn ? grad.accent : colors.sleep
+    const workout = fintechOn ? grad.to : colors.workout
+    const gradientEnd = fintechOn ? grad.to : colors.gradientEnd
+    const useGradient = fintechOn ? true : useGradientAccents
+
+    root.style.setProperty('--accent', accent)
+    root.style.setProperty('--accent-ring', ring)
+    root.style.setProperty('--accent-water', water)
+    root.style.setProperty('--accent-sleep', sleep)
+    root.style.setProperty('--accent-workout', workout)
+    root.style.setProperty('--accent-gradient-end', gradientEnd)
+    root.style.setProperty('--accent-fill', useGradient ? `linear-gradient(135deg, ${accent}, ${gradientEnd})` : accent)
+    root.style.setProperty('--ring-fill', useGradient ? `linear-gradient(135deg, ${ring}, ${gradientEnd})` : ring)
     root.setAttribute('data-density', density)
     root.setAttribute('data-font', headingFont)
   }, [data.settings])

@@ -62,7 +62,8 @@ export default function Overview({ onNavigate }) {
   const xp = computeXP(data, badges.filter((b) => b.unlocked).length)
   const topInsights = computeInsights(data).slice(0, 2)
 
-  const { colors, useGradientAccents } = data.settings
+  const { useGradientAccents, uiStyle } = data.settings
+  const fintechOn = uiStyle === 'fintech'
   const consistency = computeConsistencyScore(data)
   const activeContracts = activeContractsToday(data.habitContracts, data)
   const microHabit = getMicroHabit(data)
@@ -88,8 +89,8 @@ export default function Overview({ onNavigate }) {
           value={score / 100}
           size={168}
           stroke={15}
-          color={colors.ring}
-          gradientTo={useGradientAccents ? colors.gradientEnd : undefined}
+          color="var(--accent-ring)"
+          gradientTo={(fintechOn || useGradientAccents) ? 'var(--accent-gradient-end)' : undefined}
         >
           <div className="mono" style={{ fontSize: 36, fontWeight: 700, lineHeight: 1 }}>{score}</div>
           <div className="text-sm muted" style={{ marginTop: 4 }}>daily score</div>
