@@ -42,6 +42,7 @@ const DEFAULT_DATA = {
   cycle: [],
   budget: [],
   schedule: [],
+  notes: [],
 }
 
 function loadData() {
@@ -306,6 +307,11 @@ export function AppProvider({ children }) {
       setData((d) => ({ ...d, schedule: [...d.schedule, { id: makeId(), date: dateKey, ...item }].sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))) }))
     },
     deleteScheduleItem: (id) => setData((d) => ({ ...d, schedule: d.schedule.filter((s) => s.id !== id) })),
+
+    addNote: (text, dateKey = todayKey()) => {
+      setData((d) => ({ ...d, notes: [...d.notes, { id: makeId(), date: dateKey, text, createdAt: Date.now() }] }))
+    },
+    deleteNote: (id) => setData((d) => ({ ...d, notes: d.notes.filter((n) => n.id !== id) })),
 
     setPainAreas: (dateKey, areaIds) => {
       setData((d) => ({ ...d, painLog: { ...d.painLog, [dateKey]: areaIds } }))

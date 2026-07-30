@@ -10,6 +10,7 @@ import Settings from './more/Settings'
 import Cycle from './more/Cycle'
 import Budget from './more/Budget'
 import Schedule from './more/Schedule'
+import Notes from './more/Notes'
 import Icon from '../components/Icon'
 
 const ITEMS = [
@@ -22,6 +23,7 @@ const ITEMS = [
   { id: 'cycle', label: 'Cycle', desc: 'Flow & symptoms', icon: 'droplet' },
   { id: 'schedule', label: 'Schedule', desc: 'Upcoming items', icon: 'calendar' },
   { id: 'budget', label: 'Budget', desc: 'Expenses & spending', icon: 'scale' },
+  { id: 'notes', label: 'Notes', desc: 'Quick jottings, no AI needed', icon: 'chat' },
   { id: 'insights', label: 'Insights', desc: 'Patterns in your data', icon: 'trendUp' },
   { id: 'badges', label: 'Badges & Level', desc: 'Achievements, XP, challenges', icon: 'trophy' },
   { id: 'settings', label: 'Settings', desc: 'Colors, theme, data', icon: 'gear' },
@@ -34,6 +36,7 @@ export default function More({ view, setView }) {
   if (view === 'cycle') return <Cycle onBack={() => setView(null)} />
   if (view === 'budget') return <Budget onBack={() => setView(null)} />
   if (view === 'schedule') return <Schedule onBack={() => setView(null)} />
+  if (view === 'notes') return <Notes onBack={() => setView(null)} />
   if (view === 'insights') return <Insights onBack={() => setView(null)} />
   if (view === 'coach') return <Coach onBack={() => setView(null)} setView={setView} />
   if (view === 'contracts') return <HabitContracts onBack={() => setView(null)} />

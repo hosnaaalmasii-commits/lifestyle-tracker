@@ -90,8 +90,10 @@ export default function VoiceLogSheet({ open, onClose }) {
     parseTriggeredRef.current = false
     suppressAutoParseRef.current = false
 
+    // Without a key there's nothing to auto-parse into — leave the
+    // transcript sitting in the box so "Save as note" can pick it up.
     const triggerParseOnce = (text) => {
-      if (parseTriggeredRef.current) return
+      if (parseTriggeredRef.current || !hasApiKey()) return
       parseTriggeredRef.current = true
       parse(text)
     }
@@ -154,16 +156,15 @@ export default function VoiceLogSheet({ open, onClose }) {
     setTimeout(handleClose, 900)
   }
 
-  if (!hasApiKey()) {
-    return (
-      <Sheet open={open} onClose={handleClose} title="Log by voice">
-        <div className="empty-state">
-          <div className="icon"><Icon name="mic" size={26} /></div>
-          <p>Connect your own Claude API key to turn a sentence into logged entries — nothing is sent anywhere until you add a key.</p>
-          <p className="text-sm faint" style={{ marginTop: 4 }}>Set it up in More → Settings → AI Coach.</p>
-        </div>
-      </Sheet>
-    )
+  // No AI required — the transcript itself (from the native speech API or
+  // typed text) is the thing being logged, saved as a plain dated note.
+  const saveAsNote = () => {
+    const text = transcript.trim()
+    if (!text || savingRef.current) return
+    savingRef.current = true
+    app.addNote(text)
+    setSaved(true)
+    setTimeout(handleClose, 900)
   }
 
   return (
@@ -216,9 +217,21 @@ export default function VoiceLogSheet({ open, onClose }) {
           </div>
 
           {!intents && (
-            <button className="btn btn-primary btn-block" disabled={!transcript.trim() || loading} onClick={() => parse()}>
-              {loading ? 'Thinking…' : 'Parse'}
-            </button>
+            <div className="stack" style={{ gap: 8 }}>
+              {hasApiKey() && (
+                <button className="btn btn-primary btn-block" disabled={!transcript.trim() || loading} onClick={() => parse()}>
+                  {loading ? 'Thinking…' : 'Parse with AI'}
+                </button>
+              )}
+              <button className="btn btn-secondary btn-block" disabled={!transcript.trim() || loading} onClick={saveAsNote}>
+                Save as note
+              </button>
+              {!hasApiKey() && (
+                <p className="text-sm faint" style={{ margin: '2px 4px 0' }}>
+                  Add a Claude API key in More → Settings → AI Coach to auto-categorize this into water, meals, workouts, and more instead of a plain note.
+                </p>
+              )}
+            </div>
           )}
 
           {error && <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 10 }}>{error}</div>}
