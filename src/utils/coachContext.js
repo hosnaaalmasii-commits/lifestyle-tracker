@@ -6,6 +6,7 @@ import { getWeeklyChallenge } from './challenges'
 import { computeConsistencyScore } from './consistencyScore'
 import { activeContractsToday } from './habitContracts'
 import { getGPSStatus } from './lifestyleGPS'
+import { estimateCyclePhase } from './cyclePhase'
 
 export const PERSONALITIES = [
   {
@@ -59,7 +60,8 @@ Hard rules:
 - No guilt or shame language: never say "you failed," "you should have," "you missed," "cheat day," or similar. Missed days and rest are normal, not moral failures.
 - Keep replies short by default — this is a small phone screen. Prefer 2-5 sentences or a short list unless the user clearly asks for depth.
 - Don't suggest features that don't exist in this app (no calendar sync, no wearables, no camera, no social features — this is a private, local, single-user app).
-- If the data snapshot doesn't cover what's asked, say so plainly instead of guessing.`
+- If the data snapshot doesn't cover what's asked, say so plainly instead of guessing.
+- If a cycle phase estimate is present below, treat it as exactly that — an estimate from logged dates, never a diagnosis or a hormonal certainty. Use pattern-based language ("this can be a common time for...", "worth noting if it fits your pattern") and never state it as fact about the user's body.`
 
 function fmtPct(n, d) {
   if (!d) return '—'
@@ -115,6 +117,11 @@ export function summarizeUserData(data) {
     ? `Goal: ${data.workouts.profile.goal}, experience: ${data.workouts.profile.experience}, ${data.workouts.profile.daysPerWeek}x/week`
     : 'No workout plan set up yet'
 
+  const phase = estimateCyclePhase(data, today)
+  const cyclePhaseSummary = phase
+    ? `Estimated cycle phase: ${phase.name}, day ${phase.cycleDay} of an estimated ${phase.estimatedLength}-day cycle (${phase.lengthSource === 'observed' ? `based on the user's own last ${phase.cycleCount} cycles` : 'generic estimate, not enough logged cycles yet to personalize'}). This is a pattern-based estimate, not a diagnosis.`
+    : 'No cycle data logged, or not enough to estimate a phase.'
+
   return `DATA SNAPSHOT (as of ${today}):
 
 Water: ${waterToday}/${waterGoal} ml today. Goal met ${waterHitsWeek}/7 days this week (${fmtPct(waterHitsWeek, 7)}). Current streak: ${waterStreak} days.
@@ -127,6 +134,7 @@ Level ${level} (${levelTitle(level)}), ${unlockedBadges.length}/${badges.length}
 This week's challenge: "${challenge.title}" — ${challenge.progress}/${challenge.target} (${challenge.complete ? 'complete' : 'in progress'}).
 Consistency score: ${consistency.score}/100 (${consistency.label}) — a 30-day rolling score, not a streak; context matters more than any single day.
 Lifestyle GPS phase: ${gps.current.label}${gps.next ? ` (${gps.next.threshold - gps.score} points from ${gps.next.label})` : ' (top phase)'}.
+${cyclePhaseSummary}
 ${calendarSummary(data)}
 ${habitContractsSummary(data)}`
 }

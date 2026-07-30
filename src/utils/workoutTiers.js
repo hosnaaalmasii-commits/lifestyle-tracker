@@ -1,5 +1,6 @@
 import { todayKey, addDaysToKey } from './dates'
 import { getComebackStatus } from './comeback'
+import { estimateCyclePhase, menstrualTrainingPattern } from './cyclePhase'
 
 export const TIERS = [
   { id: 'full', label: 'Full', minutes: '30-45 min' },
@@ -73,6 +74,16 @@ export function suggestTier(data) {
 
   if (data.workouts.completions[yesterday]) {
     return { tier: 'short', reason: 'trained yesterday — keeping it lighter today' }
+  }
+
+  const phase = estimateCyclePhase(data, today)
+  if (phase && phase.phase === 'menstrual') {
+    const pattern = menstrualTrainingPattern(data)
+    // Only skip the nudge once there's enough of the user's own history to
+    // show it doesn't usually slow them down — otherwise default to easing up.
+    if (!(pattern.known && pattern.rate >= 0.6)) {
+      return { tier: 'short', reason: `estimated period window (day ${phase.cycleDay}) — a lighter session is a common pattern, not a rule` }
+    }
   }
 
   return { tier: 'full', reason: 'no flags today — go for it' }

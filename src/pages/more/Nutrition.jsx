@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { todayKey, humanDate, addDaysToKey, lastNDayKeys, isToday } from '../../utils/dates'
+import { estimateCyclePhase, nutritionTipForPhase } from '../../utils/cyclePhase'
 import BackHeader from '../../components/BackHeader'
 import WeeklyBarChart from '../../components/WeeklyBarChart'
 import IconBadge from '../../components/IconBadge'
@@ -26,9 +27,21 @@ export default function Nutrition({ onBack }) {
     return { key: k, value: ITEMS.filter((i) => d[i.key]).length }
   })
 
+  const phase = estimateCyclePhase(data, todayKey())
+  const phaseTip = nutritionTipForPhase(phase?.phase)
+
   return (
     <div className="page">
       <BackHeader eyebrow="More" title="Nutrition" onBack={onBack} />
+
+      {phaseTip && (
+        <div className="card" style={{ padding: '12px 16px', marginBottom: 12 }}>
+          <div className="text-sm faint" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
+            {phase.name} window (estimated)
+          </div>
+          <p className="text-sm" style={{ margin: '4px 0 0' }}>{phaseTip}</p>
+        </div>
+      )}
 
       <div className="card">
         <div className="row" style={{ marginBottom: 4 }}>

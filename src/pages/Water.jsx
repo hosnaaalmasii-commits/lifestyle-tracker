@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { todayKey, lastNDayKeys } from '../utils/dates'
 import { streakFromDateSet } from '../utils/streaks'
+import { computeHydrationAutopilot } from '../utils/hydrationAutopilot'
 import Ring from '../components/Ring'
 import StreakBadge from '../components/StreakBadge'
 import WeeklyBarChart from '../components/WeeklyBarChart'
@@ -9,6 +10,14 @@ import Sheet from '../components/Sheet'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 const QUICK_ADDS = [200, 330, 500]
+
+const STATUS_COLOR = {
+  likely_low: 'var(--danger)',
+  slightly_low: 'var(--warning)',
+  on_track: 'var(--accent-water)',
+  well_hydrated: 'var(--success)',
+  overhydration: 'var(--warning)',
+}
 
 export default function Water() {
   const { data, addWater, undoLastWater, clearWater, setWaterGoal } = useApp()
@@ -26,6 +35,7 @@ export default function Water() {
   const weekValues = weekKeys.map((k) => ({ key: k, value: data.water[k] || 0 }))
 
   const streak = streakFromDateSet(new Set(Object.entries(data.water).filter(([, ml]) => ml >= goal).map(([k]) => k)))
+  const autopilot = computeHydrationAutopilot(data)
 
   const handleAdd = (ml) => {
     addWater(ml)
@@ -62,6 +72,32 @@ export default function Water() {
           <button className="btn btn-ghost btn-sm" onClick={() => { setCustomGoal(goal); setGoalSheetOpen(true) }}>Edit goal</button>
           {todayMl > 0 && <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmClear(true)}>Clear today</button>}
         </div>
+      </div>
+
+      <div className="section-title" style={{ marginTop: 20 }}>Autopilot</div>
+      <div className="card">
+        <div className="row" style={{ alignItems: 'flex-start' }}>
+          <div>
+            <div className="text-sm faint">Today's adjusted target</div>
+            <div className="mono" style={{ fontWeight: 700, fontSize: 22, marginTop: 2 }}>{autopilot.target} ml</div>
+          </div>
+          <span
+            className="text-sm"
+            style={{
+              fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--radius-pill)',
+              color: STATUS_COLOR[autopilot.status],
+              background: `color-mix(in srgb, ${STATUS_COLOR[autopilot.status]} 14%, transparent)`,
+            }}
+          >
+            {autopilot.statusLabel}
+          </span>
+        </div>
+        {autopilot.bumps.length > 0 && (
+          <p className="text-sm faint" style={{ marginTop: 8, marginBottom: 0 }}>
+            {autopilot.baseline}ml baseline{autopilot.bumps.map((b) => ` + ${b.ml}ml (${b.label})`).join('')}
+          </p>
+        )}
+        <p className="text-sm" style={{ marginTop: 10, marginBottom: 0 }}>{autopilot.nextAction}</p>
       </div>
 
       <div className="row" style={{ marginTop: 20, marginBottom: 4 }}>

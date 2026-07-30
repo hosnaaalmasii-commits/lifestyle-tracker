@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { todayKey, humanDate } from '../../utils/dates'
 import { CYCLE_FLOW_OPTIONS, CYCLE_SYMPTOM_OPTIONS } from '../../utils/voiceLogging'
+import { estimateCyclePhase } from '../../utils/cyclePhase'
 import BackHeader from '../../components/BackHeader'
 import Sheet from '../../components/Sheet'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -17,6 +18,7 @@ export default function Cycle({ onBack }) {
 
   const entries = [...data.cycle].reverse()
   const latest = entries[0]
+  const phase = estimateCyclePhase(data, todayKey())
 
   const toggleSymptom = (s) => {
     setSymptoms((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
@@ -37,6 +39,23 @@ export default function Cycle({ onBack }) {
         onBack={onBack}
         action={<button className="btn btn-primary btn-sm" onClick={openLog}>+ Log</button>}
       />
+
+      {phase && (
+        <div className="card" style={{ borderColor: 'color-mix(in srgb, var(--danger) 30%, var(--border-soft))', background: 'color-mix(in srgb, var(--danger) 6%, var(--surface-soft))' }}>
+          <div className="row" style={{ alignItems: 'flex-start' }}>
+            <div>
+              <div className="text-sm faint" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>Estimated phase</div>
+              <div style={{ fontWeight: 700, fontSize: 18, marginTop: 2 }}>{phase.name}</div>
+              <p className="text-sm muted" style={{ marginTop: 6, marginBottom: 0 }}>{phase.line}</p>
+            </div>
+          </div>
+          <p className="text-sm faint" style={{ marginTop: 10, marginBottom: 0 }}>
+            Day {phase.cycleDay} of an estimated {phase.estimatedLength}-day cycle
+            {phase.lengthSource === 'observed' ? ` (based on your last ${phase.cycleCount} cycles)` : ' (generic estimate — logs a few more cycles to personalize this)'}.
+            A pattern, not a diagnosis.
+          </p>
+        </div>
+      )}
 
       <div className="card">
         {latest ? (
