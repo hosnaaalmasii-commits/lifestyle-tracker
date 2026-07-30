@@ -308,8 +308,16 @@
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .wallet-rail::-webkit-scrollbar { display: none; }
+
+.wallet-rail.dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+}
 
 .wallet-card {
   scroll-snap-align: start;
@@ -370,11 +378,16 @@
   gap: 6px;
   margin: 10px 0 4px;
 }
-.wallet-dots span {
+.wallet-dots button {
   width: 5px; height: 5px; border-radius: 50%;
   background: var(--border);
+  border: none;
+  padding: 8px;
+  background-clip: content-box;
+  cursor: pointer;
+  transition: width 0.2s ease, background 0.2s ease;
 }
-.wallet-dots span.on { width: 16px; border-radius: 3px; background: var(--fintech-grad-from); }
+.wallet-dots button.on { width: 16px; border-radius: 3px; background: var(--fintech-grad-from); }
 
 /* ---- Flight dial ---- */
 
