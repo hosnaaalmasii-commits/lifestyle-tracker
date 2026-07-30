@@ -89,23 +89,27 @@ export default function Overview({ onNavigate }) {
       key: 'water', eyebrow: 'Water', value: waterToday, valueSuffix: 'ml',
       sub: `of ${data.settings.waterGoalMl} ml goal`, trend: waterTrend,
       gradient: 'linear-gradient(140deg, var(--accent-water), var(--fintech-grad-to))',
+      onClick: () => onNavigate('water'),
     },
     {
       key: 'sleep', eyebrow: 'Sleep', value: sleepToday ? sleepToday.hours : '—', valueSuffix: sleepToday ? 'h' : '',
       sub: sleepToday ? `Quality: ${QUALITY_LABELS[sleepToday.quality - 1] || '—'}` : `Goal: ${data.settings.sleepGoalHours}h`,
       trend: sleepTrend,
       gradient: 'linear-gradient(140deg, var(--accent-sleep), var(--fintech-grad-from))',
+      onClick: () => onNavigate('sleep'),
     },
     {
       key: 'workout', eyebrow: 'Workout',
       value: isRestDay ? 'Rest day' : (todaysWorkout?.label || 'Not set up'),
       sub: isRestDay ? 'Recovery day' : `${todaysWorkout?.exercises.length || 0} exercises · ${workoutCompleted ? 'done' : 'not started'}`,
       gradient: 'linear-gradient(140deg, var(--accent-workout), var(--fintech-accent))',
+      onClick: () => onNavigate('workouts'),
     },
     {
       key: 'mood', eyebrow: 'Mood', value: moodLabel,
       sub: todaysMood ? 'Logged today' : 'Tap to log',
       gradient: 'linear-gradient(140deg, var(--fintech-accent), var(--fintech-grad-to))',
+      onClick: () => onNavigate('more', 'mood'),
     },
   ]
 

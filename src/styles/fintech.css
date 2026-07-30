@@ -307,7 +307,7 @@
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
-  perspective: 900px;
+  -webkit-overflow-scrolling: touch;
 }
 .wallet-rail::-webkit-scrollbar { display: none; }
 
@@ -315,15 +315,13 @@
   scroll-snap-align: start;
   flex: 0 0 78%;
   max-width: 300px;
+  border: none;
   border-radius: var(--radius-lg);
   padding: 20px 20px 18px;
   position: relative;
   overflow: hidden;
   color: #fff;
   box-shadow: 0 20px 44px -14px rgba(0, 0, 0, 0.6);
-  transform-style: preserve-3d;
-  transition: transform 0.15s ease-out;
-  will-change: transform;
 }
 
 .wallet-card::after {
@@ -333,15 +331,6 @@
   background: linear-gradient(155deg, rgba(255, 255, 255, 0.16), transparent 55%);
   pointer-events: none;
 }
-
-.wallet-sheen {
-  position: absolute; inset: 0;
-  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 20%), rgba(255, 255, 255, 0.35), transparent 55%);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
-}
-.wallet-card:hover .wallet-sheen { opacity: 1; }
 
 .wallet-eyebrow {
   font-family: var(--font-mono);
