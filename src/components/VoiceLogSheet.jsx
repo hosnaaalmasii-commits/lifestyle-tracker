@@ -39,6 +39,9 @@ export default function VoiceLogSheet({ open, onClose }) {
   const [listening, setListening] = useState(false)
   const savingRef = useRef(false)
   const recognizerRef = useRef(null)
+  const transcriptRef = useRef('')
+  const parseTriggeredRef = useRef(false)
+  const suppressAutoParseRef = useRef(false)
 
   const reset = () => {
     setTranscript('')
@@ -48,13 +51,18 @@ export default function VoiceLogSheet({ open, onClose }) {
     savingRef.current = false
   }
 
+  // A manual tap-to-stop should still transcribe+parse whatever was heard —
+  // only closing the whole sheet should discard it, which is why these are
+  // two different methods (plain .stop() vs .abort() + a suppress flag) even
+  // though both end the underlying recognizer.
   const stopListening = () => {
     recognizerRef.current?.stop()
-    setListening(false)
   }
 
   const handleClose = () => {
-    stopListening()
+    suppressAutoParseRef.current = true
+    recognizerRef.current?.abort()
+    setListening(false)
     reset()
     onClose()
   }
@@ -78,15 +86,34 @@ export default function VoiceLogSheet({ open, onClose }) {
   const startListening = () => {
     setError('')
     setTranscript('')
+    transcriptRef.current = ''
+    parseTriggeredRef.current = false
+    suppressAutoParseRef.current = false
+
+    const triggerParseOnce = (text) => {
+      if (parseTriggeredRef.current) return
+      parseTriggeredRef.current = true
+      parse(text)
+    }
+
     const recognizer = createSpeechRecognizer({
       onResult: ({ text, isFinal }) => {
         setTranscript(text)
+        transcriptRef.current = text
         if (isFinal) {
           setListening(false)
-          parse(text)
+          triggerParseOnce(text)
         }
       },
-      onEnd: () => setListening(false),
+      // Fires whether the session ended by detected silence, a manual
+      // tap-to-stop, or an error — any of those should still parse
+      // whatever was heard, unless we're the ones tearing the sheet down.
+      onEnd: () => {
+        setListening(false)
+        if (!suppressAutoParseRef.current && transcriptRef.current.trim()) {
+          triggerParseOnce(transcriptRef.current)
+        }
+      },
       onError: (err) => {
         setListening(false)
         if (err !== 'no-speech' && err !== 'aborted') setError('Couldn\'t hear anything — try again or type it instead.')
