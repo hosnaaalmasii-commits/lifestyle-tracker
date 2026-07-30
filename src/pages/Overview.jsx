@@ -21,6 +21,7 @@ import MascotCard from '../components/MascotCard'
 import Sparkline from '../components/Sparkline'
 import ChangeIndicator from '../components/ChangeIndicator'
 import OverviewTerminal from './OverviewTerminal'
+import VoiceLogSheet from '../components/VoiceLogSheet'
 
 const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
 const QUALITY_LABELS = ['Rough', 'Poor', 'Okay', 'Good', 'Great']
@@ -46,6 +47,7 @@ export default function Overview({ onNavigate }) {
   const celebratedToday = useRef(null)
   const [confettiTick, setConfettiTick] = useState(0)
   const [moodCheckInOpen, setMoodCheckInOpen] = useState(false)
+  const [voiceLogOpen, setVoiceLogOpen] = useState(false)
   useEffect(() => {
     if (score >= 100 && celebratedToday.current !== today) {
       celebratedToday.current = today
@@ -199,6 +201,15 @@ export default function Overview({ onNavigate }) {
           <MascotCard xp={xp} onClick={() => onNavigate('more', 'badges')} />
         </>
       )}
+
+      <button
+        className="btn btn-primary btn-block"
+        style={{ marginTop: 12, gap: 8 }}
+        onClick={() => setVoiceLogOpen(true)}
+      >
+        <Icon name="mic" size={16} /> Log by voice
+      </button>
+      <VoiceLogSheet open={voiceLogOpen} onClose={() => setVoiceLogOpen(false)} />
 
       {activeContracts.length > 0 && (
         <button

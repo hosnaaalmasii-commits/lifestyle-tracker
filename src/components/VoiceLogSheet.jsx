@@ -1,0 +1,212 @@
+import { useRef, useState } from 'react'
+import { useApp } from '../context/AppContext'
+import { hasApiKey, ClaudeApiError } from '../utils/claudeApi'
+import { parseVoiceTranscript, applyVoiceIntent, CATEGORY_META } from '../utils/voiceLogging'
+import Sheet from './Sheet'
+import Icon from './Icon'
+
+const CONFIDENCE_LABEL = {
+  exact: 'Exact',
+  estimated: 'Estimated',
+  unknown: 'Unknown',
+}
+
+const FIELD_LABEL = {
+  volumeMl: 'Amount', slot: 'Meal', includesVegetables: 'Vegetables', label: 'Mood', note: 'Note',
+  mode: 'Type', exerciseName: 'Exercise', weightKg: 'Weight', reps: 'Reps',
+  flow: 'Flow', symptoms: 'Symptoms', time: 'Time', text: 'Note', amount: 'Amount', category: 'Category',
+}
+
+function formatValue(name, value) {
+  if (value == null || value === '') return '—'
+  if (Array.isArray(value)) return value.length ? value.join(', ') : '—'
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  if (name === 'volumeMl') return `${value} ml`
+  if (name === 'weightKg') return `${value} kg`
+  return String(value)
+}
+
+export default function VoiceLogSheet({ open, onClose }) {
+  const app = useApp()
+  const [transcript, setTranscript] = useState('')
+  const [intents, setIntents] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+  const savingRef = useRef(false)
+
+  const reset = () => {
+    setTranscript('')
+    setIntents(null)
+    setError('')
+    setSaved(false)
+    savingRef.current = false
+  }
+
+  const handleClose = () => {
+    reset()
+    onClose()
+  }
+
+  const parse = async () => {
+    const text = transcript.trim()
+    if (!text || loading) return
+    setLoading(true)
+    setError('')
+    try {
+      const result = await parseVoiceTranscript(text)
+      setIntents(result)
+      if (result.length === 0) setError('Didn\'t catch anything to log — try rephrasing.')
+    } catch (e) {
+      setError(e instanceof ClaudeApiError ? e.message : 'Something went wrong understanding that.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resolveFollowUp = (intentId, value) => {
+    setIntents((prev) => prev.map((intent) => {
+      if (intent.id !== intentId) return intent
+      return {
+        ...intent,
+        fields: { ...intent.fields, [intent.followUp.field]: { value, confidence: 'exact' } },
+        followUp: null,
+      }
+    }))
+  }
+
+  const removeIntent = (intentId) => {
+    setIntents((prev) => prev.filter((i) => i.id !== intentId))
+  }
+
+  const pendingCount = intents ? intents.filter((i) => i.followUp).length : 0
+
+  const saveAll = () => {
+    if (savingRef.current) return
+    savingRef.current = true
+    intents.forEach((intent) => applyVoiceIntent(app, intent))
+    setSaved(true)
+    setTimeout(handleClose, 900)
+  }
+
+  if (!hasApiKey()) {
+    return (
+      <Sheet open={open} onClose={handleClose} title="Log by voice">
+        <div className="empty-state">
+          <div className="icon"><Icon name="mic" size={26} /></div>
+          <p>Connect your own Claude API key to turn a sentence into logged entries — nothing is sent anywhere until you add a key.</p>
+          <p className="text-sm faint" style={{ marginTop: 4 }}>Set it up in More → Settings → AI Coach.</p>
+        </div>
+      </Sheet>
+    )
+  }
+
+  return (
+    <Sheet open={open} onClose={handleClose} title="Log by voice">
+      {saved ? (
+        <div className="empty-state">
+          <div className="icon"><Icon name="check" size={26} /></div>
+          <p>Logged.</p>
+        </div>
+      ) : (
+        <>
+          <div className="field">
+            <label>Say what happened — type it for now</label>
+            <textarea
+              className="input"
+              style={{ minHeight: 84, resize: 'vertical' }}
+              placeholder="e.g. I drank a bottle of water and had a salad for lunch"
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+
+          {!intents && (
+            <button className="btn btn-primary btn-block" disabled={!transcript.trim() || loading} onClick={parse}>
+              {loading ? 'Listening…' : 'Parse'}
+            </button>
+          )}
+
+          {error && <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 10 }}>{error}</div>}
+
+          {intents && intents.length > 0 && (
+            <div className="stack" style={{ marginTop: 16 }}>
+              {intents.map((intent) => {
+                const meta = CATEGORY_META[intent.category]
+                return (
+                  <div key={intent.id} className="card">
+                    <div className="row" style={{ alignItems: 'flex-start' }}>
+                      <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
+                        <span style={{ color: meta.color }}><Icon name={meta.icon} size={18} /></span>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>{intent.summary}</div>
+                          <div className="text-sm faint">{meta.label} · {intent.when === 'yesterday' ? 'Yesterday' : 'Today'}</div>
+                        </div>
+                      </div>
+                      <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 12 }} onClick={() => removeIntent(intent.id)}>Remove</button>
+                    </div>
+
+                    <div className="stack" style={{ marginTop: 10, gap: 6 }}>
+                      {Object.entries(intent.fields)
+                        .filter(([name]) => !(intent.followUp && intent.followUp.field === name))
+                        .map(([name, field]) => (
+                          <div key={name} className="row" style={{ fontSize: 13 }}>
+                            <span className="muted">{FIELD_LABEL[name] || name}</span>
+                            <span className="row" style={{ gap: 8, justifyContent: 'flex-end', width: 'auto' }}>
+                              <span className="mono">{formatValue(name, field.value)}</span>
+                              {field.confidence !== 'exact' && (
+                                <span className="text-sm faint" style={{ fontSize: 11 }}>({CONFIDENCE_LABEL[field.confidence] || field.confidence})</span>
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+
+                    {intent.followUp && (
+                      <div style={{ marginTop: 12, padding: 12, borderRadius: 'var(--radius-sm)', background: 'color-mix(in srgb, var(--warning) 12%, var(--surface-soft))', border: '1px solid color-mix(in srgb, var(--warning) 35%, var(--border-soft))' }}>
+                        <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 600 }}>{intent.followUp.question}</p>
+                        {intent.followUp.choices ? (
+                          <div className="row" style={{ gap: 6, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+                            {intent.followUp.choices.map((c) => (
+                              <button key={c.label} className="chip" onClick={() => resolveFollowUp(intent.id, c.value)}>{c.label}</button>
+                            ))}
+                          </div>
+                        ) : (
+                          <FollowUpNumberInput onSubmit={(v) => resolveFollowUp(intent.id, v)} />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              <button className="btn btn-primary btn-block" disabled={pendingCount > 0} onClick={saveAll}>
+                {pendingCount > 0 ? `Answer ${pendingCount} question${pendingCount > 1 ? 's' : ''} to save` : `Save ${intents.length} ${intents.length === 1 ? 'entry' : 'entries'}`}
+              </button>
+              <button className="btn btn-ghost btn-block" onClick={reset}>Start over</button>
+            </div>
+          )}
+        </>
+      )}
+    </Sheet>
+  )
+}
+
+function FollowUpNumberInput({ onSubmit }) {
+  const [value, setValue] = useState('')
+  return (
+    <div className="row" style={{ gap: 8 }}>
+      <input
+        className="input"
+        style={{ flex: 1 }}
+        type="number"
+        placeholder="Enter a number"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        autoFocus
+      />
+      <button className="btn btn-secondary btn-sm" disabled={!value} onClick={() => onSubmit(Number(value))}>Confirm</button>
+    </div>
+  )
+}

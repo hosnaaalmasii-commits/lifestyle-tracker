@@ -39,6 +39,9 @@ const DEFAULT_DATA = {
   habitContracts: [],
   painLog: {},
   motivationFlags: {},
+  cycle: [],
+  budget: [],
+  schedule: [],
 }
 
 function loadData() {
@@ -288,6 +291,21 @@ export function AppProvider({ children }) {
       setData((d) => ({ ...d, habitContracts: [...d.habitContracts, { id: makeId(), createdAt: todayKey(), ...contract }] }))
     },
     deleteHabitContract: (id) => setData((d) => ({ ...d, habitContracts: d.habitContracts.filter((c) => c.id !== id) })),
+
+    addCycleEntry: (entry, dateKey = todayKey()) => {
+      setData((d) => ({ ...d, cycle: [...d.cycle, { id: makeId(), date: dateKey, ...entry }].sort((a, b) => a.date.localeCompare(b.date)) }))
+    },
+    deleteCycleEntry: (id) => setData((d) => ({ ...d, cycle: d.cycle.filter((c) => c.id !== id) })),
+
+    addExpense: (expense, dateKey = todayKey()) => {
+      setData((d) => ({ ...d, budget: [...d.budget, { id: makeId(), date: dateKey, ...expense }].sort((a, b) => a.date.localeCompare(b.date)) }))
+    },
+    deleteExpense: (id) => setData((d) => ({ ...d, budget: d.budget.filter((b) => b.id !== id) })),
+
+    addScheduleItem: (item, dateKey = todayKey()) => {
+      setData((d) => ({ ...d, schedule: [...d.schedule, { id: makeId(), date: dateKey, ...item }].sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))) }))
+    },
+    deleteScheduleItem: (id) => setData((d) => ({ ...d, schedule: d.schedule.filter((s) => s.id !== id) })),
 
     setPainAreas: (dateKey, areaIds) => {
       setData((d) => ({ ...d, painLog: { ...d.painLog, [dateKey]: areaIds } }))

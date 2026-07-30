@@ -282,6 +282,12 @@ const ICONS = {
       <path d="M8.3 10.6q.9-1.1 1.8 0M13.9 10.6q.9-1.1 1.8 0M8.2 14c1.4 1.6 6.2 1.6 7.6 0" />
     </g>
   ),
+  mic: (
+    <g {...stroke}>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6" />
+    </g>
+  ),
 }
 
 export default function Icon({ name, size = 18, className, style, title }) {
