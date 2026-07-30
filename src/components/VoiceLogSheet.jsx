@@ -2,8 +2,11 @@ import { useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { hasApiKey, ClaudeApiError } from '../utils/claudeApi'
 import { parseVoiceTranscript, applyVoiceIntent, CATEGORY_META } from '../utils/voiceLogging'
+import { isSpeechRecognitionSupported, createSpeechRecognizer } from '../utils/speechInput'
 import Sheet from './Sheet'
 import Icon from './Icon'
+
+const SPEECH_SUPPORTED = isSpeechRecognitionSupported()
 
 const CONFIDENCE_LABEL = {
   exact: 'Exact',
@@ -33,7 +36,9 @@ export default function VoiceLogSheet({ open, onClose }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [listening, setListening] = useState(false)
   const savingRef = useRef(false)
+  const recognizerRef = useRef(null)
 
   const reset = () => {
     setTranscript('')
@@ -43,13 +48,19 @@ export default function VoiceLogSheet({ open, onClose }) {
     savingRef.current = false
   }
 
+  const stopListening = () => {
+    recognizerRef.current?.stop()
+    setListening(false)
+  }
+
   const handleClose = () => {
+    stopListening()
     reset()
     onClose()
   }
 
-  const parse = async () => {
-    const text = transcript.trim()
+  const parse = async (textOverride) => {
+    const text = (textOverride ?? transcript).trim()
     if (!text || loading) return
     setLoading(true)
     setError('')
@@ -62,6 +73,33 @@ export default function VoiceLogSheet({ open, onClose }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const startListening = () => {
+    setError('')
+    setTranscript('')
+    const recognizer = createSpeechRecognizer({
+      onResult: ({ text, isFinal }) => {
+        setTranscript(text)
+        if (isFinal) {
+          setListening(false)
+          parse(text)
+        }
+      },
+      onEnd: () => setListening(false),
+      onError: (err) => {
+        setListening(false)
+        if (err !== 'no-speech' && err !== 'aborted') setError('Couldn\'t hear anything — try again or type it instead.')
+      },
+    })
+    recognizerRef.current = recognizer
+    recognizer.start()
+    setListening(true)
+  }
+
+  const toggleListening = () => {
+    if (listening) stopListening()
+    else startListening()
   }
 
   const resolveFollowUp = (intentId, value) => {
@@ -110,21 +148,49 @@ export default function VoiceLogSheet({ open, onClose }) {
         </div>
       ) : (
         <>
+          {SPEECH_SUPPORTED && !intents && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0 18px' }}>
+              <button
+                className="btn-ghost"
+                onClick={toggleListening}
+                disabled={loading}
+                aria-label={listening ? 'Stop listening' : 'Tap to speak'}
+                style={{
+                  width: 72, height: 72, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                  background: listening ? 'var(--danger)' : 'var(--accent-fill)',
+                  color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: 'var(--shadow-md)',
+                  animation: listening ? 'mic-pulse 1.2s ease-in-out infinite' : 'none',
+                }}
+              >
+                <Icon name="mic" size={28} />
+              </button>
+              <div className="text-sm muted" style={{ marginTop: 10 }}>
+                {listening ? 'Listening… tap to stop' : 'Tap to speak'}
+              </div>
+            </div>
+          )}
+
           <div className="field">
-            <label>Say what happened — type it for now</label>
+            <label>{SPEECH_SUPPORTED ? 'Or type it' : 'Say what happened — type it, or use your keyboard\'s dictation mic'}</label>
             <textarea
               className="input"
               style={{ minHeight: 84, resize: 'vertical' }}
               placeholder="e.g. I drank a bottle of water and had a salad for lunch"
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
-              disabled={loading}
+              disabled={loading || listening}
             />
+            {!SPEECH_SUPPORTED && (
+              <p className="text-sm faint" style={{ marginTop: 6 }}>
+                This browser doesn't support in-app voice capture — tap the box above and use your keyboard's microphone/dictation button to speak instead.
+              </p>
+            )}
           </div>
 
           {!intents && (
-            <button className="btn btn-primary btn-block" disabled={!transcript.trim() || loading} onClick={parse}>
-              {loading ? 'Listening…' : 'Parse'}
+            <button className="btn btn-primary btn-block" disabled={!transcript.trim() || loading} onClick={() => parse()}>
+              {loading ? 'Thinking…' : 'Parse'}
             </button>
           )}
 

@@ -339,6 +339,11 @@ a { color: inherit; }
 }
 .scroll-x::-webkit-scrollbar { display: none; }
 
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 45%, transparent); }
+  50% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--danger) 0%, transparent); }
+}
+
 @keyframes confetti-fall {
   0% { transform: translate(0, 0) rotate(0deg); opacity: 0.95; }
   30% { transform: translate(calc(var(--drift) * 0.4), var(--rise)) rotate(calc(var(--rotate) * 0.3)); }
