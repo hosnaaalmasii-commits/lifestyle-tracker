@@ -26,6 +26,12 @@
   --warning: #fbbf24;
   --danger: #f87171;
 
+  --state-energized: #e8ac5f;
+  --state-balanced: #34d399;
+  --state-tired: #9a9ee0;
+  --state-dehydrated: #e29a72;
+  --state-recovering: #6fe0a0;
+
   --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
@@ -597,6 +603,14 @@
 .tile-xp { grid-column: span 2; }
 .tile-streak { grid-column: span 1; }
 .tile-badges { grid-column: span 1; }
+
+.tile-companion-state {
+  grid-column: span 4;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+}
 
 .tile-num { font-size: 24px; margin-top: 8px; }
 

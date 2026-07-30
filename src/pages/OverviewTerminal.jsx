@@ -4,6 +4,7 @@ import WeeklyManifest from '../components/WeeklyManifest'
 import BoardingPass from '../components/BoardingPass'
 import PassportStamp from '../components/PassportStamp'
 import MascotCard from '../components/MascotCard'
+import CompanionStateCard from '../components/CompanionStateCard'
 import { humanDateFull } from '../utils/dates'
 
 const STAMP_COLORS = ['var(--fintech-grad-from)', 'var(--fintech-accent)', 'var(--fintech-grad-to)']
@@ -61,6 +62,7 @@ export default function OverviewTerminal({
       <div className="section-title" style={{ margin: '20px 0 8px' }}>Progress</div>
       <div className="bento">
         <MascotCard xp={xp} variant="bento" onClick={() => onNavigate('more', 'badges')} />
+        <CompanionStateCard variant="bento" />
         <button className="tile tile-xp" onClick={() => onNavigate('more', 'badges')} style={{ textAlign: 'left', cursor: 'pointer' }}>
           <div className="stat-label">Experience</div>
           <div className="stat-number tile-num">{xp.toLocaleString()} XP</div>

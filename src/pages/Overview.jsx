@@ -18,6 +18,7 @@ import { getGPSStatus } from '../utils/lifestyleGPS'
 import { faceIconForEmoji, MOOD_SCALE } from '../utils/moodActions'
 import Icon from '../components/Icon'
 import MascotCard from '../components/MascotCard'
+import CompanionStateCard from '../components/CompanionStateCard'
 import Sparkline from '../components/Sparkline'
 import ChangeIndicator from '../components/ChangeIndicator'
 import OverviewTerminal from './OverviewTerminal'
@@ -199,6 +200,9 @@ export default function Overview({ onNavigate }) {
           </div>
 
           <MascotCard xp={xp} onClick={() => onNavigate('more', 'badges')} />
+          <div style={{ marginTop: 12 }}>
+            <CompanionStateCard />
+          </div>
         </>
       )}
 
