@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import Sparkline from './Sparkline'
 
 // Horizontal scroll-snap "wallet card" carousel. Touch already scrolls this
-// natively via overflow-x, but a plain desktop mouse (no trackpad/touchscreen)
-// cannot drag-scroll a div by default in browsers — that requires explicit
-// JS, which is what the mousedown/mousemove handling below provides.
+// natively via overflow-x — the drag-to-scroll handling below exists only
+// for a plain desktop mouse (no trackpad/touchscreen), which cannot
+// drag-scroll a div by default. It's gated on pointerType === 'mouse' and
+// never touches touch/pen input: mixing custom JS drag logic with touch's
+// own event model is exactly how you end up with a stuck global listener
+// hijacking an unrelated tap elsewhere on the page.
 export default function WalletRail({ cards }) {
   const railRef = useRef(null)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -18,30 +21,34 @@ export default function WalletRail({ cards }) {
     setActiveIndex(Math.round(rail.scrollLeft / cardWidth))
   }
 
-  const handleMouseDown = (e) => {
-    drag.current = { startX: e.pageX, startScrollLeft: railRef.current.scrollLeft, moved: false }
+  const handlePointerDown = (e) => {
+    if (e.pointerType !== 'mouse') return
+    drag.current = { startX: e.clientX, startScrollLeft: railRef.current.scrollLeft, moved: false }
     setDragging(true)
   }
 
   useEffect(() => {
     if (!dragging) return
     const onMove = (e) => {
-      const dx = e.pageX - drag.current.startX
+      const dx = e.clientX - drag.current.startX
       if (Math.abs(dx) > 4) drag.current.moved = true
       railRef.current.scrollLeft = drag.current.startScrollLeft - dx
     }
     const onUp = () => setDragging(false)
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
     return () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
     }
   }, [dragging])
 
   const handleCardClick = (e, onClick) => {
     if (drag.current.moved) {
       e.preventDefault()
+      drag.current.moved = false
       return
     }
     onClick?.()
@@ -60,7 +67,7 @@ export default function WalletRail({ cards }) {
         className={`wallet-rail${dragging ? ' dragging' : ''}`}
         ref={railRef}
         onScroll={handleScroll}
-        onMouseDown={handleMouseDown}
+        onPointerDown={handlePointerDown}
       >
         {cards.map((c) => (
           <button
