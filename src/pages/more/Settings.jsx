@@ -4,6 +4,7 @@ import { THEME_PRESETS } from '../../utils/colorPresets'
 import { FINTECH_GRADIENTS } from '../../utils/fintechGradients'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
 import { PERSONALITIES } from '../../utils/coachContext'
+import { isCloudSyncConfigured } from '../../utils/supabaseClient'
 import BackHeader from '../../components/BackHeader'
 import SegmentedControl from '../../components/SegmentedControl'
 import ColorPicker from '../../components/ColorPicker'
@@ -41,10 +42,11 @@ const COLOR_FIELDS = [
 
 export default function Settings({ onBack }) {
   const {
-    data, setThemeMode, setUiStyle, setFintechGradient, setColor, resetColors, applyThemePreset,
+    data, sync, setThemeMode, setUiStyle, setFintechGradient, setColor, resetColors, applyThemePreset,
     setHeadingFont, setDensity, setUseGradientAccents, setGentleMode,
     setWeightUnit, exportData, importData, clearAll,
     connectGoogleCalendar, disconnectGoogleCalendar,
+    setSupabaseConfig, disconnectSupabase, cloudSignUp, cloudSignIn, cloudSignOut, syncNow,
   } = useApp()
   const importRef = useRef(null)
   const [confirmClear, setConfirmClear] = useState(false)
@@ -60,6 +62,37 @@ export default function Settings({ onBack }) {
   const [clientIdInput, setClientIdInput] = useState(data.settings.googleClientId)
   const [calendarConnecting, setCalendarConnecting] = useState(false)
   const [calendarError, setCalendarError] = useState('')
+
+  const [supaUrlInput, setSupaUrlInput] = useState(data.settings.supabaseUrl)
+  const [supaKeyInput, setSupaKeyInput] = useState(data.settings.supabaseAnonKey)
+  const [authEmail, setAuthEmail] = useState('')
+  const [authPassword, setAuthPassword] = useState('')
+  const [authBusy, setAuthBusy] = useState(false)
+  const [authError, setAuthError] = useState('')
+  const [authNotice, setAuthNotice] = useState('')
+
+  const handleSaveSupabaseConfig = () => {
+    setSupabaseConfig(supaUrlInput.trim(), supaKeyInput.trim())
+  }
+
+  const handleAuth = async (mode) => {
+    setAuthBusy(true)
+    setAuthError('')
+    setAuthNotice('')
+    try {
+      if (mode === 'signup') {
+        const session = await cloudSignUp(authEmail.trim(), authPassword)
+        setAuthNotice(session ? 'Account created and signed in.' : 'Account created — check your email to confirm, then sign in.')
+      } else {
+        await cloudSignIn(authEmail.trim(), authPassword)
+      }
+      setAuthPassword('')
+    } catch (e) {
+      setAuthError(e.message || 'Something went wrong.')
+    } finally {
+      setAuthBusy(false)
+    }
+  }
 
   const handleConnectCalendar = async () => {
     setCalendarConnecting(true)
@@ -338,6 +371,82 @@ export default function Settings({ onBack }) {
         )}
       </div>
 
+      <div className="section-title">Cloud Sync</div>
+      <div className="card stack">
+        <p className="text-sm muted" style={{ margin: 0 }}>
+          Keep this data in sync across your own devices, using your own free Supabase project — a database service, not a server of ours. Requires a one-time setup: create a free account at supabase.com, create a project, paste its URL and "anon public" key below (neither is a secret), then run the SQL in this project's <span className="mono">supabase/schema.sql</span> once in Supabase's SQL Editor. After that, sign in with the same email on each device.
+        </p>
+        {!isCloudSyncConfigured(data.settings) ? (
+          <>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Supabase project URL</label>
+              <input
+                className="input"
+                type="text"
+                placeholder="https://xxxxx.supabase.co"
+                value={supaUrlInput}
+                onChange={(e) => setSupaUrlInput(e.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Anon public key</label>
+              <input
+                className="input"
+                type="text"
+                placeholder="eyJ…"
+                value={supaKeyInput}
+                onChange={(e) => setSupaKeyInput(e.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+            <button className="btn btn-secondary btn-block" disabled={!supaUrlInput.trim() || !supaKeyInput.trim()} onClick={handleSaveSupabaseConfig}>
+              Save connection
+            </button>
+          </>
+        ) : !sync.signedIn ? (
+          <>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Email</label>
+              <input className="input" type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} autoComplete="email" />
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Password</label>
+              <input className="input" type="password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} autoComplete="current-password" />
+            </div>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn btn-secondary btn-sm" disabled={!authEmail || !authPassword || authBusy} onClick={() => handleAuth('signin')}>
+                {authBusy ? 'Working…' : 'Sign in'}
+              </button>
+              <button className="btn btn-ghost btn-sm" disabled={!authEmail || !authPassword || authBusy} onClick={() => handleAuth('signup')}>
+                First time — create account
+              </button>
+            </div>
+            {authNotice && <div className="text-sm" style={{ color: 'var(--success)' }}>{authNotice}</div>}
+            {authError && <div className="text-sm" style={{ color: 'var(--danger)' }}>{authError}</div>}
+            <button className="btn btn-ghost btn-sm" onClick={disconnectSupabase}>Disconnect Supabase</button>
+          </>
+        ) : (
+          <>
+            <div className="row">
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>Signed in as {sync.email}</div>
+                <div className="text-sm faint">
+                  {sync.status === 'syncing' ? 'Syncing…' : sync.status === 'error' ? `Sync error: ${sync.error}` : sync.lastSyncedAt ? `Last synced ${new Date(sync.lastSyncedAt).toLocaleTimeString()}` : 'Not synced yet'}
+                </div>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={syncNow} disabled={sync.status === 'syncing'}>Sync now</button>
+            </div>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn btn-ghost btn-sm" onClick={cloudSignOut}>Sign out</button>
+              <button className="btn btn-ghost btn-sm" onClick={disconnectSupabase}>Disconnect Supabase</button>
+            </div>
+          </>
+        )}
+      </div>
+
       <div className="section-title">Your data</div>
       <div className="card stack">
         <div className="row">
@@ -376,7 +485,7 @@ export default function Settings({ onBack }) {
       <ConfirmDialog
         open={confirmClear}
         title="Clear everything?"
-        message="This permanently deletes all water, sleep, workout, weight, mood, nutrition and photo data, plus your saved API key and coach chat history, on this device. This can't be undone."
+        message="This permanently deletes all water, sleep, workout, weight, mood, nutrition and photo data, plus your saved API key and coach chat history, on this device, and disconnects Cloud Sync (your Supabase account and its data are untouched). This can't be undone."
         confirmLabel="Clear everything"
         danger
         onCancel={() => setConfirmClear(false)}

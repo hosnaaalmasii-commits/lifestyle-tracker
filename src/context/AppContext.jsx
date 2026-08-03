@@ -4,6 +4,11 @@ import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } 
 import { DEFAULT_COLORS } from '../utils/colorPresets'
 import { DEFAULT_FINTECH_GRADIENT, getFintechGradient } from '../utils/fintechGradients'
 import { requestGoogleToken, fetchTodayBusyMinutes } from '../utils/googleCalendar'
+import { isCloudSyncConfigured } from '../utils/supabaseClient'
+import {
+  signUp as cloudSignUpApi, signIn as cloudSignInApi, signOut as cloudSignOutApi,
+  getSession, onAuthStateChange, reconcile, pushToCloud, markLocalModified,
+} from '../utils/cloudSync'
 
 const STORAGE_KEY = 'lifestyle-tracker-data-v1'
 
@@ -23,6 +28,8 @@ const DEFAULT_DATA = {
     gentleMode: false,
     googleClientId: '',
     googleCalendarConnected: false,
+    supabaseUrl: '',
+    supabaseAnonKey: '',
   },
   water: {},
   sleep: {},
@@ -45,18 +52,23 @@ const DEFAULT_DATA = {
   notes: [],
 }
 
+// Shallow-merge so new fields added in later app versions get defaults —
+// shared by loadData, importData, and applying a pulled cloud sync blob so
+// all three stay in sync with each other.
+function mergeWithDefaults(parsed) {
+  return {
+    ...structuredClone(DEFAULT_DATA),
+    ...parsed,
+    settings: { ...DEFAULT_DATA.settings, ...parsed.settings, colors: { ...DEFAULT_COLORS, ...parsed.settings?.colors } },
+    workouts: { ...DEFAULT_DATA.workouts, ...parsed.workouts, exerciseLogs: { ...parsed.workouts?.exerciseLogs } },
+  }
+}
+
 function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return structuredClone(DEFAULT_DATA)
-    const parsed = JSON.parse(raw)
-    // Shallow-merge so new fields added in later app versions get defaults.
-    return {
-      ...structuredClone(DEFAULT_DATA),
-      ...parsed,
-      settings: { ...DEFAULT_DATA.settings, ...parsed.settings, colors: { ...DEFAULT_COLORS, ...parsed.settings?.colors } },
-      workouts: { ...DEFAULT_DATA.workouts, ...parsed.workouts, exerciseLogs: { ...parsed.workouts?.exerciseLogs } },
-    }
+    return mergeWithDefaults(JSON.parse(raw))
   } catch {
     return structuredClone(DEFAULT_DATA)
   }
@@ -78,9 +90,78 @@ export function AppProvider({ children }) {
   // persisted to localStorage (only the client ID + a "was connected" flag are).
   const [calendarStatus, setCalendarStatus] = useState({ connected: false, busyMinutesToday: null, error: null })
 
+  // Cloud sync — also ephemeral. The Supabase session itself is persisted
+  // by the Supabase client in its own separate localStorage key, same as
+  // every other credential in this app lives in its own isolated slot.
+  const [sync, setSync] = useState({ signedIn: false, email: null, status: 'idle', lastSyncedAt: null, error: null })
+  const sessionUserRef = useRef(null)
+  // Set right before applying a pulled cloud blob via setData, so the very
+  // next render doesn't turn around and re-push what was just pulled.
+  const suppressSyncRef = useRef(false)
+  const pushTimerRef = useRef(null)
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    if (!suppressSyncRef.current) markLocalModified()
   }, [data])
+
+  const doReconcile = useCallback(async (userId) => {
+    setSync((s) => ({ ...s, status: 'syncing', error: null }))
+    try {
+      const { supabaseUrl: url, supabaseAnonKey: anonKey } = data.settings
+      const result = await reconcile(url, anonKey, userId, data)
+      if (result.direction === 'pulled') {
+        suppressSyncRef.current = true
+        setData(mergeWithDefaults(result.blob))
+      }
+      setSync((s) => ({ ...s, status: 'synced', lastSyncedAt: new Date().toISOString(), error: null }))
+    } catch (e) {
+      setSync((s) => ({ ...s, status: 'error', error: e.message }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data])
+
+  // Resume a Supabase session on load (the SDK persists it itself) and
+  // reconcile once against the cloud; keep sign-in state current after that.
+  useEffect(() => {
+    const { supabaseUrl: url, supabaseAnonKey: anonKey } = data.settings
+    if (!isCloudSyncConfigured(data.settings)) return
+    let cancelled = false
+
+    getSession(url, anonKey).then(async (session) => {
+      if (cancelled || !session) return
+      sessionUserRef.current = session.user
+      setSync((s) => ({ ...s, signedIn: true, email: session.user.email }))
+      await doReconcile(session.user.id)
+    })
+
+    const unsubscribe = onAuthStateChange(url, anonKey, (session) => {
+      sessionUserRef.current = session?.user || null
+      setSync((s) => ({ ...s, signedIn: !!session, email: session?.user?.email || null }))
+    })
+
+    return () => { cancelled = true; unsubscribe() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.settings.supabaseUrl, data.settings.supabaseAnonKey])
+
+  // Debounced push of the whole blob whenever it changes, while signed in.
+  useEffect(() => {
+    if (suppressSyncRef.current) { suppressSyncRef.current = false; return }
+    if (!isCloudSyncConfigured(data.settings) || !sessionUserRef.current) return
+    if (pushTimerRef.current) clearTimeout(pushTimerRef.current)
+    pushTimerRef.current = setTimeout(async () => {
+      const { supabaseUrl: url, supabaseAnonKey: anonKey } = data.settings
+      const ts = markLocalModified()
+      try {
+        await pushToCloud(url, anonKey, sessionUserRef.current.id, data, ts)
+        setSync((s) => ({ ...s, status: 'synced', lastSyncedAt: ts, error: null }))
+      } catch (e) {
+        setSync((s) => ({ ...s, status: 'error', error: e.message }))
+      }
+    }, 2500)
+    return () => clearTimeout(pushTimerRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, sync.signedIn])
 
   // Quietly try to resume a Google Calendar connection on load, without prompting.
   useEffect(() => {
@@ -360,6 +441,30 @@ export function AppProvider({ children }) {
       }
     },
 
+    setSupabaseConfig: (url, anonKey) => {
+      setData((d) => ({ ...d, settings: { ...d.settings, supabaseUrl: url, supabaseAnonKey: anonKey } }))
+    },
+    disconnectSupabase: () => {
+      sessionUserRef.current = null
+      setSync({ signedIn: false, email: null, status: 'idle', lastSyncedAt: null, error: null })
+      setData((d) => ({ ...d, settings: { ...d.settings, supabaseUrl: '', supabaseAnonKey: '' } }))
+    },
+    cloudSignUp: (email, password) => {
+      const { supabaseUrl: url, supabaseAnonKey: anonKey } = data.settings
+      return cloudSignUpApi(url, anonKey, email, password)
+    },
+    cloudSignIn: (email, password) => {
+      const { supabaseUrl: url, supabaseAnonKey: anonKey } = data.settings
+      return cloudSignInApi(url, anonKey, email, password)
+    },
+    cloudSignOut: async () => {
+      const { supabaseUrl: url, supabaseAnonKey: anonKey } = data.settings
+      await cloudSignOutApi(url, anonKey)
+      sessionUserRef.current = null
+      setSync({ signedIn: false, email: null, status: 'idle', lastSyncedAt: null, error: null })
+    },
+    syncNow: () => sessionUserRef.current && doReconcile(sessionUserRef.current.id),
+
     exportData: () => {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -373,24 +478,21 @@ export function AppProvider({ children }) {
     },
     importData: (json) => {
       const parsed = typeof json === 'string' ? JSON.parse(json) : json
-      setData({
-        ...structuredClone(DEFAULT_DATA),
-        ...parsed,
-        settings: { ...DEFAULT_DATA.settings, ...parsed.settings, colors: { ...DEFAULT_COLORS, ...parsed.settings?.colors } },
-        workouts: { ...DEFAULT_DATA.workouts, ...parsed.workouts, exerciseLogs: { ...parsed.workouts?.exerciseLogs } },
-      })
+      setData(mergeWithDefaults(parsed))
     },
     clearAll: () => {
       accessTokenRef.current = null
       setCalendarStatus({ connected: false, busyMinutesToday: null, error: null })
+      sessionUserRef.current = null
+      setSync({ signedIn: false, email: null, status: 'idle', lastSyncedAt: null, error: null })
       setData(structuredClone(DEFAULT_DATA))
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [data])
 
   const value = useMemo(
-    () => ({ data: { ...data, calendarStatus }, calendarStatus, ...actions }),
-    [data, calendarStatus, actions]
+    () => ({ data: { ...data, calendarStatus }, calendarStatus, sync, ...actions }),
+    [data, calendarStatus, sync, actions]
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
