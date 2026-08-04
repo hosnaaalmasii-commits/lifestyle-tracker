@@ -54,6 +54,9 @@ export default function CharacterOnboardingSheet({ open, onChoose }) {
       >
         Begin
       </button>
+      <button className="btn btn-ghost btn-block" style={{ marginTop: 8 }} onClick={() => onChoose('fire')}>
+        Skip — pick for me
+      </button>
     </Sheet>
   )
 }

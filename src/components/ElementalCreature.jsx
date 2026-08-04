@@ -4,7 +4,14 @@
 // icon takes the same two independent inputs: `growth` (0..1, evolution
 // stage — drives size/complexity) and `vitality` (0..1, today's condition
 // state — drives brightness/colour/openness). `muted` dims further for
-// damage-tier conditions; `glow` adds the extra highlight Radiant gets.
+// damage-tier conditions.
+//
+// Deliberately no SVG <filter>/feGaussianBlur anywhere in this file —
+// Safari (especially iOS) has long-standing bugs rendering many
+// simultaneous SVG blur filters, particularly combined with transforms,
+// which can silently blank out or hang the whole element. All "glow"
+// effects below use radialGradient-to-transparent fills instead, which
+// give a soft look with no filter primitive involved.
 function mix(hexA, hexB, t) {
   const a = hexA.match(/\w\w/g).map((h) => parseInt(h, 16))
   const b = hexB.match(/\w\w/g).map((h) => parseInt(h, 16))
@@ -18,8 +25,9 @@ function uid() {
   return `ec${uidCounter}`
 }
 
-function glowFilter(id, dev = 5) {
-  return `<filter id="${id}" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="${dev}"/></filter>`
+// A soft radial glow def — used in place of feGaussianBlur throughout.
+function glowGradientDef(id, color) {
+  return `<radialGradient id="${id}" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${color}" stop-opacity="0.9"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></radialGradient>`
 }
 
 function tongue(cx, leanX, h, w) {
@@ -73,10 +81,10 @@ function fireIcon({ growth, vitality }) {
     <defs>
       <radialGradient id="${id}o" cx="50%" cy="82%" r="75%"><stop offset="0%" stop-color="${mid}"/><stop offset="100%" stop-color="${outer}"/></radialGradient>
       <radialGradient id="${id}m" cx="50%" cy="86%" r="68%"><stop offset="0%" stop-color="${core}"/><stop offset="100%" stop-color="${mid}"/></radialGradient>
-      ${glowFilter(id + 'b', 6)}
+      ${glowGradientDef(id + 'b', outer)}
     </defs>
     <g transform="translate(${(w + 40 - 100) / 2} ${170 - h - 10})">
-      <ellipse cx="50" cy="140" rx="${34 + spread * 0.6}" ry="26" fill="${outer}" opacity="0.3" filter="url(#${id}b)"/>
+      <ellipse cx="50" cy="140" rx="${44 + spread * 0.8}" ry="34" fill="url(#${id}b)" opacity="0.5"/>
       ${flames}${logs}${embers}
     </g>
   </svg>`
@@ -116,13 +124,13 @@ function warriorIcon({ growth, vitality }) {
   const goldAcc = mix('#3a2e1a', '#d9b45a', Math.max(0, (growth - 0.5) / 0.5))
   const len = 26 + growth * 36
   const gw = 5 + growth * 2.2
-  const glow = vitality > 0.55 ? `<line x1="50" y1="${78 - len}" x2="50" y2="78" stroke="${edgeGlow}" stroke-width="${gw + 8}" stroke-linecap="round" opacity="0.35" filter="url(#${id}b)"/>` : ''
+  const glow = vitality > 0.55 ? `<ellipse cx="50" cy="${78 - len * 0.5}" rx="${gw + 6}" ry="${len * 0.55}" fill="url(#${id}g)" opacity="0.6"/>` : ''
   const orn = growth > 0.6 ? `<circle cx="50" cy="72" r="3" fill="${goldAcc}"/><path d="M44,80 L38,84 M56,80 L62,84" stroke="${goldAcc}" stroke-width="1.6" stroke-linecap="round"/>` : ''
   const sparks = vitality > 0.85 ? `<path d="M62,${78 - len * 0.6} L68,${74 - len * 0.6} M60,${74 - len * 0.7} L64,${68 - len * 0.7}" stroke="${edgeGlow}" stroke-width="1.4" stroke-linecap="round" opacity="0.85"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
       <linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${steelDark}"/><stop offset="45%" stop-color="${steelLight}"/><stop offset="100%" stop-color="${steelDark}"/></linearGradient>
-      ${glowFilter(id + 'b', 4)}
+      ${glowGradientDef(id + 'g', edgeGlow)}
     </defs>
     ${glow}
     <line x1="50" y1="${78 - len}" x2="50" y2="78" stroke="url(#${id}b)" stroke-width="${gw}" stroke-linecap="round"/>
@@ -162,12 +170,12 @@ function robotIcon({ growth, vitality }) {
   const shellLight = mix('#3a4148', '#adc4d2', growth)
   const light = mix('#3a2a20', '#7fe0c0', vitality)
   const panels = growth > 0.35 ? `<rect x="34" y="42" width="10" height="18" rx="1.5" fill="${shellDark}" opacity="0.8"/><rect x="56" y="42" width="10" height="18" rx="1.5" fill="${shellDark}" opacity="0.8"/><line x1="39" y1="44" x2="39" y2="58" stroke="${shellLight}" stroke-width="0.6" opacity="0.5"/><line x1="61" y1="44" x2="61" y2="58" stroke="${shellLight}" stroke-width="0.6" opacity="0.5"/>` : ''
-  const antenna = growth > 0.65 ? `<line x1="50" y1="28" x2="50" y2="17" stroke="url(#${id}s)" stroke-width="2"/><circle cx="50" cy="15" r="2.6" fill="${light}" filter="url(#${id}b)"/><circle cx="50" cy="15" r="1.6" fill="${light}"/>` : ''
-  const lightGlow = vitality > 0.3 ? `<circle cx="42" cy="48" r="${5 + vitality * 3}" fill="${light}" opacity="0.3" filter="url(#${id}b)"/><circle cx="58" cy="48" r="${5 + vitality * 3}" fill="${light}" opacity="0.3" filter="url(#${id}b)"/>` : ''
+  const antenna = growth > 0.65 ? `<line x1="50" y1="28" x2="50" y2="17" stroke="url(#${id}s)" stroke-width="2"/><circle cx="50" cy="15" r="4.5" fill="url(#${id}g)"/><circle cx="50" cy="15" r="1.6" fill="${light}"/>` : ''
+  const lightGlow = vitality > 0.3 ? `<circle cx="42" cy="48" r="${7 + vitality * 4}" fill="url(#${id}g)"/><circle cx="58" cy="48" r="${7 + vitality * 4}" fill="url(#${id}g)"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
       <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${shellLight}"/><stop offset="100%" stop-color="${shellDark}"/></linearGradient>
-      ${glowFilter(id + 'b', 4)}
+      ${glowGradientDef(id + 'g', light)}
     </defs>
     <rect x="32" y="30" width="36" height="46" rx="7" fill="none" stroke="url(#${id}s)" stroke-width="2.8"/>
     <rect x="32" y="30" width="36" height="46" rx="7" fill="${shellDark}" opacity="0.12"/>
@@ -185,11 +193,11 @@ function animalIcon({ growth, vitality }) {
   const furLight = mix('#5a4030', '#e8b366', growth)
   const eye = mix('#2a2a2a', '#fff2c0', vitality)
   const s = 0.6 + growth * 0.42
-  const eyeGlow = vitality > 0.6 ? `<circle cx="44" cy="60" r="4" fill="${eye}" opacity="0.35" filter="url(#${id}b)"/><circle cx="56" cy="60" r="4" fill="${eye}" opacity="0.35" filter="url(#${id}b)"/>` : ''
+  const eyeGlow = vitality > 0.6 ? `<circle cx="44" cy="60" r="5" fill="url(#${id}g)"/><circle cx="56" cy="60" r="5" fill="url(#${id}g)"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
       <radialGradient id="${id}f" cx="40%" cy="30%" r="75%"><stop offset="0%" stop-color="${furLight}"/><stop offset="100%" stop-color="${furDeep}"/></radialGradient>
-      ${glowFilter(id + 'b', 3)}
+      ${glowGradientDef(id + 'g', eye)}
     </defs>
     <ellipse cx="50" cy="94" rx="20" ry="3" fill="#000" opacity="0.18"/>
     <g transform="translate(50 58) scale(${s}) translate(-50 -58)">
@@ -215,11 +223,11 @@ function plantIcon({ growth, vitality }) {
   const len = 6 + growth * 15
   let p = ''
   for (let i = 0; i < petals; i++) p += `<ellipse cx="0" cy="${-len / 2}" rx="${3.5 + growth * 4.5}" ry="${len / 2}" fill="url(#${id}p)" opacity="0.95" transform="rotate(${(360 / petals) * i})"/>`
-  const glow = vitality > 0.6 ? `<circle cx="50" cy="34" r="${16 + growth * 8}" fill="${light}" opacity="0.22" filter="url(#${id}b)"/>` : ''
+  const glow = vitality > 0.6 ? `<circle cx="50" cy="34" r="${22 + growth * 10}" fill="url(#${id}g)"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
       <radialGradient id="${id}p" cx="50%" cy="20%" r="90%"><stop offset="0%" stop-color="${light}"/><stop offset="100%" stop-color="${deep}"/></radialGradient>
-      ${glowFilter(id + 'b', 5)}
+      ${glowGradientDef(id + 'g', light)}
     </defs>
     <ellipse cx="50" cy="92" rx="10" ry="2.4" fill="#000" opacity="0.16"/>
     <path d="M50,90 C49,70 51,55 50,42" fill="none" stroke="${deep}" stroke-width="2.6" stroke-linecap="round"/>
@@ -236,11 +244,11 @@ function dragonIcon({ growth, vitality }) {
   const scaleLight = mix('#3a2a4a', '#c48fe8', vitality)
   const eye = mix('#3a2a4a', '#ffd94f', vitality)
   const wing = 10 + growth * 32
-  const glow = vitality > 0.6 ? `<ellipse cx="50" cy="60" rx="${30 + wing * 0.5}" ry="26" fill="${scaleLight}" opacity="0.16" filter="url(#${id}b)"/>` : ''
+  const glow = vitality > 0.6 ? `<ellipse cx="50" cy="60" rx="${38 + wing * 0.6}" ry="34" fill="url(#${id}g)"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
       <linearGradient id="${id}s" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${scaleLight}"/><stop offset="100%" stop-color="${scaleDeep}"/></linearGradient>
-      ${glowFilter(id + 'b', 6)}
+      ${glowGradientDef(id + 'g', scaleLight)}
     </defs>
     ${glow}
     <path d="M${50 - 10},55 Q${50 - 10 - wing},${45 - growth * 10} ${50 - 6},70" fill="none" stroke="url(#${id}s)" stroke-width="2.2" opacity="${0.55 + growth * 0.45}"/>
@@ -258,17 +266,17 @@ function spiritIcon({ growth, vitality }) {
   const id = uid()
   const color = mix('#3a3a48', '#d8e2ff', vitality)
   const s = 0.65 + growth * 0.35
-  const glow = vitality > 0.3 ? `<ellipse cx="50" cy="55" rx="${(18 + vitality * 14) * s}" ry="${(22 + vitality * 14) * s}" fill="${color}" opacity="0.22" filter="url(#${id}b)"/>` : ''
+  const glow = vitality > 0.3 ? `<ellipse cx="50" cy="55" rx="${(24 + vitality * 16) * s}" ry="${(28 + vitality * 16) * s}" fill="url(#${id}g)"/>` : ''
   const sparkles = growth > 0.75 ? `<circle cx="34" cy="40" r="1.4" fill="${color}" opacity="0.8"/><circle cx="66" cy="50" r="1.2" fill="${color}" opacity="0.7"/><circle cx="58" cy="30" r="1" fill="${color}" opacity="0.6"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
-      <linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="${0.3 + vitality * 0.4}"/><stop offset="100%" stop-color="${color}" stop-opacity="${0.15 + vitality * 0.5}"/></linearGradient>
-      ${glowFilter(id + 'b', 7)}
+      <linearGradient id="${id}gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="${0.3 + vitality * 0.4}"/><stop offset="100%" stop-color="${color}" stop-opacity="${0.15 + vitality * 0.5}"/></linearGradient>
+      ${glowGradientDef(id + 'g', color)}
     </defs>
     ${glow}
     <g class="drift-y" transform="translate(50 58) scale(${s}) translate(-50 -58)">
       <path d="M50,28 C63,42 61,60 50,82 C39,60 37,42 50,28 Z" fill="none" stroke="${color}" stroke-width="1.8" opacity="${0.4 + vitality * 0.6}"/>
-      <path d="M50,37 C58,46 57,58 50,72 C43,58 42,46 50,37 Z" fill="url(#${id}g)"/>
+      <path d="M50,37 C58,46 57,58 50,72 C43,58 42,46 50,37 Z" fill="url(#${id}gr)"/>
     </g>
     ${sparkles}
   </svg>`
@@ -281,9 +289,9 @@ function athleteIcon({ growth, vitality }) {
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
       <linearGradient id="${id}t" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${color}" stop-opacity="0"/><stop offset="100%" stop-color="${color}" stop-opacity="${0.5 + vitality * 0.4}"/></linearGradient>
-      ${glowFilter(id + 'b', 3)}
+      ${glowGradientDef(id + 'g', color)}
     </defs>
-    <circle cx="62" cy="58" r="${5 + vitality * 3}" fill="${color}" opacity="0.35" filter="url(#${id}b)"/>
+    <circle cx="62" cy="58" r="${9 + vitality * 5}" fill="url(#${id}g)"/>
     <line x1="${64 - trailLen}" y1="${60 + trailLen * 0.35}" x2="62" y2="58" stroke="url(#${id}t)" stroke-width="${3 + growth * 3}" stroke-linecap="round"/>
     <line x1="${58 - trailLen * 0.7}" y1="${55 + trailLen * 0.25}" x2="58" y2="54" stroke="url(#${id}t)" stroke-width="${1.6 + growth * 1.5}" stroke-linecap="round" opacity="0.8"/>
     <circle cx="62" cy="58" r="${3 + vitality * 2.6}" fill="${color}"/>
@@ -306,7 +314,13 @@ const ICONS = {
 
 export default function ElementalCreature({ archetypeId, growth = 0.5, vitality = 0.7, muted = false, size = 96 }) {
   const render = ICONS[archetypeId] || ICONS.fire
-  const svg = render({ growth: Math.min(1, Math.max(0, growth)), vitality: Math.min(1, Math.max(0, vitality)) })
+  let svg
+  try {
+    svg = render({ growth: Math.min(1, Math.max(0, growth)), vitality: Math.min(1, Math.max(0, vitality)) })
+  } catch {
+    // Never let a single icon's generation take down the whole page.
+    svg = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="currentColor" opacity="0.4"/></svg>`
+  }
   return (
     <div style={{ width: size, height: size, opacity: muted ? 0.65 : 1, filter: muted ? 'saturate(0.6)' : 'none' }} dangerouslySetInnerHTML={{ __html: svg }} />
   )
