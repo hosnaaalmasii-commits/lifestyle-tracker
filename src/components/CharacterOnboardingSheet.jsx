@@ -9,12 +9,11 @@ export default function CharacterOnboardingSheet({ open, onChoose }) {
 
   return (
     <Sheet open={open} onClose={() => {}} title="Choose your companion">
-      <p className="text-sm muted" style={{ marginTop: -4, marginBottom: 16 }}>
-        Each one is its own real phenomenon — it grows with good habits and fades without them, same
-        as the real thing.
+      <p className="text-sm muted" style={{ marginTop: -4, marginBottom: 12 }}>
+        Each one is its own real phenomenon — it grows with good habits and fades without them.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 10 }}>
         {ARCHETYPES.map((a) => {
           const on = archetype === a.id
           return (
@@ -22,30 +21,24 @@ export default function CharacterOnboardingSheet({ open, onChoose }) {
               key={a.id}
               onClick={() => setArchetype(a.id)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
-                padding: '10px 12px', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
+                padding: '6px 10px', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
                 border: `1px solid ${on ? a.color : 'var(--border)'}`,
                 background: on ? `color-mix(in srgb, ${a.color} 14%, var(--surface-soft))` : 'var(--surface-soft)',
               }}
             >
               <div style={{ flexShrink: 0 }}>
-                <ElementalCreature archetypeId={a.id} growth={0.6} vitality={0.75} size={40} />
+                <ElementalCreature archetypeId={a.id} growth={0.6} vitality={0.75} size={28} />
               </div>
-              <span style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.2 }}>{a.name}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.2 }}>{a.name}</span>
             </button>
           )
         })}
       </div>
 
-      {selected && (
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-          <ElementalCreature archetypeId={selected.id} growth={0.6} vitality={0.85} size={72} />
-          <div>
-            <div style={{ fontWeight: 700, fontFamily: 'var(--font-heading)' }}>{selected.name}</div>
-            <div className="text-sm faint" style={{ marginTop: 2 }}>{selected.tagline}</div>
-          </div>
-        </div>
-      )}
+      <p className="text-sm faint" style={{ minHeight: 18, margin: '0 0 12px' }}>
+        {selected ? selected.tagline : 'Pick one to see what it does.'}
+      </p>
 
       <button
         className="btn btn-primary btn-block"
