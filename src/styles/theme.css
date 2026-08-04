@@ -18,13 +18,6 @@
   --warning: #c08a3e;
   --danger: #b5573f;
 
-  /* Companion state colors — one per CompanionCreature state, independent of accent */
-  --state-energized: #c98a34;
-  --state-balanced: #2f6f63;
-  --state-tired: #6e71a0;
-  --state-dehydrated: #b97a56;
-  --state-recovering: #4f8f61;
-
   /* Accent colors — overridden at runtime from Settings, these are fallbacks */
   --accent: #8a5cb8;
   --accent-ring: #8a5cb8;
@@ -76,12 +69,6 @@
   --success: #7fae78;
   --warning: #d7a355;
   --danger: #d3806a;
-
-  --state-energized: #e3a55b;
-  --state-balanced: #5fb3a1;
-  --state-tired: #9498d1;
-  --state-dehydrated: #d99a72;
-  --state-recovering: #8fc49b;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);

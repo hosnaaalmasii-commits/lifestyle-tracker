@@ -50,6 +50,11 @@ const DEFAULT_DATA = {
   budget: [],
   schedule: [],
   notes: [],
+  character: {
+    archetype: null,
+    feedPointCredit: 0,
+    createdAt: null,
+  },
 }
 
 // Shallow-merge so new fields added in later app versions get defaults —
@@ -393,6 +398,16 @@ export function AppProvider({ children }) {
       setData((d) => ({ ...d, notes: [...d.notes, { id: makeId(), date: dateKey, text, createdAt: Date.now() }] }))
     },
     deleteNote: (id) => setData((d) => ({ ...d, notes: d.notes.filter((n) => n.id !== id) })),
+
+    // One-time onboarding choice. startingXp (from Spark's existing XP,
+    // computed by the caller) becomes the migration credit so switching to
+    // the Character System never resets progress back to zero.
+    chooseCharacter: (archetype, startingXp = 0) => {
+      setData((d) => ({
+        ...d,
+        character: { archetype, feedPointCredit: startingXp, createdAt: todayKey() },
+      }))
+    },
 
     setPainAreas: (dateKey, areaIds) => {
       setData((d) => ({ ...d, painLog: { ...d.painLog, [dateKey]: areaIds } }))

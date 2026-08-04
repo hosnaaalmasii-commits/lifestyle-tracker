@@ -350,6 +350,34 @@ a { color: inherit; }
   100% { transform: translate(var(--drift), var(--fall)) rotate(var(--rotate)); opacity: 0; }
 }
 
+/* Character System — ElementalCreature animations (fire flicker, rising
+   embers, drifting canopy/spirit) */
+@keyframes flickerA {
+  0%, 100% { transform: scaleY(1) scaleX(1) skewX(0deg); }
+  30% { transform: scaleY(1.04) scaleX(0.97) skewX(1.2deg); }
+  60% { transform: scaleY(0.96) scaleX(1.03) skewX(-1deg); }
+}
+@keyframes flickerB {
+  0%, 100% { transform: scaleY(1) scaleX(1) skewX(0deg); }
+  35% { transform: scaleY(0.94) scaleX(1.05) skewX(-1.6deg); }
+  65% { transform: scaleY(1.05) scaleX(0.95) skewX(1.3deg); }
+}
+@keyframes ember-rise {
+  0% { transform: translateY(0) scale(1); opacity: 0.8; }
+  100% { transform: translateY(-38px) scale(0.3); opacity: 0; }
+}
+@keyframes drift-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.flame-outer { animation: flickerA 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.flame-inner { animation: flickerB 1.9s ease-in-out infinite; transform-origin: 50% 100%; }
+.ember { animation: ember-rise 2.2s ease-in infinite; }
+.drift-y { animation: drift-y 3.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .flame-outer, .flame-inner, .ember, .drift-y { animation: none; }
+}
+
 .xp-bar-track {
   height: 8px;
   border-radius: var(--radius-pill);

@@ -26,12 +26,6 @@
   --warning: #fbbf24;
   --danger: #f87171;
 
-  --state-energized: #e8ac5f;
-  --state-balanced: #34d399;
-  --state-tired: #9a9ee0;
-  --state-dehydrated: #e29a72;
-  --state-recovering: #6fe0a0;
-
   --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
@@ -577,28 +571,6 @@
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
-
-.tile-mascot {
-  grid-column: span 2;
-  grid-row: span 2;
-  background: linear-gradient(160deg, var(--fintech-grad-from), var(--fintech-grad-to));
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 210px;
-  border: none;
-  color: #fff;
-}
-
-.tile-mascot::before {
-  content: '';
-  position: absolute;
-  inset: -40%;
-  background: conic-gradient(from 120deg, transparent 0 20%, rgba(255, 255, 255, 0.16) 30%, transparent 40% 100%);
-  animation: holo-sweep 7s linear infinite;
-}
-@media (prefers-reduced-motion: reduce) { .tile-mascot::before { animation: none; } }
-@keyframes holo-sweep { to { transform: rotate(360deg); } }
 
 .tile-xp { grid-column: span 2; }
 .tile-streak { grid-column: span 1; }
