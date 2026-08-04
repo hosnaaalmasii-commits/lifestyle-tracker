@@ -3,12 +3,16 @@ import { ARCHETYPES } from '../utils/characterEngine'
 import ElementalCreature from './ElementalCreature'
 import Sheet from './Sheet'
 
-export default function CharacterOnboardingSheet({ open, onChoose }) {
-  const [archetype, setArchetype] = useState(null)
+// Doubles as both the forced first-time picker (no onClose — Skip is the
+// only way through) and the later "change companion" picker (closable,
+// no Skip, since backing out just means keeping the current one).
+export default function CharacterOnboardingSheet({ open, onChoose, onClose, current }) {
+  const [archetype, setArchetype] = useState(current || null)
   const selected = ARCHETYPES.find((a) => a.id === archetype)
+  const canCancel = !!onClose
 
   return (
-    <Sheet open={open} onClose={() => {}} title="Choose your companion">
+    <Sheet open={open} onClose={onClose || (() => {})} title={canCancel ? 'Change your companion' : 'Choose your companion'}>
       <p className="text-sm muted" style={{ marginTop: -4, marginBottom: 12 }}>
         Each one is its own real phenomenon — it grows with good habits and fades without them.
       </p>
@@ -42,14 +46,20 @@ export default function CharacterOnboardingSheet({ open, onChoose }) {
 
       <button
         className="btn btn-primary btn-block"
-        disabled={!archetype}
+        disabled={!archetype || archetype === current}
         onClick={() => onChoose(archetype)}
       >
-        Begin
+        {canCancel ? 'Switch' : 'Begin'}
       </button>
-      <button className="btn btn-ghost btn-block" style={{ marginTop: 8 }} onClick={() => onChoose('fire')}>
-        Skip — pick for me
-      </button>
+      {canCancel ? (
+        <button className="btn btn-ghost btn-block" style={{ marginTop: 8 }} onClick={onClose}>
+          Cancel
+        </button>
+      ) : (
+        <button className="btn btn-ghost btn-block" style={{ marginTop: 8 }} onClick={() => onChoose('fire')}>
+          Skip — pick for me
+        </button>
+      )}
     </Sheet>
   )
 }

@@ -408,6 +408,12 @@ export function AppProvider({ children }) {
         character: { archetype, feedPointCredit: startingXp, createdAt: todayKey() },
       }))
     },
+    // Swaps which archetype the same growth history is read through —
+    // deliberately doesn't touch createdAt or feedPointCredit, so changing
+    // your mind later doesn't reset progress back to zero.
+    changeArchetype: (archetype) => {
+      setData((d) => ({ ...d, character: { ...d.character, archetype } }))
+    },
 
     setPainAreas: (dateKey, areaIds) => {
       setData((d) => ({ ...d, painLog: { ...d.painLog, [dateKey]: areaIds } }))

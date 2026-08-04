@@ -15,8 +15,9 @@ const TIER_COLOR = {
 }
 
 export default function CharacterCard({ variant = 'hero' }) {
-  const { data, chooseCharacter } = useApp()
+  const { data, chooseCharacter, changeArchetype } = useApp()
   const [open, setOpen] = useState(false)
+  const [changing, setChanging] = useState(false)
 
   if (!data.character?.archetype) {
     const badges = computeBadges(data)
@@ -95,7 +96,22 @@ export default function CharacterCard({ variant = 'hero' }) {
           <div className="text-sm faint" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11, marginBottom: 4 }}>Next</div>
           <p style={{ margin: 0, fontSize: 14 }}>{condition.nextAction}</p>
         </div>
+
+        <button
+          className="btn btn-ghost btn-block"
+          style={{ marginTop: 16 }}
+          onClick={() => { setOpen(false); setChanging(true) }}
+        >
+          Change companion
+        </button>
       </Sheet>
+
+      <CharacterOnboardingSheet
+        open={changing}
+        current={archetype.id}
+        onClose={() => setChanging(false)}
+        onChoose={(newArchetype) => { changeArchetype(newArchetype); setChanging(false) }}
+      />
     </>
   )
 }
