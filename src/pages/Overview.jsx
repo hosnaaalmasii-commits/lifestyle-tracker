@@ -18,6 +18,7 @@ import { getGPSStatus } from '../utils/lifestyleGPS'
 import { faceIconForEmoji, MOOD_SCALE } from '../utils/moodActions'
 import Icon from '../components/Icon'
 import CharacterCard from '../components/CharacterCard'
+import CharacterErrorBoundary from '../components/CharacterErrorBoundary'
 import Sparkline from '../components/Sparkline'
 import ChangeIndicator from '../components/ChangeIndicator'
 import OverviewTerminal from './OverviewTerminal'
@@ -198,7 +199,9 @@ export default function Overview({ onNavigate }) {
             </div>
           </div>
 
-          <CharacterCard />
+          <CharacterErrorBoundary>
+            <CharacterCard />
+          </CharacterErrorBoundary>
         </>
       )}
 
