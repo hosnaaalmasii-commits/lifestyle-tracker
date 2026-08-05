@@ -122,8 +122,9 @@ RLS enabled with select/insert/update/delete policies scoped to
   bytea`, `symptoms_encrypted bytea`, `note_encrypted bytea`.
 - **`budget_entries`**: `date date not null`, `amount numeric not null`,
   `category text`, `note text`.
-- **`schedule_items`**: `date date not null`, `time text`, `title text
-  not null`, `note text`.
+- **`schedule_items`**: `date date not null`, `time text`, `text text
+  not null` — matching the app's real schedule entry shape
+  (`{ id, date, time, text }`); there is no separate title/note split.
 - **`notes`** *(encrypted, since free-text notes are the voice-logging
   catch-all and may contain health content)*: `date date not null`,
   `text_encrypted bytea not null`, `created_at timestamptz not null
@@ -150,6 +151,17 @@ This is what makes access IDOR-safe: PostgREST (Supabase's
 auto-generated authenticated API layer) enforces these policies on every
 request regardless of what the client sends, so there's no
 application-level authorization check to write, forget, or get wrong.
+
+**Exception — the three encrypted tables** (`weight_logs`, `cycle_logs`,
+`notes`) deliberately get only the `select` and `delete` policies, not
+`insert`/`update`. All writes to them must go through the security
+definer RPCs below, which are the only thing that produces correctly
+formed ciphertext; a direct client insert could write arbitrary bytes
+into an `*_encrypted` column, after which `pgp_sym_decrypt` would throw
+and make that user's whole list unreadable. Direct `select` stays
+allowed because it only ever exposes ciphertext, and `delete` stays
+allowed because the service layer deletes rows directly and a delete
+can't corrupt anything.
 
 ## Encrypted fields
 
@@ -241,9 +253,11 @@ project's `service_role` key via an env var, never committed) that:
    the RPCs for the three encrypted tables, so the seed script doubles
    as the first real exercise of the encryption path.
 3. Is safe to re-run (idempotent) and only ever touches rows owned by
-   that one demo user — RLS makes it structurally impossible for it to
-   touch the real user's rows even if run incorrectly, since it can only
-   act as the demo user's `auth.uid()`.
+   that one demo user. Note that this is a property of the script's own
+   discipline — every write explicitly targets the demo user's id from
+   `getOrCreateDemoUser()` — and **not** something the database
+   enforces: the script authenticates with the `service_role` key, which
+   bypasses RLS entirely by design. RLS is not a backstop here.
 
 ## Security notes applied
 
