@@ -56,10 +56,10 @@ using the Supabase-native approach.
 
 ## Scope of "every log type"
 
-`AppContext.jsx` actually holds more categories than the eleven tables
+`AppContext.jsx` actually holds more categories than the twelve tables
 below: `photos`, `habitContracts`, `painLog`, `motivationFlags`, and the
 derived `character` state. This chapter's schema and seed script cover
-the eleven tables that are genuine per-entry logs matching the external
+the twelve tables that are genuine per-entry logs matching the external
 spec's own categories (meal/drink → nutrition + water, mood, workout,
 cycle, schedule, budget) plus weight, sleep, and notes. Excluded, with
 reasons:
@@ -69,7 +69,7 @@ reasons:
 - **`habitContracts`, `painLog`, `motivationFlags`**: lightweight
   scratch/input state for existing derived features (workout tier
   suggestions, comeback mode), not user-facing "logs" in the same sense
-  as the eleven above. Listed under Open follow-ups rather than silently
+  as the twelve above. Listed under Open follow-ups rather than silently
   dropped.
 - **`character`**: already explicitly "derived, not stored" per
   `CLAUDE.md` — recomputed from the other logs, never persisted, so it
@@ -197,14 +197,19 @@ after fetch.
 
 ## Migration & backfill (additive, reversible)
 
-1. A single new migration file creates all eleven tables, their RLS
+1. A single new migration file creates all twelve tables, their RLS
    policies, the Vault key, and the six RPC functions. Purely additive —
    no `alter`/`drop` touches `app_data`.
 2. A one-time, idempotent backfill script (run manually, not on app
    load) reads each signed-in user's current `app_data.data` blob and
    inserts corresponding rows into the new tables (via the RPCs for the
-   three encrypted tables). Idempotent via `on conflict do nothing` /
-   unique constraints, so it's safe to re-run.
+   three encrypted tables). The blob's own per-entry ids (from `makeId()`
+   in `AppContext.jsx`) aren't valid Postgres `uuid` values, so
+   array-shaped tables (everything except the date-keyed dictionaries —
+   water/sleep/nutrition/workout-completions) carry an additional
+   `client_id text` column holding that original blob id, unique per
+   `(user_id, client_id)`. That's what makes the backfill idempotent via
+   `on conflict (user_id, client_id) do nothing` — re-running it is safe.
 3. `app_data` remains the live source of truth for the app's actual
    read/write path through this chapter — cutting the app itself over to
    read/write the normalized tables instead is explicitly a later
@@ -231,7 +236,7 @@ project's `service_role` key via an env var, never committed) that:
 
 1. Creates (or reuses) one auth user, email
    `seed-demo@lifestyle-tracker.test`, in the same live Supabase project.
-2. Inserts 14 days of realistic sample data across all eleven tables for
+2. Inserts 14 days of realistic sample data across all twelve tables for
    that user only — via the plain CRUD path for normal tables and via
    the RPCs for the three encrypted tables, so the seed script doubles
    as the first real exercise of the encryption path.
@@ -257,7 +262,7 @@ project's `service_role` key via an env var, never committed) that:
 
 ## Acceptance criteria (this chapter)
 
-- [ ] All eleven tables exist with RLS enabled and the four-policy
+- [ ] All twelve tables exist with RLS enabled and the four-policy
       pattern applied.
 - [ ] The three encrypted tables store only ciphertext in their
       `*_encrypted` columns — verified by querying the raw column
@@ -266,7 +271,7 @@ project's `service_role` key via an env var, never committed) that:
       `app_data` blob and produces matching rows in the new tables,
       without modifying `app_data`.
 - [ ] The seed script creates the demo user and produces valid,
-      realistic data for every one of the eleven tables/log types.
+      realistic data for every one of the twelve tables/log types.
 - [ ] Re-running the seed script does not duplicate or error.
 - [ ] A quick RLS check confirms the demo user cannot read the real
       user's rows (or vice versa) via the CRUD service layer.
