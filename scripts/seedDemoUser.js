@@ -1,10 +1,11 @@
 // scripts/seedDemoUser.js
 // Creates (or reuses) one clearly-fake demo user in the SAME live
 // Supabase project, and seeds 14 days of realistic sample data across
-// every normalized table. RLS makes it structurally impossible for this
-// to touch any other user's rows, even if run incorrectly, since every
-// insert targets only the demo user's own id. Run locally with the
-// service_role key (never commit it):
+// every normalized table. Every write in this script explicitly targets
+// only the demo user's own id (from getOrCreateDemoUser) — note that the
+// service_role key bypasses RLS entirely, so it's this discipline, not a
+// database policy, that keeps the script from touching any other user's
+// rows. Run locally with the service_role key (never commit it):
 //   SUPABASE_URL=https://xxx.supabase.co SUPABASE_SERVICE_ROLE_KEY=xxx node scripts/seedDemoUser.js
 import { createClient } from '@supabase/supabase-js'
 
@@ -46,13 +47,29 @@ async function seed(userId) {
   for (let i = 0; i < DAYS; i++) {
     const date = dateKeyDaysAgo(i)
 
-    await supabase.from('water_logs').upsert({ user_id: userId, date, ml: 1500 + (i % 5) * 100 }, { onConflict: 'user_id,date' })
-    await supabase.from('sleep_logs').upsert({ user_id: userId, date, hours: 6.5 + (i % 3) * 0.5, quality: i % 2 === 0 ? 'good' : 'okay' }, { onConflict: 'user_id,date' })
-    await supabase.from('workout_completions').upsert({ user_id: userId, date, completed: i % 2 === 0 }, { onConflict: 'user_id,date' })
-    await supabase.from('nutrition_logs').upsert(
+    const { error: waterError } = await supabase.from('water_logs').upsert(
+      { user_id: userId, date, ml: 1500 + (i % 5) * 100 },
+      { onConflict: 'user_id,date' }
+    )
+    if (waterError) throw new Error(`water_logs seed failed: ${waterError.message}`)
+
+    const { error: sleepError } = await supabase.from('sleep_logs').upsert(
+      { user_id: userId, date, hours: 6.5 + (i % 3) * 0.5, quality: i % 2 === 0 ? 'good' : 'okay' },
+      { onConflict: 'user_id,date' }
+    )
+    if (sleepError) throw new Error(`sleep_logs seed failed: ${sleepError.message}`)
+
+    const { error: completionError } = await supabase.from('workout_completions').upsert(
+      { user_id: userId, date, completed: i % 2 === 0 },
+      { onConflict: 'user_id,date' }
+    )
+    if (completionError) throw new Error(`workout_completions seed failed: ${completionError.message}`)
+
+    const { error: nutritionError } = await supabase.from('nutrition_logs').upsert(
       { user_id: userId, date, breakfast: true, lunch: true, dinner: true, vegetables: i % 2 === 0, snacks: i % 3 === 0 },
       { onConflict: 'user_id,date' }
     )
+    if (nutritionError) throw new Error(`nutrition_logs seed failed: ${nutritionError.message}`)
 
     const { error: weightError } = await supabase.rpc('insert_weight_log', {
       p_kg: 68 + (i % 4) * 0.2, p_date: date, p_client_id: `seed-weight-${i}`, p_user_id: userId,
@@ -78,7 +95,7 @@ async function seed(userId) {
     if (budgetError) throw new Error(`budget_entries seed failed: ${budgetError.message}`)
 
     const { error: scheduleError } = await supabase.from('schedule_items').upsert(
-      { user_id: userId, client_id: `seed-schedule-${i}`, date, time: '09:00', title: 'Morning check-in', note: null },
+      { user_id: userId, client_id: `seed-schedule-${i}`, date, time: '09:00', text: 'Morning check-in' },
       { onConflict: 'user_id,client_id' }
     )
     if (scheduleError) throw new Error(`schedule_items seed failed: ${scheduleError.message}`)
@@ -97,13 +114,17 @@ async function seed(userId) {
     }
   }
 
-  const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+  // Must match DAY_ORDER in src/utils/workoutGenerator.js exactly — the
+  // real backfill passes that value straight through, and the
+  // workout_schedule.day check constraint enforces this casing.
+  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   for (const [idx, day] of weekdays.entries()) {
     const rest = idx >= 5
-    await supabase.from('workout_schedule').upsert(
+    const { error: scheduleDayError } = await supabase.from('workout_schedule').upsert(
       { user_id: userId, day, rest, exercises: rest ? [] : [{ name: exerciseName, sets: 3, reps: '12' }] },
       { onConflict: 'user_id,day' }
     )
+    if (scheduleDayError) throw new Error(`workout_schedule seed failed: ${scheduleDayError.message}`)
   }
 }
 

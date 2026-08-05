@@ -91,7 +91,7 @@ async function backfillUser(userId, data) {
 
   for (const s of data.schedule || []) {
     const { error } = await supabase.from('schedule_items').upsert(
-      { user_id: userId, client_id: s.id, date: s.date, time: s.time, title: s.title, note: s.note },
+      { user_id: userId, client_id: s.id, date: s.date, time: s.time, text: s.text },
       { onConflict: 'user_id,client_id' }
     )
     if (error) throw new Error(`schedule_items upsert failed: ${error.message}`)
