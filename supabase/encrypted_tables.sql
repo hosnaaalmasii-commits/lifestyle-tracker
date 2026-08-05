@@ -5,7 +5,7 @@
 -- application-layer encryption: the key lives only in Supabase Vault,
 -- never in the browser or in any table a client can read directly.
 
-create extension if not exists pgcrypto;
+create extension if not exists pgcrypto with schema extensions;
 
 create table weight_logs (
   id uuid primary key default gen_random_uuid(),
@@ -111,13 +111,13 @@ begin
     end if;
   end if;
 
-  insert into weight_logs (user_id, client_id, date, kg_encrypted)
-  values (v_user_id, p_client_id, p_date, pgp_sym_encrypt(p_kg::text, private.vault_key()))
+  insert into public.weight_logs (user_id, client_id, date, kg_encrypted)
+  values (v_user_id, p_client_id, p_date, extensions.pgp_sym_encrypt(p_kg::text, private.vault_key()))
   on conflict (user_id, client_id) do nothing
   returning id into v_id;
 
   if v_id is null then
-    select id into v_id from weight_logs where user_id = v_user_id and client_id = p_client_id;
+    select id into v_id from public.weight_logs where user_id = v_user_id and client_id = p_client_id;
   end if;
 
   return v_id;
@@ -149,8 +149,8 @@ begin
   end if;
 
   return query
-    select w.id, w.client_id, w.date, pgp_sym_decrypt(w.kg_encrypted, private.vault_key())::numeric
-    from weight_logs w
+    select w.id, w.client_id, w.date, extensions.pgp_sym_decrypt(w.kg_encrypted, private.vault_key())::numeric
+    from public.weight_logs w
     where w.user_id = v_user_id;
 end;
 $$;
@@ -180,18 +180,18 @@ begin
     end if;
   end if;
 
-  insert into cycle_logs (user_id, client_id, date, flow_encrypted, symptoms_encrypted, note_encrypted)
+  insert into public.cycle_logs (user_id, client_id, date, flow_encrypted, symptoms_encrypted, note_encrypted)
   values (
     v_user_id, p_client_id, p_date,
-    case when p_flow is null then null else pgp_sym_encrypt(p_flow, private.vault_key()) end,
-    pgp_sym_encrypt(coalesce(to_jsonb(p_symptoms)::text, '[]'), private.vault_key()),
-    case when p_note is null then null else pgp_sym_encrypt(p_note, private.vault_key()) end
+    case when p_flow is null then null else extensions.pgp_sym_encrypt(p_flow, private.vault_key()) end,
+    extensions.pgp_sym_encrypt(coalesce(to_jsonb(p_symptoms)::text, '[]'), private.vault_key()),
+    case when p_note is null then null else extensions.pgp_sym_encrypt(p_note, private.vault_key()) end
   )
   on conflict (user_id, client_id) do nothing
   returning id into v_id;
 
   if v_id is null then
-    select id into v_id from cycle_logs where user_id = v_user_id and client_id = p_client_id;
+    select id into v_id from public.cycle_logs where user_id = v_user_id and client_id = p_client_id;
   end if;
 
   return v_id;
@@ -225,10 +225,10 @@ begin
   return query
     select
       c.id, c.client_id, c.date,
-      case when c.flow_encrypted is null then null else pgp_sym_decrypt(c.flow_encrypted, private.vault_key()) end,
-      array(select jsonb_array_elements_text(pgp_sym_decrypt(c.symptoms_encrypted, private.vault_key())::jsonb)),
-      case when c.note_encrypted is null then null else pgp_sym_decrypt(c.note_encrypted, private.vault_key()) end
-    from cycle_logs c
+      case when c.flow_encrypted is null then null else extensions.pgp_sym_decrypt(c.flow_encrypted, private.vault_key()) end,
+      array(select jsonb_array_elements_text(extensions.pgp_sym_decrypt(c.symptoms_encrypted, private.vault_key())::jsonb)),
+      case when c.note_encrypted is null then null else extensions.pgp_sym_decrypt(c.note_encrypted, private.vault_key()) end
+    from public.cycle_logs c
     where c.user_id = v_user_id;
 end;
 $$;
@@ -258,13 +258,13 @@ begin
     end if;
   end if;
 
-  insert into notes (user_id, client_id, date, text_encrypted)
-  values (v_user_id, p_client_id, p_date, pgp_sym_encrypt(p_text, private.vault_key()))
+  insert into public.notes (user_id, client_id, date, text_encrypted)
+  values (v_user_id, p_client_id, p_date, extensions.pgp_sym_encrypt(p_text, private.vault_key()))
   on conflict (user_id, client_id) do nothing
   returning id into v_id;
 
   if v_id is null then
-    select id into v_id from notes where user_id = v_user_id and client_id = p_client_id;
+    select id into v_id from public.notes where user_id = v_user_id and client_id = p_client_id;
   end if;
 
   return v_id;
@@ -296,8 +296,8 @@ begin
   end if;
 
   return query
-    select n.id, n.client_id, n.date, pgp_sym_decrypt(n.text_encrypted, private.vault_key()), n.created_at
-    from notes n
+    select n.id, n.client_id, n.date, extensions.pgp_sym_decrypt(n.text_encrypted, private.vault_key()), n.created_at
+    from public.notes n
     where n.user_id = v_user_id;
 end;
 $$;
