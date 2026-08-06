@@ -24,7 +24,7 @@ import ChangeIndicator from '../components/ChangeIndicator'
 import OverviewTerminal from './OverviewTerminal'
 import VoiceLogSheet from '../components/VoiceLogSheet'
 import {
-  shouldShowEodReport, getCachedReport, setCachedReport, clearCachedReport,
+  shouldShowEodReport, getCachedReport, clearCachedReport,
   generateAiReport, gatherFallbackReportData, buildFallbackReportText,
 } from '../utils/eodReport'
 import { hasApiKey } from '../utils/claudeApi'
@@ -39,12 +39,25 @@ const WEEKDAY_LETTER = { Mon: 'M', Tue: 'T', Wed: 'W', Thu: 'T', Fri: 'F', Sat: 
 // second real generateAiReport() call firing while the first is still in
 // flight (e.g. navigating away and back within the few seconds a real
 // Claude call takes, before the first call's promise settles and writes
-// the cache). This flag lives as long as the page itself does.
-let eodGenerationInFlight = false
+// the cache). This lives as long as the page itself does.
+//
+// It's the shared *promise*, not a boolean flag, on purpose: a remount
+// during an in-flight call needs to attach to that call and receive its
+// result, otherwise it renders an empty recap card forever (the original
+// promise resolves into the previous, now-unmounted instance).
+let eodGenerationPromise = null
 
 export default function Overview({ onNavigate }) {
   const { data } = useApp()
   const today = todayKey()
+
+  const { useGradientAccents, uiStyle } = data.settings
+  // Declared up here (not with the rest of the layout-only derivations
+  // further down) because the End-of-Day Report's generation effect below
+  // has to be gated on it — the report is only rendered in the Classic
+  // branch, so generating it for Fintech users would burn a real, billed
+  // Claude call on output nothing ever displays.
+  const fintechOn = uiStyle === 'fintech'
 
   const waterToday = data.water[today] || 0
   const waterRatio = Math.min(1, waterToday / data.settings.waterGoalMl)
@@ -72,28 +85,48 @@ export default function Overview({ onNavigate }) {
 
   const [eodReport, setEodReport] = useState(null)
   const [eodLoading, setEodLoading] = useState(false)
-  const showEod = shouldShowEodReport(data)
+  // Fintech's Overview is a structurally different layout
+  // (OverviewTerminal) that has no recap card, so skip generation entirely
+  // there rather than paying for a report nothing renders.
+  const showEod = !fintechOn && shouldShowEodReport(data)
 
-  const runFallback = () => setEodReport(setCachedReport(buildFallbackReportText(gatherFallbackReportData(data)), 'fallback'))
+  // Deliberately NOT cached: the spec treats the fallback as applying "for
+  // that view" only, and it's cheap enough to recompute live. Caching it
+  // would (a) hide the Regenerate button for the rest of the day after one
+  // transient AI failure and (b) go stale as the user keeps logging.
+  const runFallback = () => setEodReport({
+    date: todayKey(),
+    text: buildFallbackReportText(gatherFallbackReportData(data)),
+    source: 'fallback',
+  })
+
+  // Single entry point for every AI generation, from both the mount effect
+  // and Regenerate, so the shared in-flight promise is never bypassed.
+  const startEodGeneration = () => {
+    if (!eodGenerationPromise) {
+      const pending = generateAiReport(data).finally(() => {
+        // Only clear if this is still the current call — Regenerate can
+        // have replaced it with a newer one while this was in flight.
+        if (eodGenerationPromise === pending) eodGenerationPromise = null
+      })
+      eodGenerationPromise = pending
+    }
+    setEodLoading(true)
+    return eodGenerationPromise
+      .then(setEodReport)
+      .catch(runFallback)
+      .finally(() => setEodLoading(false))
+  }
 
   useEffect(() => {
     if (!showEod) { setEodReport(null); return }
     const cached = getCachedReport()
     if (cached) { setEodReport(cached); return }
     if (!hasApiKey()) { runFallback(); return }
-    // Skip if a call is already in flight (see eodGenerationInFlight above)
-    // — the cache check above already covers the common case; this only
-    // covers the narrow window where a first call hasn't settled yet.
-    if (eodGenerationInFlight) return
-    eodGenerationInFlight = true
-    setEodLoading(true)
-    generateAiReport(data)
-      .then(setEodReport)
-      .catch(runFallback)
-      .finally(() => {
-        eodGenerationInFlight = false
-        setEodLoading(false)
-      })
+    // Attaches to an already-in-flight call rather than firing a second
+    // one — the cache check above covers the common case, this covers the
+    // narrow window where a first call hasn't settled yet.
+    startEodGeneration()
     // Intentionally keyed on showEod only, not `data` — the cache is
     // date-based, not data-based; regenerating on every log would defeat
     // the once-per-day cache. Use the Regenerate button for a fresh pull.
@@ -101,11 +134,10 @@ export default function Overview({ onNavigate }) {
 
   const handleRegenerate = () => {
     clearCachedReport()
-    setEodLoading(true)
-    generateAiReport(data)
-      .then(setEodReport)
-      .catch(runFallback)
-      .finally(() => setEodLoading(false))
+    // Force an actually-new call: without this, Regenerate would silently
+    // re-attach to a stale in-flight generation and show its result.
+    eodGenerationPromise = null
+    startEodGeneration()
   }
 
   const waterStreak = streakFromDateSet(new Set(Object.entries(data.water).filter(([, ml]) => ml >= data.settings.waterGoalMl).map(([k]) => k)))
@@ -124,8 +156,6 @@ export default function Overview({ onNavigate }) {
   const levelInfo = levelProgress(xp)
   const topInsights = computeInsights(data).slice(0, 2)
 
-  const { useGradientAccents, uiStyle } = data.settings
-  const fintechOn = uiStyle === 'fintech'
   const consistency = computeConsistencyScore(data)
   const activeContracts = activeContractsToday(data.habitContracts, data)
   const microHabit = getMicroHabit(data)
@@ -328,7 +358,11 @@ export default function Overview({ onNavigate }) {
             <div className="text-sm faint" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
               {eodReport?.source === 'ai' ? 'AI recap' : "Today's recap"}
             </div>
-            {eodReport?.source === 'ai' && !eodLoading && (
+            {/* Keyed on having a key rather than on the current report's
+                source, so someone looking at a fallback recap (after a
+                transient failure, or having just added their key) can still
+                retry instead of being stuck with it until tomorrow. */}
+            {hasApiKey() && !eodLoading && (
               <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13 }} onClick={handleRegenerate}>
                 Regenerate
               </button>
