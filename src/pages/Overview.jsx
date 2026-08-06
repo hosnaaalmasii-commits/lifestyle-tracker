@@ -306,7 +306,7 @@ export default function Overview({ onNavigate }) {
       </div>
 
       {showEod && (
-        <div className="card">
+        <div className="card" style={{ marginTop: 12 }}>
           <div className="row" style={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div className="text-sm faint" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
               {eodReport?.source === 'ai' ? 'AI recap' : "Today's recap"}
