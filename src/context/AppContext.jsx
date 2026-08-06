@@ -50,6 +50,7 @@ const DEFAULT_DATA = {
   budget: [],
   schedule: [],
   notes: [],
+  alcohol: [],
   character: {
     archetype: null,
     feedPointCredit: 0,
@@ -383,6 +384,11 @@ export function AppProvider({ children }) {
       setData((d) => ({ ...d, cycle: [...d.cycle, { id: makeId(), date: dateKey, ...entry }].sort((a, b) => a.date.localeCompare(b.date)) }))
     },
     deleteCycleEntry: (id) => setData((d) => ({ ...d, cycle: d.cycle.filter((c) => c.id !== id) })),
+
+    addAlcoholEntry: (entry, dateKey = todayKey()) => {
+      setData((d) => ({ ...d, alcohol: [...d.alcohol, { id: makeId(), date: dateKey, ...entry }].sort((a, b) => a.date.localeCompare(b.date)) }))
+    },
+    deleteAlcoholEntry: (id) => setData((d) => ({ ...d, alcohol: d.alcohol.filter((a) => a.id !== id) })),
 
     addExpense: (expense, dateKey = todayKey()) => {
       setData((d) => ({ ...d, budget: [...d.budget, { id: makeId(), date: dateKey, ...expense }].sort((a, b) => a.date.localeCompare(b.date)) }))
