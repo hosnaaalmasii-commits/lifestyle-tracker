@@ -1,5 +1,6 @@
-import { todayKey } from './dates'
-import { estimateCyclePhase } from './cyclePhase'
+import { todayKey } from './dates.js'
+import { estimateCyclePhase } from './cyclePhase.js'
+import { estimateAlcoholImpactForDate } from './alcoholImpact.js'
 
 const WORKOUT_BUMP_ML = 350
 const CYCLE_BUMP_ML = 150
@@ -29,6 +30,11 @@ export function computeHydrationAutopilot(data, now = new Date()) {
   const phase = estimateCyclePhase(data, today)
   if (phase && (phase.phase === 'menstrual' || phase.phase === 'luteal')) {
     bumps.push({ label: `Estimated ${phase.name.toLowerCase()} window`, ml: CYCLE_BUMP_ML })
+  }
+
+  const alcoholImpact = estimateAlcoholImpactForDate(data, today)
+  if (alcoholImpact) {
+    bumps.push({ label: 'Recovering from last night', ml: alcoholImpact.hydrationBumpMl })
   }
 
   const target = baseline + bumps.reduce((s, b) => s + b.ml, 0)

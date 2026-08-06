@@ -1,6 +1,7 @@
-import { todayKey, addDaysToKey } from './dates'
-import { getComebackStatus } from './comeback'
-import { estimateCyclePhase, menstrualTrainingPattern } from './cyclePhase'
+import { todayKey, addDaysToKey } from './dates.js'
+import { getComebackStatus } from './comeback.js'
+import { estimateCyclePhase, menstrualTrainingPattern } from './cyclePhase.js'
+import { estimateAlcoholImpactForDate } from './alcoholImpact.js'
 
 export const TIERS = [
   { id: 'full', label: 'Full', minutes: '30-45 min' },
@@ -45,6 +46,11 @@ export function suggestTier(data) {
   const sleepGoal = data.settings.sleepGoalHours
   if (sleepToday && sleepToday.hours < sleepGoal * 0.7) {
     return { tier: 'survival', reason: `short on sleep (${sleepToday.hours}h logged)` }
+  }
+
+  const alcoholImpact = estimateAlcoholImpactForDate(data, today)
+  if (alcoholImpact) {
+    return { tier: 'short', reason: alcoholImpact.workoutNote }
   }
 
   const soreAreas = data.painLog?.[today] || []
