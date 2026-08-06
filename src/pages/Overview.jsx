@@ -23,6 +23,11 @@ import Sparkline from '../components/Sparkline'
 import ChangeIndicator from '../components/ChangeIndicator'
 import OverviewTerminal from './OverviewTerminal'
 import VoiceLogSheet from '../components/VoiceLogSheet'
+import {
+  shouldShowEodReport, getCachedReport, setCachedReport, clearCachedReport,
+  generateAiReport, gatherFallbackReportData, buildFallbackReportText,
+} from '../utils/eodReport'
+import { hasApiKey } from '../utils/claudeApi'
 
 const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
 const QUALITY_LABELS = ['Rough', 'Poor', 'Okay', 'Good', 'Great']
@@ -55,6 +60,36 @@ export default function Overview({ onNavigate }) {
       setConfettiTick((n) => n + 1)
     }
   }, [score, today])
+
+  const [eodReport, setEodReport] = useState(null)
+  const [eodLoading, setEodLoading] = useState(false)
+  const showEod = shouldShowEodReport(data)
+
+  const runFallback = () => setEodReport(setCachedReport(buildFallbackReportText(gatherFallbackReportData(data)), 'fallback'))
+
+  useEffect(() => {
+    if (!showEod) { setEodReport(null); return }
+    const cached = getCachedReport()
+    if (cached) { setEodReport(cached); return }
+    if (!hasApiKey()) { runFallback(); return }
+    setEodLoading(true)
+    generateAiReport(data)
+      .then(setEodReport)
+      .catch(runFallback)
+      .finally(() => setEodLoading(false))
+    // Intentionally keyed on showEod only, not `data` — the cache is
+    // date-based, not data-based; regenerating on every log would defeat
+    // the once-per-day cache. Use the Regenerate button for a fresh pull.
+  }, [showEod])
+
+  const handleRegenerate = () => {
+    clearCachedReport()
+    setEodLoading(true)
+    generateAiReport(data)
+      .then(setEodReport)
+      .catch(runFallback)
+      .finally(() => setEodLoading(false))
+  }
 
   const waterStreak = streakFromDateSet(new Set(Object.entries(data.water).filter(([, ml]) => ml >= data.settings.waterGoalMl).map(([k]) => k)))
   const sleepStreak = streakFromDateSet(new Set(Object.entries(data.sleep).filter(([, s]) => s.hours >= data.settings.sleepGoalHours).map(([k]) => k)))
@@ -269,6 +304,26 @@ export default function Overview({ onNavigate }) {
           <div className="text-sm faint">Quick mood-to-action</div>
         </button>
       </div>
+
+      {showEod && (
+        <div className="card">
+          <div className="row" style={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div className="text-sm faint" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
+              {eodReport?.source === 'ai' ? 'AI recap' : "Today's recap"}
+            </div>
+            {eodReport?.source === 'ai' && !eodLoading && (
+              <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13 }} onClick={handleRegenerate}>
+                Regenerate
+              </button>
+            )}
+          </div>
+          {eodLoading ? (
+            <p className="text-sm muted" style={{ marginTop: 8 }}>Writing your recap…</p>
+          ) : (
+            <p className="text-sm" style={{ marginTop: 8, whiteSpace: 'pre-line' }}>{eodReport?.text}</p>
+          )}
+        </div>
+      )}
 
       <MoodCheckIn open={moodCheckInOpen} onClose={() => setMoodCheckInOpen(false)} />
 
