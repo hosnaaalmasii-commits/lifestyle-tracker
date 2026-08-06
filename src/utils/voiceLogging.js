@@ -14,6 +14,7 @@ export const NUTRITION_SLOTS = ['breakfast', 'lunch', 'dinner', 'snacks']
 
 export const CATEGORY_META = {
   drink: { label: 'Drink', icon: 'droplet', color: 'var(--accent-water)' },
+  alcohol: { label: 'Alcohol', icon: 'droplet', color: 'var(--danger)' },
   meal: { label: 'Meal', icon: 'apple', color: 'var(--accent)' },
   mood: { label: 'Mood', icon: 'heart', color: 'var(--accent)' },
   workout: { label: 'Workout', icon: 'dumbbell', color: 'var(--accent-workout)' },
@@ -29,6 +30,7 @@ export const CATEGORY_META = {
 // be logged with a best guess instead of interrupting the user.
 const MATERIAL_FIELDS = {
   drink: ['volumeMl'],
+  alcohol: ['count'],
   workout: ['weightKg', 'reps'],
   budget: ['amount'],
 }
@@ -41,6 +43,7 @@ Today's date is ${today}. A sentence may describe one or more log entries.
 
 Categories and their fields (use exactly these field names):
 - "drink": { volumeMl: number }
+- "alcohol": { count: number }
 - "meal": { slot: one of ${JSON.stringify(NUTRITION_SLOTS)}, includesVegetables: boolean }
 - "mood": { label: one of ${JSON.stringify(MOOD_SCALE.map((m) => m.label))}, note: string|null }
 - "workout": { mode: "complete_today" | "log_pr", exerciseName: string|null, weightKg: number|null, reps: number|null }
@@ -60,7 +63,7 @@ Output shape:
 {
   "intents": [
     {
-      "category": "drink" | "meal" | "mood" | "workout" | "cycle" | "schedule" | "budget",
+      "category": "drink" | "alcohol" | "meal" | "mood" | "workout" | "cycle" | "schedule" | "budget",
       "when": "today" | "yesterday",
       "summary": "short human-readable description, e.g. 'Water — 500 ml'",
       "fields": { "<fieldName>": { "value": ..., "confidence": "..." }, ... },
@@ -137,6 +140,11 @@ export function applyVoiceIntent(actions, intent) {
     case 'drink': {
       const ml = Number(fv(f, 'volumeMl', 0))
       if (ml > 0) actions.addWater(ml, dateKey)
+      break
+    }
+    case 'alcohol': {
+      const count = Number(fv(f, 'count', 0))
+      if (count > 0) actions.addAlcoholEntry({ count }, dateKey)
       break
     }
     case 'meal': {
