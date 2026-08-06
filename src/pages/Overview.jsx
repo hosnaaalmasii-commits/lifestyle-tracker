@@ -33,6 +33,15 @@ const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
 const QUALITY_LABELS = ['Rough', 'Poor', 'Okay', 'Good', 'Great']
 const WEEKDAY_LETTER = { Mon: 'M', Tue: 'T', Wed: 'W', Thu: 'T', Fri: 'F', Sat: 'S', Sun: 'S' }
 
+// Module-level, not component state — Overview is fully unmounted/remounted
+// on tab switch (App.jsx: `{activeTab === 'overview' && <Overview />}`), so a
+// useRef guard would reset on every remount and never actually prevent a
+// second real generateAiReport() call firing while the first is still in
+// flight (e.g. navigating away and back within the few seconds a real
+// Claude call takes, before the first call's promise settles and writes
+// the cache). This flag lives as long as the page itself does.
+let eodGenerationInFlight = false
+
 export default function Overview({ onNavigate }) {
   const { data } = useApp()
   const today = todayKey()
@@ -72,11 +81,19 @@ export default function Overview({ onNavigate }) {
     const cached = getCachedReport()
     if (cached) { setEodReport(cached); return }
     if (!hasApiKey()) { runFallback(); return }
+    // Skip if a call is already in flight (see eodGenerationInFlight above)
+    // — the cache check above already covers the common case; this only
+    // covers the narrow window where a first call hasn't settled yet.
+    if (eodGenerationInFlight) return
+    eodGenerationInFlight = true
     setEodLoading(true)
     generateAiReport(data)
       .then(setEodReport)
       .catch(runFallback)
-      .finally(() => setEodLoading(false))
+      .finally(() => {
+        eodGenerationInFlight = false
+        setEodLoading(false)
+      })
     // Intentionally keyed on showEod only, not `data` — the cache is
     // date-based, not data-based; regenerating on every log would defeat
     // the once-per-day cache. Use the Regenerate button for a fresh pull.
