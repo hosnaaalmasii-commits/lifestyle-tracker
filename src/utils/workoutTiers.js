@@ -1,7 +1,7 @@
-import { todayKey, addDaysToKey } from './dates.js'
-import { getComebackStatus } from './comeback.js'
-import { estimateCyclePhase, menstrualTrainingPattern } from './cyclePhase.js'
-import { estimateAlcoholImpactForDate } from './alcoholImpact.js'
+import { todayKey, addDaysToKey } from './dates'
+import { getComebackStatus } from './comeback'
+import { estimateCyclePhase, menstrualTrainingPattern } from './cyclePhase'
+import { estimateAlcoholImpactForDate } from './alcoholImpact'
 
 export const TIERS = [
   { id: 'full', label: 'Full', minutes: '30-45 min' },

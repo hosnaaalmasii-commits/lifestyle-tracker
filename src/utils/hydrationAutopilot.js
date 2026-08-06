@@ -1,6 +1,6 @@
-import { todayKey } from './dates.js'
-import { estimateCyclePhase } from './cyclePhase.js'
-import { estimateAlcoholImpactForDate } from './alcoholImpact.js'
+import { todayKey } from './dates'
+import { estimateCyclePhase } from './cyclePhase'
+import { estimateAlcoholImpactForDate } from './alcoholImpact'
 
 const WORKOUT_BUMP_ML = 350
 const CYCLE_BUMP_ML = 150
