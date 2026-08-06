@@ -51,14 +51,6 @@ export default function Overview({ onNavigate }) {
   const { data } = useApp()
   const today = todayKey()
 
-  const { useGradientAccents, uiStyle } = data.settings
-  // Declared up here (not with the rest of the layout-only derivations
-  // further down) because the End-of-Day Report's generation effect below
-  // has to be gated on it — the report is only rendered in the Classic
-  // branch, so generating it for Fintech users would burn a real, billed
-  // Claude call on output nothing ever displays.
-  const fintechOn = uiStyle === 'fintech'
-
   const waterToday = data.water[today] || 0
   const waterRatio = Math.min(1, waterToday / data.settings.waterGoalMl)
 
@@ -85,10 +77,7 @@ export default function Overview({ onNavigate }) {
 
   const [eodReport, setEodReport] = useState(null)
   const [eodLoading, setEodLoading] = useState(false)
-  // Fintech's Overview is a structurally different layout
-  // (OverviewTerminal) that has no recap card, so skip generation entirely
-  // there rather than paying for a report nothing renders.
-  const showEod = !fintechOn && shouldShowEodReport(data)
+  const showEod = shouldShowEodReport(data)
 
   // Deliberately NOT cached: the spec treats the fallback as applying "for
   // that view" only, and it's cheap enough to recompute live. Caching it
@@ -156,6 +145,8 @@ export default function Overview({ onNavigate }) {
   const levelInfo = levelProgress(xp)
   const topInsights = computeInsights(data).slice(0, 2)
 
+  const { useGradientAccents, uiStyle } = data.settings
+  const fintechOn = uiStyle === 'fintech'
   const consistency = computeConsistencyScore(data)
   const activeContracts = activeContractsToday(data.habitContracts, data)
   const microHabit = getMicroHabit(data)
