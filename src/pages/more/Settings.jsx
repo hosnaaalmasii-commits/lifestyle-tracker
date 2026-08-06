@@ -493,7 +493,9 @@ export default function Settings({ onBack }) {
           clearAll()
           saveKey('')
           Object.keys(localStorage)
-            .filter((k) => k.startsWith('lifestyle-tracker-daily-note-') || k === 'lifestyle-tracker-coach-chat')
+            .filter((k) => k.startsWith('lifestyle-tracker-daily-note-')
+              || k === 'lifestyle-tracker-coach-chat'
+              || k === 'lifestyle-tracker-eod-report-cache')
             .forEach((k) => localStorage.removeItem(k))
           setConfirmClear(false)
         }}
