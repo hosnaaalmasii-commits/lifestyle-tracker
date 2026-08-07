@@ -1,4 +1,4 @@
-import { addDaysToKey } from './dates.js'
+import { addDaysToKey } from './dates'
 
 // Below this many drinks, nothing is worth flagging — matches this
 // app's existing restraint (e.g. cycle notes only surface when a

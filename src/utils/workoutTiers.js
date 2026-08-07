@@ -48,17 +48,17 @@ export function suggestTier(data) {
     return { tier: 'survival', reason: `short on sleep (${sleepToday.hours}h logged)` }
   }
 
-  const alcoholImpact = estimateAlcoholImpactForDate(data, today)
-  if (alcoholImpact) {
-    return { tier: 'short', reason: alcoholImpact.workoutNote }
-  }
-
   const soreAreas = data.painLog?.[today] || []
   if (soreAreas.length >= 2) {
     return { tier: 'survival', reason: `multiple sore spots flagged today (${soreAreas.join(', ')})` }
   }
   if (soreAreas.length === 1) {
     return { tier: 'short', reason: `${soreAreas[0]} flagged as sore today` }
+  }
+
+  const alcoholImpact = estimateAlcoholImpactForDate(data, today)
+  if (alcoholImpact) {
+    return { tier: 'short', reason: alcoholImpact.workoutNote }
   }
 
   const busyMinutes = data.calendarStatus?.busyMinutesToday

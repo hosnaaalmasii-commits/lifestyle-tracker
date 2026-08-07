@@ -18,6 +18,7 @@ const FIELD_LABEL = {
   volumeMl: 'Amount', slot: 'Meal', includesVegetables: 'Vegetables', label: 'Mood', note: 'Note',
   mode: 'Type', exerciseName: 'Exercise', weightKg: 'Weight', reps: 'Reps',
   flow: 'Flow', symptoms: 'Symptoms', time: 'Time', text: 'Note', amount: 'Amount', category: 'Category',
+  count: 'Drinks',
 }
 
 function formatValue(name, value) {

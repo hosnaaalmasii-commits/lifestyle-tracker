@@ -42,8 +42,8 @@ function buildSystemPrompt() {
 Today's date is ${today}. A sentence may describe one or more log entries.
 
 Categories and their fields (use exactly these field names):
-- "drink": { volumeMl: number }
-- "alcohol": { count: number }
+- "drink": { volumeMl: number } — non-alcoholic fluid intake (water, tea, coffee, juice, etc.)
+- "alcohol": { count: number } — number of alcoholic drinks (beer, wine, spirits, cocktails, etc.)
 - "meal": { slot: one of ${JSON.stringify(NUTRITION_SLOTS)}, includesVegetables: boolean }
 - "mood": { label: one of ${JSON.stringify(MOOD_SCALE.map((m) => m.label))}, note: string|null }
 - "workout": { mode: "complete_today" | "log_pr", exerciseName: string|null, weightKg: number|null, reps: number|null }
@@ -57,7 +57,7 @@ For every field, wrap it as { "value": <the value>, "confidence": <tag> } where 
 - "exact": stated directly and unambiguously
 - "estimated": not stated, but a reasonable default was filled in
 - "unknown": could not be determined at all
-- "needs_confirmation": ambiguous AND this field is one that materially changes a downstream calculation for its category (drink.volumeMl, workout.weightKg, workout.reps, budget.amount — e.g. "a bottle of water" without a stated size, or "I spent some money on lunch" without an amount). Do NOT use needs_confirmation for cosmetic fields (mood intensity, meal slot, cycle flow/symptoms, schedule time, note text) even if they're ambiguous — just make a reasonable estimate or use "unknown" for those instead.
+- "needs_confirmation": ambiguous AND this field is one that materially changes a downstream calculation for its category (drink.volumeMl, alcohol.count, workout.weightKg, workout.reps, budget.amount — e.g. "a bottle of water" without a stated size, "a couple of drinks" without a stated number, or "I spent some money on lunch" without an amount). Do NOT use needs_confirmation for cosmetic fields (mood intensity, meal slot, cycle flow/symptoms, schedule time, note text) even if they're ambiguous — just make a reasonable estimate or use "unknown" for those instead.
 
 Output shape:
 {
