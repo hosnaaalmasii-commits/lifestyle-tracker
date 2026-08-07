@@ -22,7 +22,7 @@ const ITEMS = [
   { id: 'weight', label: 'Weight', desc: 'Trend over time', icon: 'scale' },
   { id: 'mood', label: 'Mood', desc: 'Scale & notes', icon: 'faceGood' },
   { id: 'nutrition', label: 'Nutrition', desc: 'Daily checklist', icon: 'apple' },
-  { id: 'recipes', label: 'Recipes', desc: 'Ask for one, save your favorites', icon: 'apple' },
+  { id: 'recipes', label: 'Recipes', desc: 'Ask for one, save your favorites', icon: 'utensils' },
   { id: 'cycle', label: 'Cycle', desc: 'Flow & symptoms', icon: 'droplet' },
   { id: 'schedule', label: 'Schedule', desc: 'Upcoming items', icon: 'calendar' },
   { id: 'budget', label: 'Budget', desc: 'Expenses & spending', icon: 'scale' },

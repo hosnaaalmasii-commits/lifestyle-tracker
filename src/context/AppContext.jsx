@@ -409,7 +409,7 @@ export function AppProvider({ children }) {
     deleteNote: (id) => setData((d) => ({ ...d, notes: d.notes.filter((n) => n.id !== id) })),
 
     saveRecipe: (recipe) => {
-      setData((d) => ({ ...d, recipes: [...d.recipes, { ...recipe, savedAt: Date.now() }] }))
+      setData((d) => ({ ...d, recipes: [...d.recipes, { ...recipe, id: recipe.id || makeId(), savedAt: Date.now() }] }))
     },
     deleteRecipe: (id) => setData((d) => ({ ...d, recipes: d.recipes.filter((r) => r.id !== id) })),
 

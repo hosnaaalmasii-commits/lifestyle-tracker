@@ -95,21 +95,34 @@ export default function Nutrition({ onBack }) {
       <Sheet open={goalsOpen} onClose={() => setGoalsOpen(false)} title="Macro goals">
         <div className="field">
           <label>Calories</label>
-          <input className="input" type="number" value={draftGoals.calories} onChange={(e) => setDraftGoals((g) => ({ ...g, calories: Number(e.target.value) }))} />
+          <input className="input" type="number" min="0" value={draftGoals.calories} onChange={(e) => setDraftGoals((g) => ({ ...g, calories: Number(e.target.value) }))} />
         </div>
         <div className="field">
           <label>Protein (g)</label>
-          <input className="input" type="number" value={draftGoals.proteinG} onChange={(e) => setDraftGoals((g) => ({ ...g, proteinG: Number(e.target.value) }))} />
+          <input className="input" type="number" min="0" value={draftGoals.proteinG} onChange={(e) => setDraftGoals((g) => ({ ...g, proteinG: Number(e.target.value) }))} />
         </div>
         <div className="field">
           <label>Carbs (g)</label>
-          <input className="input" type="number" value={draftGoals.carbsG} onChange={(e) => setDraftGoals((g) => ({ ...g, carbsG: Number(e.target.value) }))} />
+          <input className="input" type="number" min="0" value={draftGoals.carbsG} onChange={(e) => setDraftGoals((g) => ({ ...g, carbsG: Number(e.target.value) }))} />
         </div>
         <div className="field">
           <label>Fat (g)</label>
-          <input className="input" type="number" value={draftGoals.fatG} onChange={(e) => setDraftGoals((g) => ({ ...g, fatG: Number(e.target.value) }))} />
+          <input className="input" type="number" min="0" value={draftGoals.fatG} onChange={(e) => setDraftGoals((g) => ({ ...g, fatG: Number(e.target.value) }))} />
         </div>
-        <button className="btn btn-primary btn-block" onClick={() => { setMacroGoals(draftGoals); setGoalsOpen(false) }}>Save goals</button>
+        <button
+          className="btn btn-primary btn-block"
+          onClick={() => {
+            setMacroGoals({
+              calories: Math.max(0, draftGoals.calories),
+              proteinG: Math.max(0, draftGoals.proteinG),
+              carbsG: Math.max(0, draftGoals.carbsG),
+              fatG: Math.max(0, draftGoals.fatG),
+            })
+            setGoalsOpen(false)
+          }}
+        >
+          Save goals
+        </button>
       </Sheet>
     </div>
   )
