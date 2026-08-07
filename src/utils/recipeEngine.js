@@ -1,4 +1,5 @@
 import { sendToClaude, ClaudeApiError } from './claudeApi'
+import { normalizeRecipeFields } from './recipeNormalize'
 
 function makeId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -46,17 +47,19 @@ export async function generateRecipe(promptText, data) {
     throw new ClaudeApiError('Got an incomplete recipe — try again.')
   }
 
+  const { ingredients, instructions, tags } = normalizeRecipeFields(parsed)
+
   return {
     id: makeId(),
     name: parsed.name,
-    ingredients: parsed.ingredients,
-    instructions: parsed.instructions,
+    ingredients,
+    instructions,
     macros: {
       calories: Number(parsed.macros.calories) || 0,
       proteinG: Number(parsed.macros.proteinG) || 0,
       carbsG: Number(parsed.macros.carbsG) || 0,
       fatG: Number(parsed.macros.fatG) || 0,
     },
-    tags: Array.isArray(parsed.tags) ? parsed.tags : [],
+    tags,
   }
 }

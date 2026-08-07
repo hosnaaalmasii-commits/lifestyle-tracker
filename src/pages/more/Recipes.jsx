@@ -43,7 +43,21 @@ export default function Recipes({ onBack, setView }) {
       <div style={{ fontWeight: 700, fontSize: 16 }}>{recipe.name}</div>
       {recipe.tags?.length > 0 && (
         <div className="row" style={{ gap: 6, flexWrap: 'wrap', justifyContent: 'flex-start', marginTop: 6 }}>
-          {recipe.tags.map((t) => <span key={t} className="tag">{t}</span>)}
+          {recipe.tags.map((t, i) => (
+            <span
+              key={i}
+              className="tag"
+              style={{
+                background: 'color-mix(in srgb, var(--accent) 14%, transparent)',
+                color: 'var(--accent)',
+                borderRadius: 999,
+                padding: '3px 10px',
+                fontSize: 12,
+              }}
+            >
+              {t}
+            </span>
+          ))}
         </div>
       )}
       <div className="text-sm faint mono" style={{ marginTop: 8 }}>
@@ -63,39 +77,36 @@ export default function Recipes({ onBack, setView }) {
     </div>
   )
 
-  if (!keyPresent) {
-    return (
-      <div className="page">
-        <BackHeader eyebrow="More" title="Recipes" onBack={onBack} />
+  return (
+    <div className="page">
+      <BackHeader eyebrow="More" title="Recipes" onBack={onBack} />
+
+      {keyPresent ? (
+        <>
+          <div className="field">
+            <label>What do you want to cook?</label>
+            <input
+              className="input"
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="e.g. something high-protein with chicken"
+            />
+          </div>
+          <button className="btn btn-primary btn-block" onClick={handleGenerate} disabled={loading || !prompt.trim()}>
+            {loading ? 'Generating…' : 'Generate'}
+          </button>
+          {error && <p className="text-sm" style={{ color: 'var(--danger)', marginTop: 8 }}>{error}</p>}
+
+          {draft && renderRecipe(draft, handleSave)}
+        </>
+      ) : (
         <div className="empty-state">
           <div className="icon"><Icon name="apple" size={26} /></div>
           <p>Connect your own Claude API key to generate recipes from what you ask for — nothing is sent anywhere until you add a key.</p>
           <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={() => setView('settings')}>Set up in Settings</button>
         </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="page">
-      <BackHeader eyebrow="More" title="Recipes" onBack={onBack} />
-
-      <div className="field">
-        <label>What do you want to cook?</label>
-        <input
-          className="input"
-          type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="e.g. something high-protein with chicken"
-        />
-      </div>
-      <button className="btn btn-primary btn-block" onClick={handleGenerate} disabled={loading || !prompt.trim()}>
-        {loading ? 'Generating…' : 'Generate'}
-      </button>
-      {error && <p className="text-sm" style={{ color: 'var(--danger)', marginTop: 8 }}>{error}</p>}
-
-      {draft && renderRecipe(draft, handleSave)}
+      )}
 
       <div className="section-title">Saved recipes</div>
       {saved.length === 0 ? (
@@ -103,7 +114,7 @@ export default function Recipes({ onBack, setView }) {
       ) : (
         <div className="stack">
           {saved.map((r) => (
-            <div key={r.id} className="card" style={{ position: 'relative' }}>
+            <div key={r.id} style={{ position: 'relative' }}>
               {renderRecipe(r, null)}
               <button
                 className="btn-ghost"
