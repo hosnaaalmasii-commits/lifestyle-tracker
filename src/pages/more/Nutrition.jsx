@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext'
 import { todayKey, humanDate, addDaysToKey, lastNDayKeys, isToday } from '../../utils/dates'
 import { estimateCyclePhase, nutritionTipForPhase } from '../../utils/cyclePhase'
 import BackHeader from '../../components/BackHeader'
+import Sheet from '../../components/Sheet'
 import WeeklyBarChart from '../../components/WeeklyBarChart'
 import IconBadge from '../../components/IconBadge'
 
@@ -15,8 +16,10 @@ const ITEMS = [
 ]
 
 export default function Nutrition({ onBack }) {
-  const { data, setNutritionItem } = useApp()
+  const { data, setNutritionItem, setMacroGoals } = useApp()
   const [viewDate, setViewDate] = useState(todayKey())
+  const [goalsOpen, setGoalsOpen] = useState(false)
+  const [draftGoals, setDraftGoals] = useState(data.settings.macroGoals)
 
   const day = data.nutrition[viewDate] || {}
   const count = ITEMS.filter((i) => day[i.key]).length
@@ -32,7 +35,12 @@ export default function Nutrition({ onBack }) {
 
   return (
     <div className="page">
-      <BackHeader eyebrow="More" title="Nutrition" onBack={onBack} />
+      <BackHeader
+        eyebrow="More"
+        title="Nutrition"
+        onBack={onBack}
+        action={<button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13 }} onClick={() => { setDraftGoals(data.settings.macroGoals); setGoalsOpen(true) }}>Goals</button>}
+      />
 
       {phaseTip && (
         <div className="card" style={{ padding: '12px 16px', marginBottom: 12 }}>
@@ -83,6 +91,26 @@ export default function Nutrition({ onBack }) {
       <div className="card">
         <WeeklyBarChart values={weekValues} goal={5} color="var(--accent)" formatValue={(v) => `${v}/5`} />
       </div>
+
+      <Sheet open={goalsOpen} onClose={() => setGoalsOpen(false)} title="Macro goals">
+        <div className="field">
+          <label>Calories</label>
+          <input className="input" type="number" value={draftGoals.calories} onChange={(e) => setDraftGoals((g) => ({ ...g, calories: Number(e.target.value) }))} />
+        </div>
+        <div className="field">
+          <label>Protein (g)</label>
+          <input className="input" type="number" value={draftGoals.proteinG} onChange={(e) => setDraftGoals((g) => ({ ...g, proteinG: Number(e.target.value) }))} />
+        </div>
+        <div className="field">
+          <label>Carbs (g)</label>
+          <input className="input" type="number" value={draftGoals.carbsG} onChange={(e) => setDraftGoals((g) => ({ ...g, carbsG: Number(e.target.value) }))} />
+        </div>
+        <div className="field">
+          <label>Fat (g)</label>
+          <input className="input" type="number" value={draftGoals.fatG} onChange={(e) => setDraftGoals((g) => ({ ...g, fatG: Number(e.target.value) }))} />
+        </div>
+        <button className="btn btn-primary btn-block" onClick={() => { setMacroGoals(draftGoals); setGoalsOpen(false) }}>Save goals</button>
+      </Sheet>
     </div>
   )
 }
