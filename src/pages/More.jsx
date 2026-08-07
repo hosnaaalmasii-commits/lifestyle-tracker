@@ -12,6 +12,7 @@ import Budget from './more/Budget'
 import Schedule from './more/Schedule'
 import Notes from './more/Notes'
 import Alcohol from './more/Alcohol'
+import Recipes from './more/Recipes'
 import Icon from '../components/Icon'
 
 const ITEMS = [
@@ -21,6 +22,7 @@ const ITEMS = [
   { id: 'weight', label: 'Weight', desc: 'Trend over time', icon: 'scale' },
   { id: 'mood', label: 'Mood', desc: 'Scale & notes', icon: 'faceGood' },
   { id: 'nutrition', label: 'Nutrition', desc: 'Daily checklist', icon: 'apple' },
+  { id: 'recipes', label: 'Recipes', desc: 'Ask for one, save your favorites', icon: 'apple' },
   { id: 'cycle', label: 'Cycle', desc: 'Flow & symptoms', icon: 'droplet' },
   { id: 'schedule', label: 'Schedule', desc: 'Upcoming items', icon: 'calendar' },
   { id: 'budget', label: 'Budget', desc: 'Expenses & spending', icon: 'scale' },
@@ -35,6 +37,7 @@ export default function More({ view, setView }) {
   if (view === 'weight') return <Weight onBack={() => setView(null)} />
   if (view === 'mood') return <Mood onBack={() => setView(null)} />
   if (view === 'nutrition') return <Nutrition onBack={() => setView(null)} />
+  if (view === 'recipes') return <Recipes onBack={() => setView(null)} setView={setView} />
   if (view === 'cycle') return <Cycle onBack={() => setView(null)} />
   if (view === 'budget') return <Budget onBack={() => setView(null)} />
   if (view === 'alcohol') return <Alcohol onBack={() => setView(null)} />
