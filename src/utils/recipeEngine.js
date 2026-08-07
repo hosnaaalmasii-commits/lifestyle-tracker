@@ -51,7 +51,7 @@ export async function generateRecipe(promptText, data) {
 
   return {
     id: makeId(),
-    name: parsed.name,
+    name: String(parsed.name ?? ''),
     ingredients,
     instructions,
     macros: {
