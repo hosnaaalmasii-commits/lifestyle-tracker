@@ -21,6 +21,7 @@ const DEFAULT_DATA = {
     colors: { ...DEFAULT_COLORS },
     waterGoalMl: 2000,
     sleepGoalHours: 8,
+    macroGoals: { calories: 2000, proteinG: 100, carbsG: 250, fatG: 65 },
     weightUnit: 'kg',
     headingFont: 'fraunces',
     density: 'comfortable',
@@ -50,6 +51,7 @@ const DEFAULT_DATA = {
   budget: [],
   schedule: [],
   notes: [],
+  recipes: [],
   alcohol: [],
   character: {
     archetype: null,
@@ -245,6 +247,7 @@ export function AppProvider({ children }) {
       }))
     },
     setWaterGoal: (ml) => setData((d) => ({ ...d, settings: { ...d.settings, waterGoalMl: ml } })),
+    setMacroGoals: (goals) => setData((d) => ({ ...d, settings: { ...d.settings, macroGoals: { ...d.settings.macroGoals, ...goals } } })),
     clearWater: (dateKey = todayKey()) => {
       lastWaterAdd.current = null
       setData((d) => {
@@ -404,6 +407,11 @@ export function AppProvider({ children }) {
       setData((d) => ({ ...d, notes: [...d.notes, { id: makeId(), date: dateKey, text, createdAt: Date.now() }] }))
     },
     deleteNote: (id) => setData((d) => ({ ...d, notes: d.notes.filter((n) => n.id !== id) })),
+
+    saveRecipe: (recipe) => {
+      setData((d) => ({ ...d, recipes: [...d.recipes, { ...recipe, savedAt: Date.now() }] }))
+    },
+    deleteRecipe: (id) => setData((d) => ({ ...d, recipes: d.recipes.filter((r) => r.id !== id) })),
 
     // One-time onboarding choice. startingXp (from Spark's existing XP,
     // computed by the caller) becomes the migration credit so switching to
