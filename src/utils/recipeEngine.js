@@ -94,10 +94,15 @@ Output shape (all fields required):
 }
 
 export async function swapIngredient(recipe, ingredientIndex, direction, data) {
+  const directionText = SWAP_DIRECTION_TEXT[direction]
+  if (!directionText) {
+    throw new ClaudeApiError('Unknown swap direction.')
+  }
+
   const ingredientName = recipe.ingredients[ingredientIndex]?.name || ''
   const raw = await sendToClaude({
     system: buildSwapSystemPrompt(recipe, ingredientName, direction, data),
-    messages: [{ role: 'user', content: `Swap the "${ingredientName}" ingredient to make this recipe ${SWAP_DIRECTION_TEXT[direction]}.` }],
+    messages: [{ role: 'user', content: `Swap the "${ingredientName}" ingredient to make this recipe ${directionText}.` }],
     maxTokens: 512,
   })
 
@@ -112,8 +117,13 @@ export async function swapIngredient(recipe, ingredientIndex, direction, data) {
     throw new ClaudeApiError('Got an incomplete swap — try again.')
   }
 
+  const ingredient = normalizeIngredient(parsed.ingredient)
+  if (!ingredient.name) {
+    throw new ClaudeApiError('Got an incomplete swap — try again.')
+  }
+
   return {
-    ingredient: normalizeIngredient(parsed.ingredient),
+    ingredient,
     macros: {
       calories: Number(parsed.macros.calories) || 0,
       proteinG: Number(parsed.macros.proteinG) || 0,

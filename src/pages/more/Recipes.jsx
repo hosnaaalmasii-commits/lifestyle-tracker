@@ -104,22 +104,24 @@ export default function Recipes({ onBack, setView }) {
           <li
             key={i}
             className="text-sm"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0' }}
+            style={{ padding: '2px 0' }}
           >
-            <span>{ing.name} — {ing.amount}</span>
-            {keyPresent && (
-              <button
-                aria-label="Swap ingredient"
-                onClick={() => setSwapTarget({ recipe, recipeKey, ingredientIndex: i })}
-                style={{
-                  background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '50%',
-                  width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', flexShrink: 0, marginLeft: 8, padding: 0,
-                }}
-              >
-                <Icon name="repeat" size={12} />
-              </button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>{ing.name} — {ing.amount}</span>
+              {keyPresent && (
+                <button
+                  aria-label={`Swap ${ing.name}`}
+                  onClick={() => setSwapTarget({ recipe, recipeKey, ingredientIndex: i })}
+                  style={{
+                    background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '50%',
+                    width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', flexShrink: 0, marginLeft: 8, padding: 0,
+                  }}
+                >
+                  <Icon name="repeat" size={12} />
+                </button>
+              )}
+            </div>
           </li>
         ))}
       </ul>
@@ -201,7 +203,7 @@ export default function Recipes({ onBack, setView }) {
 
       <Sheet
         open={!!swapTarget}
-        onClose={() => { setSwapTarget(null); setSwapError('') }}
+        onClose={() => { if (swapLoading) return; setSwapTarget(null); setSwapError('') }}
         title={swapTarget ? `Swap ${swapTarget.recipe.ingredients[swapTarget.ingredientIndex]?.name || ''}` : ''}
       >
         <div className="stack">
