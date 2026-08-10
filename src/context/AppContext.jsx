@@ -412,6 +412,9 @@ export function AppProvider({ children }) {
       setData((d) => ({ ...d, recipes: [...d.recipes, { ...recipe, id: recipe.id || makeId(), savedAt: Date.now() }] }))
     },
     deleteRecipe: (id) => setData((d) => ({ ...d, recipes: d.recipes.filter((r) => r.id !== id) })),
+    updateRecipe: (id, changes) => {
+      setData((d) => ({ ...d, recipes: d.recipes.map((r) => (r.id === id ? { ...r, ...changes } : r)) }))
+    },
 
     // One-time onboarding choice. startingXp (from Spark's existing XP,
     // computed by the caller) becomes the migration credit so switching to
