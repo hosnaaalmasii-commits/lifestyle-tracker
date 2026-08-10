@@ -9,11 +9,16 @@
 // React child throws and, since no error boundary wraps this page, would
 // white-screen the whole app. Normalize defensively instead of trusting the
 // model's shape verbatim.
+export function normalizeIngredient(i) {
+  if (!i || typeof i !== 'object') return { name: '', amount: '' }
+  return { name: String(i.name ?? ''), amount: String(i.amount ?? '') }
+}
+
 export function normalizeRecipeFields(parsed) {
   return {
     ingredients: parsed.ingredients
       .filter((i) => i && typeof i === 'object')
-      .map((i) => ({ name: String(i.name ?? ''), amount: String(i.amount ?? '') })),
+      .map(normalizeIngredient),
     instructions: parsed.instructions
       .map((s) => (typeof s === 'string' ? s : String(s?.text ?? '')))
       .filter(Boolean),
