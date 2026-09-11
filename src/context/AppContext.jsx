@@ -9,6 +9,7 @@ import { requestGoogleToken, fetchTodayBusyMinutes, syncTasksToCalendar } from '
 import { hasOuraApiKey, getOuraApiKey, fetchOuraToday } from '../utils/ouraApi'
 import { isCloudSyncConfigured, getSupabaseClient } from '../utils/supabaseClient'
 import { subscribeToPush, unsubscribeFromPush } from '../utils/push'
+import { WALLPAPER_OPTIONS } from '../components/Wallpaper'
 import {
   signUp as cloudSignUpApi, signIn as cloudSignInApi, signOut as cloudSignOutApi,
   getSession, onAuthStateChange, reconcile, pushToCloud, markLocalModified,
@@ -268,17 +269,24 @@ export function AppProvider({ children }) {
     root.style.setProperty('--fintech-accent', grad.accent)
 
     const fintechOn = uiStyle === 'fintech'
+    // A wallpaper (Wallpaper.jsx) carries its own matching accent/ring/
+    // gradientEnd so the rest of the UI doesn't clash with whatever photo
+    // is behind it — same idea as the Fintech override below, just for a
+    // different setting. Fintech's own gradient wins if both are somehow
+    // active, since Fintech already has a complete color identity of its
+    // own; the wallpaper override only applies to Classic.
+    const wallpaperOpt = !fintechOn ? WALLPAPER_OPTIONS.find((w) => w.key === wallpaper && w.accent) : null
     // Under Fintech, every accent throughout the app (rings, streak flame,
     // mini-card icons, section dots) switches to the chosen gradient family
     // instead of the user's Classic accent — otherwise only card chrome
     // changes and the app barely reads as redesigned.
-    const accent = fintechOn ? grad.from : colors.accent
-    const ring = fintechOn ? grad.from : colors.ring
-    const water = fintechOn ? grad.from : colors.water
+    const accent = fintechOn ? grad.from : wallpaperOpt?.accent || colors.accent
+    const ring = fintechOn ? grad.from : wallpaperOpt?.ring || colors.ring
+    const water = fintechOn ? grad.from : wallpaperOpt?.accent || colors.water
     const sleep = fintechOn ? grad.accent : colors.sleep
-    const workout = fintechOn ? grad.to : colors.workout
-    const gradientEnd = fintechOn ? grad.to : colors.gradientEnd
-    const useGradient = fintechOn ? true : useGradientAccents
+    const workout = fintechOn ? grad.to : wallpaperOpt?.gradientEnd || colors.workout
+    const gradientEnd = fintechOn ? grad.to : wallpaperOpt?.gradientEnd || colors.gradientEnd
+    const useGradient = fintechOn ? true : (wallpaperOpt ? true : useGradientAccents)
 
     root.style.setProperty('--accent', accent)
     root.style.setProperty('--accent-ring', ring)
