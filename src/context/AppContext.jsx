@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { todayKey } from '../utils/dates'
-import transformatieplan from '../../data/transformatieplan-data.json'
+import transformatieplan from '../data/transformatieplan-data.json'
 import { WEEKDAY_KEYS } from '../utils/taskSchedule'
 import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } from '../utils/workoutGenerator'
 import { DEFAULT_COLORS } from '../utils/colorPresets'
