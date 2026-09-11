@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AppProvider, useApp } from './context/AppContext'
 import { getComebackStatus } from './utils/comeback'
 import TabBar from './components/TabBar'
+import Wallpaper from './components/Wallpaper'
 import ComebackScreen from './components/ComebackScreen'
 import Overview from './pages/Overview'
 import Water from './pages/Water'
@@ -34,6 +35,7 @@ function Shell() {
   if (comeback.isComeback && !comebackDismissed) {
     return (
       <div className="app-shell">
+        <Wallpaper type={data.settings.wallpaper} />
         <ComebackScreen
           gapDays={comeback.gapDays}
           onContinue={() => setComebackDismissed(true)}
@@ -45,6 +47,7 @@ function Shell() {
 
   return (
     <div className="app-shell">
+      <Wallpaper type={data.settings.wallpaper} />
       {activeTab === 'overview' && <Overview onNavigate={navigate} />}
       {activeTab === 'water' && <Water />}
       {activeTab === 'sleep' && <Sleep />}

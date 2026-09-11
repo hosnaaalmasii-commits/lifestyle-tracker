@@ -4,6 +4,7 @@ import { THEME_PRESETS } from '../../utils/colorPresets'
 import { FINTECH_GRADIENTS } from '../../utils/fintechGradients'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
 import { getOuraApiKey, setOuraApiKey } from '../../utils/ouraApi'
+import { WALLPAPER_OPTIONS } from '../../components/Wallpaper'
 import { PERSONALITIES } from '../../utils/coachContext'
 import { isCloudSyncConfigured } from '../../utils/supabaseClient'
 import BackHeader from '../../components/BackHeader'
@@ -44,7 +45,7 @@ const COLOR_FIELDS = [
 export default function Settings({ onBack }) {
   const {
     data, sync, setThemeMode, setUiStyle, setFintechGradient, setColor, resetColors, applyThemePreset,
-    setHeadingFont, setDensity, setUseGradientAccents, setGentleMode,
+    setHeadingFont, setDensity, setUseGradientAccents, setGentleMode, setWallpaper,
     setWeightUnit, exportData, importData, clearAll,
     connectGoogleCalendar, disconnectGoogleCalendar, syncTasksToGoogleCalendar,
     setSupabaseConfig, disconnectSupabase, cloudSignUp, cloudSignIn, cloudSignOut, syncNow,
@@ -248,6 +249,24 @@ export default function Settings({ onBack }) {
             onClick={() => setUseGradientAccents(!data.settings.useGradientAccents)}
             aria-label="Gradient accents"
           />
+        </div>
+      </div>
+
+      <div className="section-title">Wallpaper</div>
+      <div className="card">
+        <p className="text-sm muted" style={{ margin: '0 0 12px' }}>
+          An animated background behind every page. Cards go translucent so it reads through.
+        </p>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+          {WALLPAPER_OPTIONS.map((w) => (
+            <button
+              key={w.key}
+              className={`btn btn-sm ${data.settings.wallpaper === w.key ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setWallpaper(w.key)}
+            >
+              {w.label}
+            </button>
+          ))}
         </div>
       </div>
 

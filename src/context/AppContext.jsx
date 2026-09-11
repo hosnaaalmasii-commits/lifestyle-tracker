@@ -58,6 +58,7 @@ const DEFAULT_DATA = {
     calorieTargets: structuredClone(transformatieplan.calorie_targets || {}),
     timezone: '',
     pushEnabled: false,
+    wallpaper: 'none',
   },
   taskSchedule: seedTaskSchedule(),
   mealRotation: structuredClone(transformatieplan.meal_rotation || null),
@@ -250,7 +251,7 @@ export function AppProvider({ children }) {
   // Apply theme + accent colors + personalization to the document root as CSS variables.
   useEffect(() => {
     const root = document.documentElement
-    const { themeMode, colors, headingFont, density, useGradientAccents, uiStyle, fintechGradient } = data.settings
+    const { themeMode, colors, headingFont, density, useGradientAccents, uiStyle, fintechGradient, wallpaper } = data.settings
     if (themeMode === 'system') {
       root.removeAttribute('data-theme')
     } else {
@@ -289,6 +290,7 @@ export function AppProvider({ children }) {
     root.style.setProperty('--ring-fill', useGradient ? `linear-gradient(135deg, ${ring}, ${gradientEnd})` : ring)
     root.setAttribute('data-density', density)
     root.setAttribute('data-font', headingFont)
+    root.setAttribute('data-wallpaper', wallpaper || 'none')
   }, [data.settings])
 
   const actions = useMemo(() => ({
@@ -577,6 +579,7 @@ export function AppProvider({ children }) {
     setDensity: (density) => setData((d) => ({ ...d, settings: { ...d.settings, density } })),
     setUseGradientAccents: (on) => setData((d) => ({ ...d, settings: { ...d.settings, useGradientAccents: on } })),
     setGentleMode: (on) => setData((d) => ({ ...d, settings: { ...d.settings, gentleMode: on } })),
+    setWallpaper: (key) => setData((d) => ({ ...d, settings: { ...d.settings, wallpaper: key } })),
 
     connectGoogleCalendar: async (clientId) => {
       setData((d) => ({ ...d, settings: { ...d.settings, googleClientId: clientId } }))
