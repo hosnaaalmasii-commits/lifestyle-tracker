@@ -6,7 +6,8 @@ import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } 
 import { DEFAULT_COLORS } from '../utils/colorPresets'
 import { DEFAULT_FINTECH_GRADIENT, getFintechGradient } from '../utils/fintechGradients'
 import { requestGoogleToken, fetchTodayBusyMinutes } from '../utils/googleCalendar'
-import { isCloudSyncConfigured } from '../utils/supabaseClient'
+import { isCloudSyncConfigured, getSupabaseClient } from '../utils/supabaseClient'
+import { subscribeToPush, unsubscribeFromPush } from '../utils/push'
 import {
   signUp as cloudSignUpApi, signIn as cloudSignInApi, signOut as cloudSignOutApi,
   getSession, onAuthStateChange, reconcile, pushToCloud, markLocalModified,
@@ -54,6 +55,8 @@ const DEFAULT_DATA = {
     streakThresholdPct: 80,
     notifyCategories: { eten: true, training: true, supplement: true, herstel: true, werk: false, zelfzorg: true },
     calorieTargets: structuredClone(transformatieplan.calorie_targets || {}),
+    timezone: '',
+    pushEnabled: false,
   },
   taskSchedule: seedTaskSchedule(),
   mealRotation: structuredClone(transformatieplan.meal_rotation || null),
@@ -197,6 +200,16 @@ export function AppProvider({ children }) {
     return () => clearTimeout(pushTimerRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, sync.signedIn])
+
+  // Captured once, silently — the send-due-notifications Edge Function
+  // needs each user's IANA timezone to know when their local task times are
+  // "now" (it has no other way to know what timezone a user is in).
+  useEffect(() => {
+    if (data.settings.timezone) return
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (tz) setData((d) => ({ ...d, settings: { ...d.settings, timezone: tz } }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Quietly try to resume a Google Calendar connection on load, without prompting.
   useEffect(() => {
@@ -472,6 +485,22 @@ export function AppProvider({ children }) {
     setStreakThreshold: (pct) => setData((d) => ({ ...d, settings: { ...d.settings, streakThresholdPct: pct } })),
     setNotifyCategory: (category, on) => setData((d) => ({ ...d, settings: { ...d.settings, notifyCategories: { ...d.settings.notifyCategories, [category]: on } } })),
     setCalorieTargets: (targets) => setData((d) => ({ ...d, settings: { ...d.settings, calorieTargets: { ...d.settings.calorieTargets, ...targets, lastRevisedAt: todayKey() } } })),
+
+    // Push notifications need a signed-in Cloud Sync account — the
+    // send-due-notifications Edge Function looks up each subscription's
+    // user_id to find that user's app_data (taskSchedule, timezone, etc.),
+    // so there's no meaningful "push without an account" mode.
+    enablePushNotifications: async (deviceLabel) => {
+      if (!sessionUserRef.current) throw new Error('Sign in to Cloud Sync first (More → Settings) — push notifications need an account to know which device to notify.')
+      const client = getSupabaseClient(data.settings.supabaseUrl, data.settings.supabaseAnonKey)
+      await subscribeToPush(client, sessionUserRef.current.id, deviceLabel || navigator.userAgent.slice(0, 60))
+      setData((d) => ({ ...d, settings: { ...d.settings, pushEnabled: true } }))
+    },
+    disablePushNotifications: async () => {
+      const client = getSupabaseClient(data.settings.supabaseUrl, data.settings.supabaseAnonKey)
+      if (client) await unsubscribeFromPush(client)
+      setData((d) => ({ ...d, settings: { ...d.settings, pushEnabled: false } }))
+    },
 
     addMeasurement: (entry, dateKey = todayKey()) => {
       setData((d) => ({ ...d, measurements: [...d.measurements, { id: makeId(), date: dateKey, ...entry }].sort((a, b) => a.date.localeCompare(b.date)) }))

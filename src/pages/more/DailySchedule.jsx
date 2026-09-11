@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { WEEKDAY_KEYS, TASK_CATEGORIES } from '../../utils/taskSchedule'
+import { isPushSupported } from '../../utils/push'
 import BackHeader from '../../components/BackHeader'
 import Sheet from '../../components/Sheet'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -16,8 +17,9 @@ function emptyTaskForm() {
 
 export default function DailySchedule({ onBack }) {
   const {
-    data, addTaskToDay, updateTaskInDay, removeTaskFromDay,
+    data, sync, addTaskToDay, updateTaskInDay, removeTaskFromDay,
     setMealForDay, setStreakThreshold, setNotifyCategory,
+    enablePushNotifications, disablePushNotifications,
   } = useApp()
 
   const [openDay, setOpenDay] = useState('mon')
@@ -25,6 +27,21 @@ export default function DailySchedule({ onBack }) {
   const [taskSheet, setTaskSheet] = useState(null) // { day, task | null }
   const [form, setForm] = useState(emptyTaskForm())
   const [toDelete, setToDelete] = useState(null) // { day, id }
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushError, setPushError] = useState(null)
+
+  const handlePushToggle = async () => {
+    setPushError(null)
+    setPushBusy(true)
+    try {
+      if (data.settings.pushEnabled) await disablePushNotifications()
+      else await enablePushNotifications()
+    } catch (e) {
+      setPushError(e.message)
+    } finally {
+      setPushBusy(false)
+    }
+  }
 
   const openAddTask = (day) => {
     setForm(emptyTaskForm())
@@ -60,6 +77,21 @@ export default function DailySchedule({ onBack }) {
             value={data.settings.streakThresholdPct}
             onChange={(e) => setStreakThreshold(Math.max(0, Math.min(100, Number(e.target.value))))}
           />
+        </div>
+        <div className="field">
+          <label>Pushmeldingen op dit apparaat</label>
+          {!isPushSupported() ? (
+            <p className="text-sm faint">Niet ondersteund in deze browser.</p>
+          ) : !sync.signedIn ? (
+            <p className="text-sm faint">Log eerst in bij Cloud Sync (More → Settings) — pushmeldingen hebben een account nodig.</p>
+          ) : (
+            <>
+              <button className={`btn btn-sm ${data.settings.pushEnabled ? 'btn-secondary' : 'btn-primary'}`} onClick={handlePushToggle} disabled={pushBusy}>
+                {pushBusy ? 'Bezig…' : data.settings.pushEnabled ? 'Meldingen uitschakelen op dit apparaat' : 'Meldingen inschakelen op dit apparaat'}
+              </button>
+              {pushError && <p className="text-sm" style={{ color: 'var(--danger)', marginTop: 6 }}>{pushError}</p>}
+            </>
+          )}
         </div>
         <div className="field">
           <label>Meldingen per categorie</label>
