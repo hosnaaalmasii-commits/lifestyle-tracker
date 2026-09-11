@@ -280,13 +280,26 @@ export function AppProvider({ children }) {
     // mini-card icons, section dots) switches to the chosen gradient family
     // instead of the user's Classic accent — otherwise only card chrome
     // changes and the app barely reads as redesigned.
+    // A wallpaper deliberately collapses water/sleep/workout to the SAME
+    // single accent color (unlike Classic's own three independently-picked
+    // section colors) — the whole point is everything reading as one
+    // cohesive tint matching the photo, not a clash of unrelated hues on
+    // top of it. gradientEnd is only ever used as the far end of a
+    // same-hue-family gradient fill, never as its own flat section color.
     const accent = fintechOn ? grad.from : wallpaperOpt?.accent || colors.accent
-    const ring = fintechOn ? grad.from : wallpaperOpt?.ring || colors.ring
+    const ring = fintechOn ? grad.from : wallpaperOpt?.accent || colors.ring
     const water = fintechOn ? grad.from : wallpaperOpt?.accent || colors.water
-    const sleep = fintechOn ? grad.accent : colors.sleep
-    const workout = fintechOn ? grad.to : wallpaperOpt?.gradientEnd || colors.workout
+    const sleep = fintechOn ? grad.accent : wallpaperOpt?.accent || colors.sleep
+    const workout = fintechOn ? grad.to : wallpaperOpt?.accent || colors.workout
     const gradientEnd = fintechOn ? grad.to : wallpaperOpt?.gradientEnd || colors.gradientEnd
-    const useGradient = fintechOn ? true : (wallpaperOpt ? true : useGradientAccents)
+    // Deliberately NOT forcing gradient fills on for wallpapers the way
+    // Fintech does — Fintech is a complete alternate visual language built
+    // around two-tone gradients throughout, but Classic's pill buttons
+    // etc. are flat/solid everywhere else, so a gradient CTA button next
+    // to flat pill buttons read as two different color systems clashing
+    // rather than one cohesive tint. Flat wins unless the user has
+    // separately opted into gradient accents themselves.
+    const useGradient = fintechOn ? true : useGradientAccents
 
     root.style.setProperty('--accent', accent)
     root.style.setProperty('--accent-ring', ring)
