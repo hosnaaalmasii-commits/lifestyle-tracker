@@ -38,6 +38,13 @@ export const FINTECH_GRADIENTS = [
     to: '#1E3A5F',
     accent: '#8FA8C9',
   },
+  {
+    key: 'forest',
+    name: 'Forest',
+    from: '#0B3D2E',
+    to: '#0A1F17',
+    accent: '#B8935A',
+  },
 ]
 
 export const DEFAULT_FINTECH_GRADIENT = 'nebula'
