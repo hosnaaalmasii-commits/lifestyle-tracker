@@ -6,7 +6,14 @@
 // and is kept in memory only (never localStorage): the app re-requests it,
 // silently where possible, each time it's needed.
 
-const SCOPE = 'https://www.googleapis.com/auth/calendar.freebusy'
+import { todayKey, addDaysToKey } from './dates'
+import { getTasksForDate } from './taskSchedule'
+
+// calendar.freebusy (existing, read-only "how busy is today") plus
+// calendar.events (write access, scoped to events only — not the broader
+// `calendar` scope, which would also grant calendar-management rights this
+// app has no use for) so tasks can be pushed in as real agenda items.
+const SCOPE = 'https://www.googleapis.com/auth/calendar.freebusy https://www.googleapis.com/auth/calendar.events'
 let scriptPromise = null
 
 function loadGisScript() {
@@ -89,4 +96,72 @@ export async function fetchTodayBusyMinutes(accessToken) {
   const busy = data?.calendars?.primary?.busy || []
   const minutes = busy.reduce((sum, slot) => sum + (new Date(slot.end) - new Date(slot.start)) / 60000, 0)
   return Math.round(minutes)
+}
+
+// A 30-minute default duration for tasks — the schedule only carries a
+// start time, not a duration, so this just needs to be long enough for the
+// event to be visible/clickable in a normal calendar day view.
+const DEFAULT_EVENT_MINUTES = 30
+
+function taskEventBody(task, dateKey) {
+  const start = new Date(`${dateKey}T${task.time}:00`)
+  const end = new Date(start.getTime() + DEFAULT_EVENT_MINUTES * 60000)
+  return {
+    summary: task.label,
+    description: `Lifestyle Tracker — ${task.category}`,
+    start: { dateTime: start.toISOString() },
+    end: { dateTime: end.toISOString() },
+  }
+}
+
+// Creates the event if `existingEventId` is falsy, otherwise updates it in
+// place — the caller is responsible for remembering which eventId belongs
+// to which (dateKey, taskId) so a re-sync updates rather than duplicates.
+// Returns the event id, or null if the event was deleted upstream (404) —
+// the caller should then re-create it on the next sync.
+export async function upsertCalendarEvent(accessToken, task, dateKey, existingEventId) {
+  const base = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
+  const url = existingEventId ? `${base}/${existingEventId}` : base
+  const response = await fetch(url, {
+    method: existingEventId ? 'PATCH' : 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(taskEventBody(task, dateKey)),
+  })
+  if (response.status === 404 && existingEventId) return null
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('Google session expired — reconnect in Settings.')
+    throw new Error(`Calendar event request failed (${response.status}).`)
+  }
+  const event = await response.json()
+  return event.id
+}
+
+// Expands the weekly task template into real dated events for the next
+// `days` days (including today) and creates/updates one Google Calendar
+// event per task. `existingIds` is the { [dateKey]: { [taskId]: eventId } }
+// map from a previous sync (persisted in app data) so repeat syncs update
+// in place instead of piling up duplicate events.
+export async function syncTasksToCalendar(accessToken, taskSchedule, existingIds = {}, days = 7) {
+  const nextIds = {}
+  const errors = []
+
+  for (let i = 0; i < days; i++) {
+    const dateKey = addDaysToKey(todayKey(), i)
+    const tasks = getTasksForDate(taskSchedule, dateKey)
+    if (!tasks.length) continue
+    nextIds[dateKey] = {}
+    for (const task of tasks) {
+      try {
+        const eventId = await upsertCalendarEvent(accessToken, task, dateKey, existingIds[dateKey]?.[task.id])
+        if (eventId) nextIds[dateKey][task.id] = eventId
+      } catch (e) {
+        errors.push(`${dateKey} ${task.label}: ${e.message}`)
+      }
+    }
+  }
+
+  return { eventIds: nextIds, errors }
 }

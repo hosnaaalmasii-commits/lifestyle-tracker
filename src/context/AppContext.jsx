@@ -5,7 +5,8 @@ import { WEEKDAY_KEYS } from '../utils/taskSchedule'
 import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } from '../utils/workoutGenerator'
 import { DEFAULT_COLORS } from '../utils/colorPresets'
 import { DEFAULT_FINTECH_GRADIENT, getFintechGradient } from '../utils/fintechGradients'
-import { requestGoogleToken, fetchTodayBusyMinutes } from '../utils/googleCalendar'
+import { requestGoogleToken, fetchTodayBusyMinutes, syncTasksToCalendar } from '../utils/googleCalendar'
+import { hasOuraApiKey, getOuraApiKey, fetchOuraToday } from '../utils/ouraApi'
 import { isCloudSyncConfigured, getSupabaseClient } from '../utils/supabaseClient'
 import { subscribeToPush, unsubscribeFromPush } from '../utils/push'
 import {
@@ -62,6 +63,7 @@ const DEFAULT_DATA = {
   mealRotation: structuredClone(transformatieplan.meal_rotation || null),
   taskCompletions: {},
   measurements: [],
+  googleCalendarEventIds: {},
   water: {},
   sleep: {},
   workouts: {
@@ -127,6 +129,11 @@ export function AppProvider({ children }) {
   // Ephemeral only — the access token and its derived status are never
   // persisted to localStorage (only the client ID + a "was connected" flag are).
   const [calendarStatus, setCalendarStatus] = useState({ connected: false, busyMinutesToday: null, error: null })
+
+  // Ephemeral, refetched on load and on demand — the Oura token itself
+  // lives only in its own localStorage slot (ouraApi.js), same trust model
+  // as the Anthropic key, never in this data object.
+  const [ouraStatus, setOuraStatus] = useState({ sleepScore: null, readinessScore: null, activeCalories: null, loading: false, error: null })
 
   // Cloud sync — also ephemeral. The Supabase session itself is persisted
   // by the Supabase client in its own separate localStorage key, same as
@@ -226,6 +233,18 @@ export function AppProvider({ children }) {
       .catch(() => { /* silent attempt — just leave it disconnected */ })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Quietly pull today's Oura data on load if a token is configured —
+  // matches the Google Calendar "silent resume" pattern above.
+  useEffect(() => {
+    if (!hasOuraApiKey()) return
+    let cancelled = false
+    setOuraStatus((s) => ({ ...s, loading: true }))
+    fetchOuraToday(getOuraApiKey(), todayKey())
+      .then((result) => { if (!cancelled) setOuraStatus({ ...result, loading: false, error: null }) })
+      .catch((e) => { if (!cancelled) setOuraStatus((s) => ({ ...s, loading: false, error: e.message })) })
+    return () => { cancelled = true }
   }, [])
 
   // Apply theme + accent colors + personalization to the document root as CSS variables.
@@ -587,6 +606,29 @@ export function AppProvider({ children }) {
         setCalendarStatus((s) => ({ ...s, error: e.message }))
       }
     },
+    // Pushes the next 7 days of scheduled tasks into Google Calendar as
+    // real events, creating or updating them (never duplicating, thanks to
+    // the eventId map kept in googleCalendarEventIds). Returns any
+    // per-task errors so the caller can surface them instead of failing
+    // the whole sync on one bad event.
+    syncTasksToGoogleCalendar: async () => {
+      if (!accessTokenRef.current) throw new Error('Connect Google Calendar first (More → Settings).')
+      const { eventIds, errors } = await syncTasksToCalendar(accessTokenRef.current, data.taskSchedule, data.googleCalendarEventIds)
+      setData((d) => ({ ...d, googleCalendarEventIds: { ...d.googleCalendarEventIds, ...eventIds } }))
+      return errors
+    },
+
+    refreshOura: async () => {
+      if (!hasOuraApiKey()) throw new Error('No Oura token set. Add one in Settings.')
+      setOuraStatus((s) => ({ ...s, loading: true }))
+      try {
+        const result = await fetchOuraToday(getOuraApiKey(), todayKey())
+        setOuraStatus({ ...result, loading: false, error: null })
+      } catch (e) {
+        setOuraStatus((s) => ({ ...s, loading: false, error: e.message }))
+        throw e
+      }
+    },
 
     setSupabaseConfig: (url, anonKey) => {
       setData((d) => ({ ...d, settings: { ...d.settings, supabaseUrl: url, supabaseAnonKey: anonKey } }))
@@ -638,8 +680,8 @@ export function AppProvider({ children }) {
   }), [data])
 
   const value = useMemo(
-    () => ({ data: { ...data, calendarStatus }, calendarStatus, sync, ...actions }),
-    [data, calendarStatus, sync, actions]
+    () => ({ data: { ...data, calendarStatus, ouraStatus }, calendarStatus, ouraStatus, sync, ...actions }),
+    [data, calendarStatus, ouraStatus, sync, actions]
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

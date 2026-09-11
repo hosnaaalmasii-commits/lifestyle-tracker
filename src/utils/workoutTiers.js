@@ -61,6 +61,11 @@ export function suggestTier(data) {
     return { tier: 'short', reason: alcoholImpact.workoutNote }
   }
 
+  const ouraReadiness = data.ouraStatus?.readinessScore
+  if (typeof ouraReadiness === 'number' && ouraReadiness < 60) {
+    return { tier: 'short', reason: `lage Oura readiness vandaag (${ouraReadiness})` }
+  }
+
   const busyMinutes = data.calendarStatus?.busyMinutesToday
   if (typeof busyMinutes === 'number' && busyMinutes >= 360) {
     return { tier: 'survival', reason: 'packed calendar today — barely any gaps' }

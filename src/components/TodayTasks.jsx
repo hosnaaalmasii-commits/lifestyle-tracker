@@ -39,6 +39,11 @@ export default function TodayTasks({ onOpenSchedule }) {
   const streak = computeTaskStreak(data.taskSchedule, data.taskCompletions, threshold)
   const mealInfo = getMealsForDate(data.mealRotation, today)
 
+  const { sleepScore, readinessScore, activeCalories } = data.ouraStatus || {}
+  const hasOuraData = sleepScore != null || readinessScore != null || activeCalories != null
+  const heavyTrainingToday = tasks.some((t) => t.category === 'training')
+  const lowReadinessWarning = typeof readinessScore === 'number' && readinessScore < 60 && heavyTrainingToday
+
   if (!tasks.length) {
     return (
       <div className="card" style={{ marginBottom: 16 }}>
@@ -72,6 +77,19 @@ export default function TodayTasks({ onOpenSchedule }) {
       {mealInfo?.meals && (
         <div className="text-sm faint" style={{ marginTop: 8 }}>
           Menu week {mealInfo.letter}: {mealInfo.meals.ontbijt}
+        </div>
+      )}
+
+      {hasOuraData && (
+        <div className="row" style={{ gap: 14, marginTop: 10, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+          {sleepScore != null && <span className="text-sm faint">Slaap {sleepScore}</span>}
+          {readinessScore != null && <span className="text-sm faint">Readiness {readinessScore}</span>}
+          {activeCalories != null && <span className="text-sm faint">{activeCalories} kcal actief</span>}
+        </div>
+      )}
+      {lowReadinessWarning && (
+        <div className="text-sm" style={{ marginTop: 8, padding: '8px 10px', borderRadius: 10, background: 'color-mix(in srgb, var(--danger) 12%, transparent)', color: 'var(--danger)' }}>
+          Lage readiness ({readinessScore}) + training gepland vandaag — overweeg lichter te trainen.
         </div>
       )}
 

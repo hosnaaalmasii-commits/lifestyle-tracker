@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext'
 import { THEME_PRESETS } from '../../utils/colorPresets'
 import { FINTECH_GRADIENTS } from '../../utils/fintechGradients'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
+import { getOuraApiKey, setOuraApiKey } from '../../utils/ouraApi'
 import { PERSONALITIES } from '../../utils/coachContext'
 import { isCloudSyncConfigured } from '../../utils/supabaseClient'
 import BackHeader from '../../components/BackHeader'
@@ -45,8 +46,9 @@ export default function Settings({ onBack }) {
     data, sync, setThemeMode, setUiStyle, setFintechGradient, setColor, resetColors, applyThemePreset,
     setHeadingFont, setDensity, setUseGradientAccents, setGentleMode,
     setWeightUnit, exportData, importData, clearAll,
-    connectGoogleCalendar, disconnectGoogleCalendar,
+    connectGoogleCalendar, disconnectGoogleCalendar, syncTasksToGoogleCalendar,
     setSupabaseConfig, disconnectSupabase, cloudSignUp, cloudSignIn, cloudSignOut, syncNow,
+    refreshOura,
   } = useApp()
   const importRef = useRef(null)
   const [confirmClear, setConfirmClear] = useState(false)
@@ -62,6 +64,12 @@ export default function Settings({ onBack }) {
   const [clientIdInput, setClientIdInput] = useState(data.settings.googleClientId)
   const [calendarConnecting, setCalendarConnecting] = useState(false)
   const [calendarError, setCalendarError] = useState('')
+  const [calendarSyncing, setCalendarSyncing] = useState(false)
+  const [calendarSyncResult, setCalendarSyncResult] = useState(null)
+
+  const [ouraKeyInput, setOuraKeyInput] = useState(getOuraApiKey())
+  const [ouraStatus, setOuraStatusMsg] = useState('idle') // idle | testing | ok | error
+  const [ouraMessage, setOuraMessage] = useState('')
 
   const [supaUrlInput, setSupaUrlInput] = useState(data.settings.supabaseUrl)
   const [supaKeyInput, setSupaKeyInput] = useState(data.settings.supabaseAnonKey)
@@ -110,6 +118,37 @@ export default function Settings({ onBack }) {
     setApiKeyInput(value)
     setApiKey(value)
     setTestStatus('idle')
+  }
+
+  const handleSyncCalendar = async () => {
+    setCalendarSyncing(true)
+    setCalendarSyncResult(null)
+    try {
+      const errors = await syncTasksToGoogleCalendar()
+      setCalendarSyncResult(errors.length ? `Gesynct met ${errors.length} fout(en).` : 'Volgende 7 dagen gesynct.')
+    } catch (e) {
+      setCalendarSyncResult(e.message)
+    } finally {
+      setCalendarSyncing(false)
+    }
+  }
+
+  const saveOuraKey = (value) => {
+    setOuraKeyInput(value)
+    setOuraApiKey(value)
+    setOuraStatusMsg('idle')
+  }
+
+  const testOuraConnection = async () => {
+    setOuraStatusMsg('testing')
+    setOuraMessage('')
+    try {
+      await refreshOura()
+      setOuraStatusMsg('ok')
+    } catch (e) {
+      setOuraStatusMsg('error')
+      setOuraMessage(e.message)
+    }
   }
 
   const updateCoachSetting = (partial) => {
@@ -348,6 +387,12 @@ export default function Settings({ onBack }) {
               </div>
               <button className="btn btn-ghost btn-sm" onClick={disconnectGoogleCalendar}>Disconnect</button>
             </div>
+            <div className="row" style={{ marginTop: 4 }}>
+              <button className="btn btn-secondary btn-sm" onClick={handleSyncCalendar} disabled={calendarSyncing}>
+                {calendarSyncing ? 'Bezig…' : 'Taken syncen naar agenda (7 dagen)'}
+              </button>
+            </div>
+            {calendarSyncResult && <div className="text-sm faint">{calendarSyncResult}</div>}
           </>
         ) : (
           <>
@@ -369,6 +414,33 @@ export default function Settings({ onBack }) {
             {calendarError && <div className="text-sm" style={{ color: 'var(--danger)' }}>{calendarError}</div>}
           </>
         )}
+      </div>
+
+      <div className="section-title">Oura Ring</div>
+      <div className="card stack">
+        <p className="text-sm muted" style={{ margin: 0 }}>
+          Bring your own Oura Personal Access Token to pull today's sleep score, readiness, and active calories in next to your day score. Get one at cloud.ouraring.com/personal-access-tokens — it goes straight from this browser to Oura, never through any server of ours, and is never included in export/backup.
+        </p>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Oura Personal Access Token</label>
+          <input
+            className="input"
+            type="password"
+            placeholder="Paste your token"
+            value={ouraKeyInput}
+            onChange={(e) => saveOuraKey(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </div>
+        <div className="row">
+          <button className="btn btn-secondary btn-sm" disabled={!ouraKeyInput || ouraStatus === 'testing'} onClick={testOuraConnection}>
+            {ouraStatus === 'testing' ? 'Testing…' : 'Test connection'}
+          </button>
+          {ouraKeyInput && <button className="btn btn-ghost btn-sm" onClick={() => saveOuraKey('')}>Remove token</button>}
+        </div>
+        {ouraStatus === 'ok' && <div className="text-sm" style={{ color: 'var(--success)' }}>Connected — today's data is in.</div>}
+        {ouraStatus === 'error' && <div className="text-sm" style={{ color: 'var(--danger)' }}>{ouraMessage}</div>}
       </div>
 
       <div className="section-title">Cloud Sync</div>
