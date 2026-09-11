@@ -1,126 +1,33 @@
 .wallpaper {
   position: fixed;
   inset: 0;
-  /* No z-index — this relies on plain DOM paint order instead (see
-     index.html: #wallpaper-root is the first child of body, #root comes
-     after, so #root's content naturally paints on top with no stacking
-     tricks needed). A negative z-index is the more common way to do this
-     and normally works fine, but proved unreliable in at least one real
-     rendering environment this app was tested in — this sidesteps that
-     stacking-context edge case entirely rather than fighting it. */
   overflow: hidden;
   pointer-events: none;
+  background-size: cover;
+  background-position: center;
+  /* No z-index — see index.html: #wallpaper-root is the first child of
+     body, #root comes after, so #root's content naturally paints on top
+     by plain DOM order. A negative z-index is the more common way to do
+     this and normally works fine, but proved unreliable for full-page
+     background-behind-content stacking in at least one real rendering
+     environment this app was tested in — this sidesteps that
+     stacking-context edge case entirely rather than fighting it. */
+  animation: wallpaper-kenburns 60s ease-in-out infinite alternate;
 }
 
-/* ---------- Stars ---------- */
-
-.wallpaper-stars {
-  background:
-    radial-gradient(ellipse at 30% 0%, #131b3a 0%, transparent 55%),
-    radial-gradient(ellipse at top, #0b1026 0%, #05070f 70%);
+/* A slow, barely-perceptible zoom/pan — enough to feel alive without
+   being distracting behind text and cards. */
+@keyframes wallpaper-kenburns {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.08) translate(-1.5%, -1%); }
 }
-.milky-way {
+
+.wallpaper-vignette {
   position: absolute;
-  top: -20%;
-  left: -10%;
-  width: 140%;
-  height: 70%;
-  background: linear-gradient(115deg, transparent 30%, rgba(196, 195, 224, 0.09) 45%, rgba(226, 221, 255, 0.14) 50%, rgba(196, 195, 224, 0.09) 55%, transparent 70%);
-  filter: blur(18px);
-  transform: rotate(-18deg);
-  opacity: 0.8;
-}
-.wallpaper-star {
-  position: absolute;
-  border-radius: 50%;
-  box-shadow: 0 0 4px 1px currentColor;
-  opacity: 0.35;
-  animation-name: star-twinkle;
-  animation-iteration-count: infinite;
-  animation-timing-function: ease-in-out;
-}
-@keyframes star-twinkle {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
-}
-
-/* ---------- Aurora ---------- */
-
-.wallpaper-aurora {
-  background: #060912;
-}
-.aurora-blob {
-  position: absolute;
-  width: 70vmax;
-  height: 70vmax;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.75;
-  mix-blend-mode: screen;
-  animation-name: aurora-drift;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-}
-.aurora-1 { background: #22c55e; top: -20%; left: -15%; animation-duration: 24s; }
-.aurora-2 { background: #7c3aed; top: 10%; right: -20%; animation-duration: 30s; animation-delay: -6s; }
-.aurora-3 { background: #06b6d4; bottom: -25%; left: 15%; animation-duration: 34s; animation-delay: -12s; }
-@keyframes aurora-drift {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(6%, -8%) scale(1.15); }
-}
-
-/* ---------- Bokeh drift ---------- */
-
-.wallpaper-bokeh {
-  background: #0c1016;
-}
-.bokeh-dot {
-  position: absolute;
-  bottom: -10%;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent, #7c9c6b) 70%, white) 0%, transparent 70%);
-  filter: blur(2px);
-  opacity: 0;
-  animation-name: bokeh-float;
-  animation-iteration-count: infinite;
-  animation-timing-function: ease-in-out;
-}
-@keyframes bokeh-float {
-  0% { transform: translateY(0) translateX(0); opacity: 0; }
-  10% { opacity: 0.5; }
-  90% { opacity: 0.35; }
-  100% { transform: translateY(-115vh) translateX(6vw); opacity: 0; }
-}
-
-/* ---------- Gradient mesh clouds ---------- */
-
-.wallpaper-clouds {
-  background: #0d1117;
-}
-.cloud-blob {
-  position: absolute;
-  width: 55vmax;
-  height: 55vmax;
-  border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.38;
-  animation-name: cloud-drift;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-}
-.cloud-1 { background: #38bdf8; top: -10%; left: -10%; animation-duration: 40s; }
-.cloud-2 { background: #a78bfa; top: 20%; right: -15%; animation-duration: 46s; animation-delay: -10s; }
-.cloud-3 { background: #34d399; bottom: -15%; left: 20%; animation-duration: 52s; animation-delay: -20s; }
-.cloud-4 { background: #fb7185; bottom: 10%; right: 10%; animation-duration: 44s; animation-delay: -30s; }
-@keyframes cloud-drift {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(8%, 6%) scale(1.1); }
-  66% { transform: translate(-6%, -4%) scale(0.95); }
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.35) 100%);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wallpaper-star, .aurora-blob, .bokeh-dot, .cloud-blob {
-    animation: none;
-  }
-  .wallpaper-star { opacity: 0.6; }
+  .wallpaper { animation: none; }
 }
