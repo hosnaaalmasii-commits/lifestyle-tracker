@@ -21,6 +21,17 @@ sentence, it becomes structured log entries), two selectable visual styles
 layout — and a full **Character System**: a companion that grows or fades
 with the user's real habits (see below).
 
+A later session added a second, parallel system on top of all this: a
+**personalized transformation-plan tracker** — a structured daily task
+checklist (meals/training/supplements/recovery at fixed times, editable in
+the app), a rotating A/B/C/D meal plan, background push notifications at
+each task's time, a Google Calendar write-sync, an Oura ring integration,
+and a week/month progress rollup with a 4-weekly calorie-target review
+nudge. This is deliberately a *separate* system from Consistency
+Score/badges/etc. above (a fixed personal schedule with real clock-time
+push reminders is a different shape of feature than "derived score from
+whatever you happened to log") — see "Transformation-plan tracker" below.
+
 Live at: **https://hosnaaalmasii-commits.github.io/lifestyle-tracker/**
 Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
 
@@ -55,10 +66,11 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
   this pattern before adding stored state. The Character System pushed this
   further than anything before it — even "growth over time" is a *derived*
   decayed rolling average (see below), not a stored counter that increments.
-- **Three — and only three — external services get called, all
-  bring-your-own-credential and all opt-in.** Everything else, including
-  the voice pipeline below, reuses one of these three rather than adding a
-  fourth:
+- **Four external services get called, all bring-your-own-credential and
+  all opt-in** (was "three, and only three" until the transformation-plan
+  session added Oura — see below; still the same principle, just one more
+  entry). Everything else, including the voice pipeline below, reuses one
+  of these rather than adding a new one:
   - **Claude API** (`claudeApi.js`): direct browser fetch to
     `api.anthropic.com` using the user's own API key and the
     `anthropic-dangerous-direct-browser-access` header. The key is a real
@@ -72,13 +84,35 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
     note" work with zero API key configured; only the auto-categorize-into-
     structured-entries step needs one (see Voice-logging pipeline below).
   - **Google Calendar** (`googleCalendar.js`): client-side Google Identity
-    Services token flow, freebusy-only scope. A Google OAuth Client ID is
-    *not* a secret (Google restricts it by authorized origins, not by
-    hiding it), so it's fine to keep in `data.settings.googleClientId` —
-    opposite trust model from the Anthropic key, don't conflate the two.
-    The access token itself stays in memory only (a ref), never
-    localStorage; a silent, non-prompting reconnect is attempted on load.
-    Still not configured on the user's live site as of this note — optional.
+    Services token flow. Originally freebusy-only; the transformation-plan
+    session broadened the scope to `calendar.freebusy` +
+    `calendar.events` (still not the broad `calendar` management scope) so
+    scheduled tasks can be pushed in as real events, via
+    `syncTasksToCalendar()` (More → Settings → "Taken syncen naar agenda").
+    It's a **manual** sync (7 days ahead, re-run on demand — auto-resync
+    happens on reconnect but not on a timer), because a client-only PWA has
+    no scheduler; `data.googleCalendarEventIds` (`{date: {taskId:
+    eventId}}`) is what makes re-syncing update in place instead of
+    duplicating events — don't drop that map without also handling
+    duplicate-event cleanup. A Google OAuth Client ID is *not* a secret
+    (Google restricts it by authorized origins, not by hiding it), so it's
+    fine to keep in `data.settings.googleClientId` — opposite trust model
+    from the Anthropic key, don't conflate the two. The access token itself
+    stays in memory only (a ref), never localStorage; a silent,
+    non-prompting reconnect is attempted on load. Still not configured on
+    the user's live site as of this note — optional.
+  - **Oura** (`ouraApi.js`): BYOK Personal Access Token
+    (cloud.ouraring.com/personal-access-tokens), same storage/trust model
+    as the Anthropic key — own localStorage slot, never in `data`/export.
+    `fetchOuraToday()` pulls sleep score, readiness, active calories;
+    shown on the Vandaag/TodayTasks card and fed into `workoutTiers.js`'s
+    existing `suggestTier()` heuristic (low readiness nudges a lighter
+    tier, same style as its sleep/mood/calendar/alcohol checks — reused,
+    not a parallel readiness system). **Apple HealthKit was considered and
+    ruled out** for the same slot: it's a native-only iOS framework, not
+    reachable from a web page even installed as a PWA — getting HealthKit
+    data would mean wrapping this app natively (e.g. Capacitor), out of
+    scope unless the user explicitly asks to go native.
   - **Supabase** (`supabaseClient.js` + `cloudSync.js`), for **Cloud Sync**
     across devices: the user's own free Supabase project, connected via
     Project URL + publishable key (`data.settings.supabaseUrl` /
@@ -245,17 +279,140 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
     doesn't track protein/fiber directly. If the user ever wants literal
     protein/fiber tracking, that's new scope (a real nutrition subsystem),
     not a tweak to the existing weighting.
-- **Explicitly out of scope**, on purpose: calendar-integration-beyond-
-  freebusy, social/multiplayer features (personal single-user app by
-  explicit request), fridge/camera computer-vision features, real push
-  notifications, a third paid network service for Safari speech-to-text,
-  and a hand-written custom backend (Supabase covers cross-device sync
-  instead — see above). A body-appearance/attractiveness axis for the
+- **Explicitly out of scope**, on purpose: social/multiplayer features
+  (personal single-user app by explicit request), fridge/camera
+  computer-vision features, a third paid network service for Safari
+  speech-to-text. Two items that were on this list earlier were
+  **deliberately superseded** by explicit user request in the
+  transformation-plan session: calendar-integration-beyond-freebusy (now
+  has write access, see above) and "real push notifications, no custom
+  backend" (see "Push notifications" below — a Supabase Edge Function is
+  now the one exception to "no hand-written backend," scoped as narrowly
+  as possible: one cron-triggered function, no exposed API surface). If
+  either of these comes up again, this is *not* stale guidance to revert
+  to — the supersession was intentional and shipped. A
+  body-appearance/attractiveness axis for the
   Character System was explicitly proposed by the user once and declined
   on wellbeing grounds (tying a companion's look to hitting/missing health
   targets is a well-documented harmful pattern) — the "vitality" concept
   that shipped instead (posture/glow/energy, never size or attractiveness)
   was the counter-proposal that got approved.
+
+## Transformation-plan tracker
+
+Added in one session from a pasted spec (Dutch) plus a JSON data file the
+user provided — `src/data/transformatieplan-data.json` (personal calorie
+targets, a 4-week A/B/C/D meal rotation, a full weekday task schedule with
+times/categories/notify flags, supplement timing notes, training phases).
+That file is the **seed**, not the live source of truth:
+
+- `AppContext.jsx`'s `seedTaskSchedule()` converts
+  `daily_schedules_by_weekday` into `DEFAULT_DATA.taskSchedule` (`{mon:
+  [...], ..., sun: [...]}`, each task getting a stable `${day}-${i}` id at
+  seed time) and `meal_rotation`/`calorie_targets` are `structuredClone`d
+  straight in. Once a user has ever saved (i.e. always, after first load),
+  `mergeWithDefaults()`'s top-level spread means *their* saved/edited copy
+  wins over the seed from then on — same idiom as every other top-level
+  `DEFAULT_DATA` field, no special-casing needed. **Don't re-seed on every
+  load** — that would silently discard edits.
+- `src/utils/taskSchedule.js` is the shared logic: `weekdayKeyForDate()`
+  (Mon-first, matching the data file's shape — not JS's Sun-first
+  `getDay()`), `mealCycleLetterForDate()` (counts whole weeks since
+  `meal_rotation.reference_monday`), `getTasksForDate()`,
+  `computeDayScore()`, `dayMeetsThreshold()`. Both `TodayTasks.jsx` and
+  `WeeklyProgress.jsx` build their streak calculations from
+  `dayMeetsThreshold()` + the existing `streaks.js` primitives
+  (`streakFromDateSet`/`longestStreakFromDateSet`) rather than duplicating
+  streak math — reuse this if adding another view.
+- **UI surfaces**: `TodayTasks.jsx` (a card at the top of Overview, above
+  the existing hero-card score ring — a deliberate second, differently-
+  scoped "score" living on the same page; don't merge them, they measure
+  different things) for today's checklist + score + streak + Oura panel;
+  More → **Dagschema & Menu** (`DailySchedule.jsx`) to add/edit/remove
+  tasks per weekday, edit the meal rotation, set the streak threshold and
+  per-category notification toggles; More → **Voortgang**
+  (`WeeklyProgress.jsx`) for the week/month rollup, manual omtrekmaten
+  (body measurements — `data.measurements`, its own array, not folded into
+  `data.weight`), and the calorie-target editor with a nudge banner once
+  `settings.calorieTargets.lastRevisedAt` is 28+ days old (`meta.doel`'s
+  "revise every 4 weeks").
+- Everything here rides the existing whole-blob Supabase sync
+  automatically — no new tables were needed for this part (only for push
+  subscriptions, see below), since it's all just more top-level fields in
+  the same `data` object that already syncs.
+- Fintech's `OverviewTerminal.jsx` does **not** show `TodayTasks` yet — it
+  was only wired into the Classic Overview layout. If the user uses
+  Fintech style day-to-day, this is a gap worth closing.
+
+## Push notifications
+
+The one deliberate exception to "no custom backend" (see Explicitly out of
+scope above — this was a considered supersession, not scope creep).
+Real, OS-level push, working even when the app is closed, required a
+tiny always-on trigger a static GitHub Pages site can't provide on its own:
+
+- **`supabase/functions/send-due-notifications/index.ts`**: a Deno Edge
+  Function, deployed via the Supabase Dashboard's in-browser function
+  editor (no `supabase` CLI auth was available in that session — if it is
+  in a future one, redeploying via `supabase functions deploy` works the
+  same). Runs every minute via **pg_cron** (`supabase/push_notifications.sql`
+  sets up the `pg_cron`/`pg_net` extensions and `cron.schedule(...)`,
+  job name `send-due-notifications-every-minute`). For each row in
+  `push_subscriptions`, it reads that user's `app_data.data` (via the
+  service-role key, which bypasses RLS — this function is the one place
+  in the whole project that reads another table's data across users on
+  purpose), computes their local weekday/time from
+  `settings.timezone` (auto-captured client-side once via
+  `Intl.DateTimeFormat().resolvedOptions().timeZone` — there's no other
+  way for the function to know a user's timezone), finds tasks whose
+  `time` matches *now*, and skips ones already completed
+  (`taskCompletions`) or already notified today
+  (`sent_task_notifications` — the dedup table; without it a task that
+  stays "due" across several 1-minute ticks would spam).
+- **Deployed with JWT verification OFF** for this one function
+  (Dashboard → the function → Settings → "Verify JWT" toggle) —
+  deliberate: it means the cron job's SQL never has to embed a service-role
+  key or any secret (`net.http_post` just POSTs with no Authorization
+  header). The tradeoff is the endpoint is technically callable by anyone
+  who knows the URL, but it does nothing sensitive (no data returned, and
+  every action it takes is idempotent/dedup'd) — an acceptable tradeoff
+  for a personal single-user project. Don't "fix" this by adding auth
+  without also solving where the secret would live.
+- **VAPID keys**: generated once locally (`npx web-push generate-vapid-keys`).
+  The **public** key is hardcoded in both `src/utils/push.js` and the Edge
+  Function source (`BCIrdZknLohRuIYK64oE0z5iqeH6vJtp_tGOZdlR4XM7O04eWEU-_KaM3DC5pCYdNf1KON2yqlq6G6sxS-ovHzQ`)
+  — not a secret, same trust model as the Google Client ID. The **private**
+  key is a real secret and was deliberately never typed into any command,
+  SQL editor, or web form by automation in that session — it was written to
+  a local file and handed to the project owner to paste into the Supabase
+  Dashboard's Edge Function secret `VAPID_PRIVATE_KEY` themselves. **As of
+  the end of that session it was unconfirmed whether the user had actually
+  set that secret yet** — if push notifications aren't firing, check that
+  first before debugging the function logic.
+- **Client side**: `vite.config.js` switched `vite-plugin-pwa` from
+  `generateSW` to **`strategies: 'injectManifest'`** (`srcDir: 'src'`,
+  `filename: 'sw.js'`) specifically so `src/sw.js` could carry custom
+  `push`/`notificationclick` listeners — `generateSW` produces a fully
+  auto-generated service worker with no room for custom event handlers.
+  Verified via a real `npm run build` (not just dev mode) that
+  `dist/sw.js` actually contains both listeners — dev mode doesn't
+  reliably exercise the injectManifest pipeline. `src/utils/push.js`
+  handles `Notification.requestPermission()` +
+  `PushManager.subscribe()` + upserting the subscription into
+  `push_subscriptions` (RLS-scoped to `auth.uid()`, one row per
+  device/endpoint — a phone and a laptop each need their own row).
+  Enabling push is gated on being signed into Cloud Sync
+  (`enablePushNotifications()` in `AppContext.jsx` throws if
+  `sessionUserRef.current` is null) since the Edge Function has no other
+  way to find a subscription's owner's schedule. UI: More → Dagschema &
+  Menu → "Meldingen inschakelen op dit apparaat."
+- **iOS specifically**: Web Push only works on iOS 16.4+ **and only for a
+  PWA installed via Safari's "Add to Home Screen"** — a normal Safari tab
+  cannot receive push at all. This app has been installable that way for a
+  while (see README), so this should already be satisfied, but it's worth
+  confirming with the user if push reports "not working" on their iPhone
+  specifically — the fix might just be "open the home-screen icon, not
+  Safari."
 
 ## Design system
 
@@ -360,16 +517,97 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
   `http://localhost:5173/<file>.html` through the already-running Vite
   preview, then delete it from `public/` again before committing anything.
 
+**The paragraphs above describe an earlier (non-Windows) sandbox — the
+transformation-plan session ran on the user's own Windows PC via a
+different Claude Code surface, where none of git/node/npm/gh/uv were
+preinstalled.** What's true there instead:
+
+- **Every dev tool had to be installed via `winget`** (Git, Node.js LTS,
+  GitHub CLI, uv) — none were present. `winget install` can silently land
+  a package in either `C:\Program Files\<tool>` (when it can elevate) or
+  `%LOCALAPPDATA%\Programs\<tool>` (per-user, no elevation) — don't assume
+  which; check both, or `winget list --id <id>` then search for the
+  binary. PATH updates from `winget`/`uv tool update-shell` only apply to
+  *new* shells — the current PowerShell tool call's session needs
+  `$env:PATH` prepended manually for that same call and every one after
+  until the harness's own session picks up the change.
+- **`gh auth login --web` needs a real interactive browser round-trip**:
+  it prints a device code, needs that code entered at
+  github.com/login/device, then — separately — GitHub's own step-up
+  "sudo mode" check (device confirmation via the GitHub Mobile app *or* an
+  emailed one-time code), independent of already being signed in. The
+  device code has a short timeout; if the sudo-mode step drags (waiting on
+  the user to check email/phone), the original `gh auth login` process
+  will time out (`context deadline exceeded`) even after the user
+  completes the browser side — just restart `gh auth login --web` for a
+  fresh code once they're through the sudo-mode check, it goes fast the
+  second time since sudo mode is now satisfied for that browser session.
+- **Typing into GitHub's segmented device-code input** (one `<input>` per
+  character) via a generic "type a string" automation action only fills
+  the first box — click each box and type one character at a time.
+- **A commit message containing literal `"` characters, passed to
+  `git commit -m` from PowerShell, gets re-tokenized/split by the native
+  command boundary** even inside a `@'...'@` (single-quoted, non-
+  interpolating) here-string — PowerShell's native-argument passing does
+  its own requoting. Write the message to a file and use
+  `git commit -F <file>` instead of `-m` for anything with embedded quotes
+  or that's more than a couple of lines.
+- **The Supabase Dashboard's own SQL Editor and Table Editor can show
+  stale/cached results**, same failure class as the Vite-dev-tab staleness
+  above but in a completely different app — a `select count(*)` re-run in
+  a *new* query tab got a fresh, correct result after an old tab's result
+  panel was stuck showing a stale row count. If a Supabase dashboard
+  result looks wrong or surprising (e.g. "tables disappeared"), open a
+  fresh query tab and re-run before concluding data was actually lost.
+- **Typing multi-line source into a Monaco-based code editor** (both the
+  Supabase SQL Editor and its Edge Function code editor use Monaco) via a
+  generic "type text" automation action **gets corrupted by
+  auto-bracket-closing** — an opening `(`/`{` auto-inserts its own closing
+  pair, so anything typed keystroke-by-keystroke ends up with duplicated/
+  misplaced closing brackets. Reliable fix used repeatedly this session:
+  `window.monaco.editor.getEditors()[0].setValue(exactText)` via the
+  browser JS-eval tool, not simulated typing. For text containing
+  backticks/`${}` (breaks a JS template-literal wrapper) or other characters
+  awkward to inline into a JS string literal, base64-encode it first and
+  decode+`setValue` in the same JS call.
+- The Supabase **Table Editor**'s default landing view ("Create a table" /
+  "Recent items") does not show a schema/table list at the viewport width
+  this environment renders at — don't take an empty-looking Table Editor
+  as evidence of no tables; verify via the SQL Editor instead.
+
 ## Current status (as of this note)
 
 Everything is **committed, pushed, and deployed** — most recent commit on
-`main` is `99890bb` ("Add a way to change your companion after picking
-one"). No known open bugs; the `position:fixed`/portal fix (`01675ae`) is
-the one most worth re-confirming with the user on both their phone and PC,
-since it was found and fixed based on a screenshot rather than the user
-explicitly re-testing afterward yet.
+`main` is `0c62b9e` ("Add weekly/monthly progress rollup, measurements,
+calorie review (item 6)"). No known open bugs in the older feature set;
+the `position:fixed`/portal fix (`01675ae`) is still worth re-confirming
+with the user on both their phone and PC if it comes up, since it was
+found and fixed based on a screenshot rather than a live confirmed retest.
 
-Shipped and stable this session, on top of the prior v1/v2 feature set:
+The **transformation-plan tracker session** (this note's main update)
+shipped all six items from the user's spec, verified with real production
+builds and dev-preview testing throughout, across these commits:
+`4caa3ae` (task schedule + meal rotation + editable schema, items 1/3),
+`e25e5d3` (moved the seed data file to `src/data/`), `89e185f` +
+`1788c5f` (push notification backend + client, item 2), `ac6db38`
+(Google Calendar write-sync + Oura, items 4/5), `0c62b9e` (progress
+rollup, item 6). See "Transformation-plan tracker" and "Push
+notifications" above for the full architecture. **Open loose end**: the
+`VAPID_PRIVATE_KEY` Supabase secret was handed off to the user to set
+manually and was unconfirmed as done by the end of that session — real
+push notifications won't fire until it is.
+
+Also discovered (not caused) this session: the user's Supabase project
+"Tessera" had **auto-paused from inactivity**, which is why it looked
+empty on first glance — once resumed, it turned out the whole
+`app_data`/normalized/encrypted schema was already live with real
+synced data (2 users, logged water/weight rows). Nothing was actually
+broken or lost; don't re-run the schema-setup SQL files as if from
+scratch if this comes up again, just check whether the project needs
+resuming.
+
+Shipped and stable in earlier sessions, on top of the prior v1/v2 feature
+set:
 - **Voice logging works with zero API key configured** (mic + "Save as
   note" → `data.notes`); AI parsing remains an optional upgrade layer.
 - **Hydration Autopilot** (Water page): an adjusted daily target (baseline
@@ -387,23 +625,39 @@ Shipped and stable this session, on top of the prior v1/v2 feature set:
 
 ## Next steps
 
-1. **Re-confirm with the user, on both their iPhone and PC**, that
-   companion onboarding/interaction now works correctly after the
-   `position:fixed` portal fix — this was diagnosed and fixed via a
-   screenshot rather than a live confirmed retest.
-2. Not yet requested, but a plausible next ask given the pattern so far:
+1. **Confirm the `VAPID_PRIVATE_KEY` Supabase secret got set** (More →
+   Edge Functions → send-due-notifications → Secrets) — this is the one
+   thing standing between the push-notification backend and it actually
+   sending anything. If notifications still don't arrive after that's
+   confirmed set, check next: the user is using the **installed
+   home-screen PWA** on iOS (not a Safari tab — push silently can't work
+   there), they've tapped "Meldingen inschakelen op dit apparaat" in More
+   → Dagschema & Menu, and `cron.job_run_details` in Supabase for
+   actual invocation errors.
+2. Fintech's `OverviewTerminal.jsx` doesn't show `TodayTasks` (the new
+   day-screen checklist) — only the Classic Overview layout has it. Worth
+   wiring in if the user uses Fintech style day-to-day.
+3. Google Calendar sync (item 4) is manual-only (a button, not a
+   background job) — if the user wants it automatic, that would mean
+   either a second cron-triggered Edge Function (same pattern as push
+   notifications) or accepting the manual-button tradeoff long-term;
+   worth asking which before building anything.
+4. **Re-confirm with the user, on both their iPhone and PC**, that
+   companion onboarding/interaction still works correctly after the
+   `position:fixed` portal fix from an earlier session — this was
+   diagnosed and fixed via a screenshot rather than a live confirmed
+   retest, and it's easy for this to get lost among newer work.
+5. Not yet requested, but a plausible next ask given the pattern so far:
    extending the voice pipeline to also cover weight and sleep intents.
-3. If asked to deepen the Character System's visuals further: Fire and
+6. If asked to deepen the Character System's visuals further: Fire and
    Moon got the most polish; Warrior/Nature/Robot/Animal/Plant/Dragon/
    Spirit/Athlete each got one solid pass at the same
    gradient-plus-radial-glow technique but less iteration — a reasonable
    place to focus if the user wants more.
-4. Google OAuth Client ID still not configured — optional, unchanged from
-   earlier in the project.
-5. If the user ever wants real protein/fiber tracking (currently just the
+7. If the user ever wants real protein/fiber tracking (currently just the
    5-item nutrition checklist used as a proxy everywhere it's needed,
    including as a Character System growth input), that's new scope, not a
    tweak.
-6. If asked to touch Fintech or Character System visuals again, get a
+8. If asked to touch Fintech or Character System visuals again, get a
    concrete reference (named app/brand/image) before building — abstract
    adjectives alone took six rounds to converge last time.
