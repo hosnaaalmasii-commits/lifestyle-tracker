@@ -151,6 +151,15 @@ a { color: inherit; }
   background: transparent;
 }
 
+/* The wallpaper accent is a neutral off-white (so it doesn't fight the
+   photo), but .btn-primary/.chip.selected hardcode white text for the
+   normal (dark accent) case — illegible on a near-white background.
+   Swap to a dark, readable text color only while a wallpaper is active. */
+[data-wallpaper]:not([data-wallpaper="none"]) .btn-primary,
+[data-wallpaper]:not([data-wallpaper="none"]) .chip.selected {
+  color: #221f18;
+}
+
 /* ---------- Buttons ---------- */
 
 .btn {
