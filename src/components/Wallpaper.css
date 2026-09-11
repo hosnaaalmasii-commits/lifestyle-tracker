@@ -5,6 +5,10 @@
   pointer-events: none;
   background-size: cover;
   background-position: center;
+  /* Darkened and richer rather than shown at the photo's native exposure
+     — a moodier, more "premium dark app" read than a bright daytime-style
+     wallpaper, and it also does double duty for text legibility. */
+  filter: brightness(0.62) contrast(1.12) saturate(1.05);
   /* No z-index — see index.html: #wallpaper-root is the first child of
      body, #root comes after, so #root's content naturally paints on top
      by plain DOM order. A negative z-index is the more common way to do
@@ -25,7 +29,9 @@
 .wallpaper-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.35) 100%);
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, transparent 22%, transparent 65%, rgba(0, 0, 0, 0.6) 100%),
+    radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.55) 100%);
 }
 
 @media (prefers-reduced-motion: reduce) {
