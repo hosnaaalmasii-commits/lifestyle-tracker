@@ -5,6 +5,16 @@ import { precacheAndRoute } from 'workbox-precaching'
 // listeners a generateSW-produced service worker can't be given.
 precacheAndRoute(self.__WB_MANIFEST)
 
+// generateSW auto-injects this listener; injectManifest does not, so it has
+// to be added by hand. Without it, registerType: 'autoUpdate' on the client
+// side (main.jsx's registerSW) has no way to tell a new, already-installed-
+// but-"waiting" service worker to actually take over — every deploy after
+// switching to injectManifest silently got stuck one version behind until a
+// full uninstall/reinstall, with no visible error anywhere. This is the fix.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting()
+})
+
 self.addEventListener('push', (event) => {
   let payload = { title: 'Lifestyle Tracker', body: '' }
   try { payload = event.data.json() } catch { /* non-JSON push, keep default */ }
