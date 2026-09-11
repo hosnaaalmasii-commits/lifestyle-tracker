@@ -15,20 +15,32 @@
 /* ---------- Stars ---------- */
 
 .wallpaper-stars {
-  background: radial-gradient(ellipse at top, #0b1026 0%, #05070f 70%);
+  background:
+    radial-gradient(ellipse at 30% 0%, #131b3a 0%, transparent 55%),
+    radial-gradient(ellipse at top, #0b1026 0%, #05070f 70%);
+}
+.milky-way {
+  position: absolute;
+  top: -20%;
+  left: -10%;
+  width: 140%;
+  height: 70%;
+  background: linear-gradient(115deg, transparent 30%, rgba(196, 195, 224, 0.09) 45%, rgba(226, 221, 255, 0.14) 50%, rgba(196, 195, 224, 0.09) 55%, transparent 70%);
+  filter: blur(18px);
+  transform: rotate(-18deg);
+  opacity: 0.8;
 }
 .wallpaper-star {
   position: absolute;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 4px 1px currentColor;
   opacity: 0.35;
   animation-name: star-twinkle;
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;
 }
 @keyframes star-twinkle {
-  0%, 100% { opacity: 0.35; }
+  0%, 100% { opacity: 0.3; }
   50% { opacity: 1; }
 }
 

@@ -13,19 +13,30 @@ import './Wallpaper.css'
 // keeps it behind normal page content without needing every page to be
 // aware of it.
 
-const STAR_COUNT = 90
+const STAR_COUNT = 140
 const BOKEH_COUNT = 22
 
+// Real starlight isn't uniformly white — cooler blue-white, neutral white,
+// and warmer pale-yellow stars mixed together is what actually reads as a
+// photographic night sky instead of a scattered-dots pattern. Weighted so
+// most stars are faint/small and only a few are the bigger "hero" points.
+const STAR_COLORS = ['#ffffff', '#ffffff', '#cfe0ff', '#fff3d6']
+
 function StarField() {
-  const stars = useMemo(() => Array.from({ length: STAR_COUNT }, () => ({
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 2.2 + 1,
-    delay: Math.random() * 6,
-    duration: 2.5 + Math.random() * 3.5,
-  })), [])
+  const stars = useMemo(() => Array.from({ length: STAR_COUNT }, () => {
+    const hero = Math.random() < 0.08
+    return {
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: hero ? 2.4 + Math.random() * 1.6 : Math.random() * 1.3 + 0.4,
+      color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
+      delay: Math.random() * 7,
+      duration: 2.5 + Math.random() * 4.5,
+    }
+  }), [])
   return (
     <div className="wallpaper wallpaper-stars">
+      <span className="milky-way" />
       {stars.map((s, i) => (
         <span
           key={i}
@@ -33,6 +44,7 @@ function StarField() {
           style={{
             left: `${s.x}%`, top: `${s.y}%`,
             width: s.size, height: s.size,
+            background: s.color, color: s.color,
             animationDelay: `${s.delay}s`, animationDuration: `${s.duration}s`,
           }}
         />
