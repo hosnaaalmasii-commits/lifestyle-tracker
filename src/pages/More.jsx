@@ -11,6 +11,7 @@ import Cycle from './more/Cycle'
 import Budget from './more/Budget'
 import Schedule from './more/Schedule'
 import DailySchedule from './more/DailySchedule'
+import WeeklyProgress from './more/WeeklyProgress'
 import Notes from './more/Notes'
 import Alcohol from './more/Alcohol'
 import Recipes from './more/Recipes'
@@ -27,6 +28,7 @@ const ITEMS = [
   { id: 'cycle', label: 'Cycle', desc: 'Flow & symptoms', icon: 'droplet' },
   { id: 'schedule', label: 'Schedule', desc: 'Upcoming items', icon: 'calendar' },
   { id: 'dailyschedule', label: 'Dagschema & Menu', desc: 'Taken per dag en menurotatie', icon: 'repeat' },
+  { id: 'weeklyprogress', label: 'Voortgang', desc: 'Week/maand score, streak, omtrekmaten', icon: 'trendUp' },
   { id: 'budget', label: 'Budget', desc: 'Expenses & spending', icon: 'scale' },
   { id: 'alcohol', label: 'Alcohol', desc: 'Drinks logged', icon: 'droplet' },
   { id: 'notes', label: 'Notes', desc: 'Quick jottings, no AI needed', icon: 'chat' },
@@ -45,6 +47,7 @@ export default function More({ view, setView }) {
   if (view === 'alcohol') return <Alcohol onBack={() => setView(null)} />
   if (view === 'schedule') return <Schedule onBack={() => setView(null)} />
   if (view === 'dailyschedule') return <DailySchedule onBack={() => setView(null)} />
+  if (view === 'weeklyprogress') return <WeeklyProgress onBack={() => setView(null)} />
   if (view === 'notes') return <Notes onBack={() => setView(null)} />
   if (view === 'insights') return <Insights onBack={() => setView(null)} />
   if (view === 'coach') return <Coach onBack={() => setView(null)} setView={setView} />
