@@ -24,6 +24,20 @@ export const FINTECH_GRADIENTS = [
     to: '#A3E635',
     accent: '#FBBF24',
   },
+  {
+    key: 'merlot',
+    name: 'Merlot',
+    from: '#6B1F2A',
+    to: '#3D2817',
+    accent: '#C9A227',
+  },
+  {
+    key: 'sapphire',
+    name: 'Sapphire',
+    from: '#0F1C3F',
+    to: '#1E3A5F',
+    accent: '#8FA8C9',
+  },
 ]
 
 export const DEFAULT_FINTECH_GRADIENT = 'nebula'
