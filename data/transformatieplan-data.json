@@ -1,0 +1,149 @@
+{
+  "meta": {
+    "doel": "14kg verlies in 7 maanden (sept 2026 - maart 2027), min 0.5kg/week"
+  },
+  "calorie_targets": {
+    "rest_day_kcal": [1350, 1400],
+    "training_day_kcal": [1500, 1550],
+    "protein_g": [115, 125],
+    "fat_g": [40, 50],
+    "carbs_g": [120, 160],
+    "goal": "min. 0.5kg verlies per week, herzie elke 4 weken"
+  },
+  "meal_rotation": {
+    "reference_monday": "2026-09-07",
+    "cycle": ["A", "B", "C", "D"],
+    "meals_by_week": {
+      "A": {
+        "mon": {"ontbijt": "Griekse yoghurt 0% + havermout + blauwe bessen + walnoot", "lunch": "Kipreepjes wrap volkoren + groenten + hummus", "diner": "Kalkoengehaktballetjes + courgette-noedels + tomatensaus", "snack": "Cottage cheese + komkommer / eiwitshake"},
+        "tue": {"ontbijt": "Overnight oats + eiwitpoeder + appel + kaneel", "lunch": "Quinoasalade + kikkererwten + feta + paprika", "diner": "Kipfilet grill + zoete aardappel + broccoli", "snack": "Rijstwafels + hüttenkäse / amandelen"},
+        "wed": {"ontbijt": "2 eieren + volkoren toast + avocado", "lunch": "Restjes kalkoengehaktballetjes in wrap", "diner": "Roerbak kip + groenten + sojasaus + volkoren noedels", "snack": "Skyr + fruit / eiwitshake"},
+        "thu": {"ontbijt": "Skyr + granola + frambozen", "lunch": "Kipsalade (kip, sla, tomaat, mais, lichte dressing)", "diner": "Tofu- of kipcurry (kokosmelk light) + bloemkoolrijst", "snack": "Rijstwafels met kalkoenfilet / komkommer + hummus"},
+        "fri": {"ontbijt": "Eiwitpannenkoek (ei+kwark+havermout) + bessen", "lunch": "Volkoren pasta salade met kip + pesto light", "diner": "Ovenschotel kipfilet + courgette + paprika + mozzarella light", "snack": "Cottage cheese + peer / eiwitshake"},
+        "sat": {"ontbijt": "Omelet met spinazie + champignons + volkoren boterham", "lunch": "Grote bowl quinoa, kikkererwten, avocado, groenten", "diner": "Mager rundergehakt + zoete aardappelpuree + sperziebonen", "snack": "Griekse yoghurt + honing + noten"},
+        "sun": {"ontbijt": "Havermout + eiwitpoeder + banaan + kaneel", "lunch": "Restjes / kipwrap", "diner": "Lichte maaltijdsalade met gegrilde kip + groenten", "snack": "Fruit + kwark"}
+      },
+      "B": {
+        "mon": {"ontbijt": "Kwark + mango + chiazaad", "lunch": "Kip caesar-achtige salade (light dressing)", "diner": "Mexicaanse bowl: kalkoengehakt, zwarte bonen, mais, rijst, salsa", "snack": "Eiwitshake / rijstwafels"},
+        "tue": {"ontbijt": "Havermout + eiwitpoeder + appel", "lunch": "Volkorenwrap kalkoenfilet + groenten + light kruidenkaas", "diner": "Kipfilet + linzen + spinazie stoofpotje", "snack": "Cottage cheese + druiven"},
+        "wed": {"ontbijt": "Eieren + toast", "lunch": "Restjes stoofpotje", "diner": "Roerbakgroenten + kip + teriyaki light + rijst", "snack": "Skyr + noten"},
+        "thu": {"ontbijt": "Skyr + havermout + kaneel + noten", "lunch": "Griekse salade met kip (light feta)", "diner": "Gehaktschotel: mager gehakt+courgette+tomaat+volkoren pasta", "snack": "Rijstwafel + hüttenkäse"},
+        "fri": {"ontbijt": "Eiwitpannenkoek + fruit", "lunch": "Kip-quinoabowl + avocado", "diner": "Ovenschotel kalkoenfilet + zoete aardappel + broccoli", "snack": "Eiwitshake"},
+        "sat": {"ontbijt": "Omelet + groenten + volkorenboterham", "lunch": "Grote maaltijdsalade met kip", "diner": "Chili con carne (mager rundergehakt) + bruine rijst", "snack": "Yoghurt + honing"},
+        "sun": {"ontbijt": "Overnight oats + bessen", "lunch": "Restjes chili", "diner": "Lichte kipsoep + volkorenbrood", "snack": "Fruit + kwark"}
+      },
+      "C": {
+        "mon": {"ontbijt": "Skyr + granola + kiwi", "lunch": "Kip-hummuswrap + groenten", "diner": "Gegrilde kipfilet + geroosterde groenten + quinoa", "snack": "Eiwitshake"},
+        "tue": {"ontbijt": "Havermout + eiwitpoeder + kaneel + appel", "lunch": "Linzensalade + feta + rucola", "diner": "Kalkoenburger + zoete aardappelfriet (oven)", "snack": "Cottage cheese + ananas"},
+        "wed": {"ontbijt": "Eieren + avocadotoast", "lunch": "Restjes linzensalade", "diner": "Wok kip + groenten + noedels", "snack": "Skyr + noten"},
+        "thu": {"ontbijt": "Kwark + bessen + amandelen", "lunch": "Kip caprese salade", "diner": "Gehaktschotel courgette-tomaat + volkoren pasta", "snack": "Rijstwafel + kalkoenfilet"},
+        "fri": {"ontbijt": "Eiwitpannenkoek + fruit", "lunch": "Quinoa bowl + kikkererwten + avocado", "diner": "Ovenschotel kip + paprika + mozzarella light", "snack": "Eiwitshake"},
+        "sat": {"ontbijt": "Omelet + spinazie + toast", "lunch": "Grote bowl kalkoenreepjes + groenten", "diner": "Mager rundergehakt + bloemkoolpuree + sperziebonen", "snack": "Yoghurt + honing"},
+        "sun": {"ontbijt": "Overnight oats + mango", "lunch": "Restjes", "diner": "Lichte groentesoep + kipfilet + brood", "snack": "Fruit + kwark"}
+      },
+      "D": {
+        "mon": {"ontbijt": "Kwark + frambozen + chiazaad", "lunch": "Kipsalade wrap", "diner": "Aziatische bowl: kip, rijst, edamame, wortel, sojasaus", "snack": "Eiwitshake"},
+        "tue": {"ontbijt": "Havermout + eiwitpoeder + banaan", "lunch": "Volkoren pasta salade + kalkoenfilet", "diner": "Kipfilet + linzen curry + bloemkoolrijst", "snack": "Cottage cheese + peer"},
+        "wed": {"ontbijt": "Eieren + toast", "lunch": "Restjes curry", "diner": "Roerbak tofu/kip + groenten + noedels", "snack": "Skyr + noten"},
+        "thu": {"ontbijt": "Skyr + granola + bessen", "lunch": "Griekse salade + kip", "diner": "Gehaktschotel + zoete aardappel + broccoli", "snack": "Rijstwafel + hüttenkäse"},
+        "fri": {"ontbijt": "Eiwitpannenkoek + fruit", "lunch": "Kip-quinoa bowl", "diner": "Ovenschotel kalkoen + courgette + feta light", "snack": "Eiwitshake"},
+        "sat": {"ontbijt": "Omelet + groenten", "lunch": "Grote maaltijdsalade", "diner": "Chili (mager gehakt) + bruine rijst", "snack": "Yoghurt + honing"},
+        "sun": {"ontbijt": "Overnight oats + fruit", "lunch": "Restjes", "diner": "Lichte soep + volkorenbrood + ei", "snack": "Fruit + kwark"}
+      }
+    }
+  },
+  "daily_schedules_by_weekday": {
+    "mon": [
+      {"time": "07:00", "label": "Ontbijt", "category": "eten", "notify": true},
+      {"time": "10:00", "label": "Snack 1 + IJzer-supplement", "category": "eten+supplement", "notify": true},
+      {"time": "12:30", "label": "Lunch", "category": "eten", "notify": true},
+      {"time": "15:30", "label": "Snack 2", "category": "eten", "notify": true},
+      {"time": "18:15", "label": "Training: Lower Body A (glutes/hamstrings) + 15min cardio", "category": "training", "notify": true},
+      {"time": "19:45", "label": "Diner", "category": "eten", "notify": true},
+      {"time": "21:00", "label": "Stretchroutine 10-15min", "category": "herstel", "notify": true},
+      {"time": "21:30", "label": "Supplement: Zink", "category": "supplement", "notify": true},
+      {"time": "22:00", "label": "Supplement: Magnesium", "category": "supplement", "notify": true}
+    ],
+    "tue": [
+      {"time": "07:00", "label": "Ontbijt", "category": "eten", "notify": true},
+      {"time": "10:00", "label": "Snack 1 + IJzer-supplement", "category": "eten+supplement", "notify": true},
+      {"time": "12:30", "label": "Lunch", "category": "eten", "notify": true},
+      {"time": "15:30", "label": "Snack 2", "category": "eten", "notify": true},
+      {"time": "18:15", "label": "Training: Upper Body & Core + 15min cardio", "category": "training", "notify": true},
+      {"time": "19:45", "label": "Diner", "category": "eten", "notify": true},
+      {"time": "21:00", "label": "Stretchroutine 10-15min", "category": "herstel", "notify": true},
+      {"time": "21:30", "label": "Supplement: Zink", "category": "supplement", "notify": true},
+      {"time": "22:00", "label": "Supplement: Magnesium", "category": "supplement", "notify": true}
+    ],
+    "wed": [
+      {"time": "07:00", "label": "Cardio (ochtend, 30-40min)", "category": "training", "notify": true},
+      {"time": "07:45", "label": "Ontbijt", "category": "eten", "notify": true},
+      {"time": "10:00", "label": "Snack 1 + IJzer-supplement", "category": "eten+supplement", "notify": true},
+      {"time": "12:30", "label": "Lunch", "category": "eten", "notify": true},
+      {"time": "15:30", "label": "Snack 2", "category": "eten", "notify": true},
+      {"time": "17:30", "label": "Diner (voor flexijob)", "category": "eten", "notify": true},
+      {"time": "18:00", "label": "Flexijob 18:00-22:00", "category": "werk", "notify": false},
+      {"time": "22:30", "label": "Stretchroutine 10-15min", "category": "herstel", "notify": true},
+      {"time": "22:45", "label": "Supplement: Zink + Magnesium", "category": "supplement", "notify": true}
+    ],
+    "thu": [
+      {"time": "07:00", "label": "Training: Lower Body B (glutes/quads)", "category": "training", "notify": true},
+      {"time": "07:45", "label": "Ontbijt", "category": "eten", "notify": true},
+      {"time": "10:00", "label": "Snack 1 + IJzer-supplement", "category": "eten+supplement", "notify": true},
+      {"time": "12:30", "label": "Lunch", "category": "eten", "notify": true},
+      {"time": "15:30", "label": "Snack 2", "category": "eten", "notify": true},
+      {"time": "17:30", "label": "Diner (voor flexijob)", "category": "eten", "notify": true},
+      {"time": "18:00", "label": "Flexijob 18:00-22:00", "category": "werk", "notify": false},
+      {"time": "22:30", "label": "Stretchroutine 10-15min", "category": "herstel", "notify": true},
+      {"time": "22:45", "label": "Supplement: Zink + Magnesium", "category": "supplement", "notify": true}
+    ],
+    "fri": [
+      {"time": "07:00", "label": "Ontbijt", "category": "eten", "notify": true},
+      {"time": "10:00", "label": "Snack 1 + IJzer-supplement", "category": "eten+supplement", "notify": true},
+      {"time": "12:30", "label": "Lunch", "category": "eten", "notify": true},
+      {"time": "15:30", "label": "Training: Full Body/Upper + 20min cardio", "category": "training", "notify": true},
+      {"time": "17:00", "label": "Snack 2", "category": "eten", "notify": true},
+      {"time": "19:00", "label": "Diner", "category": "eten", "notify": true},
+      {"time": "19:45", "label": "Stretchroutine 10-15min", "category": "herstel", "notify": true},
+      {"time": "20:00", "label": "Zelfzorg: massage/verzorging/meditatie", "category": "zelfzorg", "notify": true},
+      {"time": "21:45", "label": "Supplement: Zink + Magnesium", "category": "supplement", "notify": true}
+    ],
+    "sat": [
+      {"time": "08:30", "label": "Ontbijt", "category": "eten", "notify": true},
+      {"time": "10:00", "label": "Training: Cardio + glutes-circuit (lang)", "category": "training", "notify": true},
+      {"time": "11:30", "label": "Snack 1 + IJzer-supplement", "category": "eten+supplement", "notify": true},
+      {"time": "13:00", "label": "Lunch", "category": "eten", "notify": true},
+      {"time": "14:00", "label": "Zelfzorg / vrije tijd", "category": "zelfzorg", "notify": true},
+      {"time": "16:30", "label": "Snack 2", "category": "eten", "notify": true},
+      {"time": "19:00", "label": "Diner", "category": "eten", "notify": true},
+      {"time": "21:00", "label": "Stretchroutine 10-15min", "category": "herstel", "notify": true},
+      {"time": "21:30", "label": "Supplement: Zink + Magnesium", "category": "supplement", "notify": true}
+    ],
+    "sun": [
+      {"time": "08:00", "label": "Cardio + Mobility & Pilates", "category": "training", "notify": true},
+      {"time": "09:15", "label": "Ontbijt", "category": "eten", "notify": true},
+      {"time": "11:00", "label": "Snack 1 + IJzer-supplement", "category": "eten+supplement", "notify": true},
+      {"time": "12:30", "label": "Lunch", "category": "eten", "notify": true},
+      {"time": "15:30", "label": "Snack 2", "category": "eten", "notify": true},
+      {"time": "17:30", "label": "Diner (voor flexijob)", "category": "eten", "notify": true},
+      {"time": "18:00", "label": "Flexijob 18:00-22:00", "category": "werk", "notify": false},
+      {"time": "22:30", "label": "Stretchroutine 10-15min", "category": "herstel", "notify": true},
+      {"time": "22:45", "label": "Supplement: Zink + Magnesium", "category": "supplement", "notify": true}
+    ]
+  },
+  "daily_supplements": {
+    "creatine": {"amount": "3-5g", "timing": "elke dag, zelfde tijdstip (koppel aan trainingsmoment)"},
+    "vitamine_d": {"timing": "'s ochtends bij ontbijt (vetbevattend)"},
+    "b12": {"timing": "'s ochtends bij ontbijt"},
+    "omega_3": {"timing": "bij ontbijt"},
+    "ijzer": {"timing": "los van koffie/thee/zuivel, apart van zink"},
+    "zink": {"timing": "'s avonds, apart van ijzer"},
+    "magnesium": {"timing": "'s avonds, voor het slapen"},
+    "elektrolyten": {"timing": "op trainingsdagen tijdens/na training"}
+  },
+  "training_phases": {
+    "fase_1": {"weken": "1-8", "start": "2026-09-14", "nadruk": "vorm + intensiteit vanaf dag 1, laatste set bijna-falen"},
+    "fase_2": {"weken": "9-20", "nadruk": "4 sets hoofdoefeningen, AMRAP laatste set, korter rust"},
+    "fase_3": {"weken": "21-30", "nadruk": "laatste set echt tot falen, supersets, 1x/week intervalcardio"}
+  }
+}

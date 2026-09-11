@@ -7,6 +7,7 @@ import { computeBadges } from '../utils/badges'
 import { computeXP, levelProgress } from '../utils/gamification'
 import { computeConsistencyScore } from '../utils/consistencyScore'
 import Ring from '../components/Ring'
+import TodayTasks from '../components/TodayTasks'
 import MiniCard from '../components/MiniCard'
 import StreakBadge from '../components/StreakBadge'
 import LevelBar from '../components/LevelBar'
@@ -243,6 +244,8 @@ export default function Overview({ onNavigate }) {
             <div className="eyebrow">{humanDateFull(today)}</div>
             <h1>Today</h1>
           </div>
+
+          <TodayTasks onOpenSchedule={() => onNavigate('more', 'dailyschedule')} />
 
           <div className="card hero-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 18px' }}>
             <Ring

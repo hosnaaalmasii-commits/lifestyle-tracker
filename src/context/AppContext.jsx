@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { todayKey } from '../utils/dates'
+import transformatieplan from '../../data/transformatieplan-data.json'
+import { WEEKDAY_KEYS } from '../utils/taskSchedule'
 import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } from '../utils/workoutGenerator'
 import { DEFAULT_COLORS } from '../utils/colorPresets'
 import { DEFAULT_FINTECH_GRADIENT, getFintechGradient } from '../utils/fintechGradients'
@@ -11,6 +13,24 @@ import {
 } from '../utils/cloudSync'
 
 const STORAGE_KEY = 'lifestyle-tracker-data-v1'
+
+// Seeds the editable task schedule from data/transformatieplan-data.json on
+// first load. Once a user's own taskSchedule is saved to localStorage, the
+// top-level spread in mergeWithDefaults() takes their saved (possibly
+// edited) version instead — this only ever supplies the starting point.
+function seedTaskSchedule() {
+  const out = {}
+  for (const day of WEEKDAY_KEYS) {
+    out[day] = (transformatieplan.daily_schedules_by_weekday?.[day] || []).map((t, i) => ({
+      id: `${day}-${i}`,
+      time: t.time,
+      label: t.label,
+      category: t.category,
+      notify: t.notify,
+    }))
+  }
+  return out
+}
 
 const DEFAULT_DATA = {
   version: 2,
@@ -31,7 +51,14 @@ const DEFAULT_DATA = {
     googleCalendarConnected: false,
     supabaseUrl: '',
     supabaseAnonKey: '',
+    streakThresholdPct: 80,
+    notifyCategories: { eten: true, training: true, supplement: true, herstel: true, werk: false, zelfzorg: true },
+    calorieTargets: structuredClone(transformatieplan.calorie_targets || {}),
   },
+  taskSchedule: seedTaskSchedule(),
+  mealRotation: structuredClone(transformatieplan.meal_rotation || null),
+  taskCompletions: {},
+  measurements: [],
   water: {},
   sleep: {},
   workouts: {
@@ -397,6 +424,59 @@ export function AppProvider({ children }) {
       setData((d) => ({ ...d, budget: [...d.budget, { id: makeId(), date: dateKey, ...expense }].sort((a, b) => a.date.localeCompare(b.date)) }))
     },
     deleteExpense: (id) => setData((d) => ({ ...d, budget: d.budget.filter((b) => b.id !== id) })),
+
+    toggleTask: (dateKey, taskId) => {
+      setData((d) => {
+        const dayCompletions = { ...(d.taskCompletions[dateKey] || {}) }
+        dayCompletions[taskId] = !dayCompletions[taskId]
+        return { ...d, taskCompletions: { ...d.taskCompletions, [dateKey]: dayCompletions } }
+      })
+    },
+    updateTaskSchedule: (day, tasks) => {
+      setData((d) => ({ ...d, taskSchedule: { ...d.taskSchedule, [day]: tasks } }))
+    },
+    addTaskToDay: (day, task) => {
+      setData((d) => ({ ...d, taskSchedule: { ...d.taskSchedule, [day]: [...(d.taskSchedule[day] || []), { id: makeId(), notify: true, ...task }] } }))
+    },
+    updateTaskInDay: (day, taskId, changes) => {
+      setData((d) => ({
+        ...d,
+        taskSchedule: {
+          ...d.taskSchedule,
+          [day]: d.taskSchedule[day].map((t) => (t.id === taskId ? { ...t, ...changes } : t)),
+        },
+      }))
+    },
+    removeTaskFromDay: (day, taskId) => {
+      setData((d) => ({ ...d, taskSchedule: { ...d.taskSchedule, [day]: d.taskSchedule[day].filter((t) => t.id !== taskId) } }))
+    },
+
+    setMealForDay: (weekLetter, day, mealKey, value) => {
+      setData((d) => ({
+        ...d,
+        mealRotation: {
+          ...d.mealRotation,
+          meals_by_week: {
+            ...d.mealRotation.meals_by_week,
+            [weekLetter]: {
+              ...d.mealRotation.meals_by_week[weekLetter],
+              [day]: { ...d.mealRotation.meals_by_week[weekLetter][day], [mealKey]: value },
+            },
+          },
+        },
+      }))
+    },
+    setMealCycle: (cycle) => setData((d) => ({ ...d, mealRotation: { ...d.mealRotation, cycle } })),
+    setMealRotationReference: (mondayKey) => setData((d) => ({ ...d, mealRotation: { ...d.mealRotation, reference_monday: mondayKey } })),
+
+    setStreakThreshold: (pct) => setData((d) => ({ ...d, settings: { ...d.settings, streakThresholdPct: pct } })),
+    setNotifyCategory: (category, on) => setData((d) => ({ ...d, settings: { ...d.settings, notifyCategories: { ...d.settings.notifyCategories, [category]: on } } })),
+    setCalorieTargets: (targets) => setData((d) => ({ ...d, settings: { ...d.settings, calorieTargets: { ...d.settings.calorieTargets, ...targets, lastRevisedAt: todayKey() } } })),
+
+    addMeasurement: (entry, dateKey = todayKey()) => {
+      setData((d) => ({ ...d, measurements: [...d.measurements, { id: makeId(), date: dateKey, ...entry }].sort((a, b) => a.date.localeCompare(b.date)) }))
+    },
+    deleteMeasurement: (id) => setData((d) => ({ ...d, measurements: d.measurements.filter((m) => m.id !== id) })),
 
     addScheduleItem: (item, dateKey = todayKey()) => {
       setData((d) => ({ ...d, schedule: [...d.schedule, { id: makeId(), date: dateKey, ...item }].sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))) }))
