@@ -26,6 +26,14 @@
     />
   </head>
   <body>
+    <!-- Wallpaper.jsx portals here instead of document.body: being the
+         first child of body means it paints before (behind) #root's
+         content by plain DOM order — no z-index needed at all. A
+         negative z-index on a fixed layer is the more common technique,
+         but proved unreliable for full-page-behind-content stacking in
+         at least one real environment this app was tested in; this
+         avoids that stacking-context edge case entirely. -->
+    <div id="wallpaper-root"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

@@ -1,7 +1,13 @@
 .wallpaper {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  /* No z-index — this relies on plain DOM paint order instead (see
+     index.html: #wallpaper-root is the first child of body, #root comes
+     after, so #root's content naturally paints on top with no stacking
+     tricks needed). A negative z-index is the more common way to do this
+     and normally works fine, but proved unreliable in at least one real
+     rendering environment this app was tested in — this sidesteps that
+     stacking-context edge case entirely rather than fighting it. */
   overflow: hidden;
   pointer-events: none;
 }

@@ -98,5 +98,6 @@ const WALLPAPERS = { stars: StarField, aurora: Aurora, bokeh: Bokeh, clouds: Clo
 export default function Wallpaper({ type }) {
   const Comp = WALLPAPERS[type]
   if (!Comp || typeof document === 'undefined') return null
-  return createPortal(<Comp />, document.body)
+  const target = document.getElementById('wallpaper-root') || document.body
+  return createPortal(<Comp />, target)
 }
