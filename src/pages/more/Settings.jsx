@@ -37,9 +37,6 @@ const UI_STYLE_OPTIONS = [
 const COLOR_FIELDS = [
   { key: 'accent', label: 'Main accent' },
   { key: 'ring', label: 'Progress ring' },
-  { key: 'water', label: 'Water section' },
-  { key: 'sleep', label: 'Sleep section' },
-  { key: 'workout', label: 'Workout section' },
 ]
 
 export default function Settings({ onBack }) {
@@ -299,7 +296,7 @@ export default function Settings({ onBack }) {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'center', gap: -6 }}>
-              {[preset.colors.accent, preset.colors.water, preset.colors.workout].map((c, i) => (
+              {[preset.colors.accent, preset.colors.ring].map((c, i) => (
                 <span
                   key={i}
                   style={{
