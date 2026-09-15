@@ -5,7 +5,7 @@ import { WEEKDAY_KEYS } from '../utils/taskSchedule'
 import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } from '../utils/workoutGenerator'
 import { DEFAULT_COLORS } from '../utils/colorPresets'
 import { DEFAULT_FINTECH_GRADIENT, getFintechGradient } from '../utils/fintechGradients'
-import { requestGoogleToken, fetchTodayBusyMinutes, syncTasksToCalendar } from '../utils/googleCalendar'
+import { requestGoogleToken, requestGoogleAuthCode, fetchTodayBusyMinutes, syncTasksToCalendar } from '../utils/googleCalendar'
 import { hasOuraApiKey, getOuraApiKey, fetchOuraToday } from '../utils/ouraApi'
 import { isCloudSyncConfigured, getSupabaseClient } from '../utils/supabaseClient'
 import { subscribeToPush, unsubscribeFromPush } from '../utils/push'
@@ -13,6 +13,7 @@ import { WALLPAPER_OPTIONS } from '../components/Wallpaper'
 import {
   signUp as cloudSignUpApi, signIn as cloudSignInApi, signOut as cloudSignOutApi,
   getSession, onAuthStateChange, reconcile, pushToCloud, markLocalModified,
+  exchangeGoogleAuthCode, deleteGoogleCalendarToken,
 } from '../utils/cloudSync'
 
 const STORAGE_KEY = 'lifestyle-tracker-data-v1'
@@ -52,6 +53,7 @@ const DEFAULT_DATA = {
     gentleMode: false,
     googleClientId: '',
     googleCalendarConnected: false,
+    googleAutoSyncEnabled: false,
     supabaseUrl: '',
     supabaseAnonKey: '',
     streakThresholdPct: 80,
@@ -654,6 +656,25 @@ export function AppProvider({ children }) {
       const { eventIds, errors } = await syncTasksToCalendar(accessTokenRef.current, data.taskSchedule, data.googleCalendarEventIds)
       setData((d) => ({ ...d, googleCalendarEventIds: { ...d.googleCalendarEventIds, ...eventIds } }))
       return errors
+    },
+    // One-time setup for the daily cron-driven sync (supabase/functions/
+    // sync-calendar-tasks) — separate from the manual button above, which
+    // only ever has a short-lived in-memory access token to work with.
+    // Requesting a fresh consent screen (initCodeClient's default) each
+    // time is deliberate: Google only returns a refresh_token on a consent
+    // the user hasn't already granted, so re-prompting is what makes
+    // re-enabling after a disconnect reliably work.
+    enableCalendarAutoSync: async () => {
+      if (!sessionUserRef.current) throw new Error('Sign in to Cloud Sync first (More → Settings) — automatic sync needs somewhere to store the connection that a daily server job can reach.')
+      const clientId = data.settings.googleClientId
+      if (!clientId) throw new Error('Connect Google Calendar with a Client ID first.')
+      const code = await requestGoogleAuthCode(clientId)
+      await exchangeGoogleAuthCode(data.settings.supabaseUrl, data.settings.supabaseAnonKey, code, clientId)
+      setData((d) => ({ ...d, settings: { ...d.settings, googleAutoSyncEnabled: true } }))
+    },
+    disableCalendarAutoSync: async () => {
+      await deleteGoogleCalendarToken(data.settings.supabaseUrl, data.settings.supabaseAnonKey)
+      setData((d) => ({ ...d, settings: { ...d.settings, googleAutoSyncEnabled: false } }))
     },
 
     refreshOura: async () => {

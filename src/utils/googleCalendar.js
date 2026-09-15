@@ -63,6 +63,37 @@ export async function requestGoogleToken(clientId, { silent = false } = {}) {
   })
 }
 
+/**
+ * Requests a one-time authorization CODE (not an access token) via Google
+ * Identity Services' popup code flow — this is the one Google interaction
+ * that can produce a long-lived refresh token, which is what lets
+ * automatic (cron-triggered, browser-closed) sync work at all; the plain
+ * `requestGoogleToken` above only ever returns a short-lived access token
+ * with no refresh token, by design of the simpler implicit flow it uses.
+ * The returned code is single-use and must be exchanged server-side within
+ * minutes (see google-oauth-exchange Edge Function) — the client secret
+ * that exchange needs can never live in this browser code.
+ */
+export async function requestGoogleAuthCode(clientId) {
+  await loadGisScript()
+  return new Promise((resolve, reject) => {
+    try {
+      const client = window.google.accounts.oauth2.initCodeClient({
+        client_id: clientId,
+        scope: SCOPE,
+        ux_mode: 'popup',
+        callback: (response) => {
+          if (response.error) { reject(new Error(response.error)); return }
+          resolve(response.code)
+        },
+      })
+      client.requestCode()
+    } catch (e) {
+      reject(e)
+    }
+  })
+}
+
 function startOfTodayISO() {
   const d = new Date()
   d.setHours(0, 0, 0, 0)

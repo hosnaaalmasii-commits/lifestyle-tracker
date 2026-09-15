@@ -42,6 +42,39 @@ export async function getSession(url, anonKey) {
   return data.session
 }
 
+// Hands a Google authorization code (see googleCalendar.js
+// requestGoogleAuthCode) to the google-oauth-exchange Edge Function, which
+// exchanges it server-side for a refresh token and stores it — this is
+// what lets sync-calendar-tasks run on a daily cron with the browser
+// closed. Called with the user's own Supabase session token so the
+// function knows whose account to store the refresh token under.
+export async function exchangeGoogleAuthCode(url, anonKey, code, clientId) {
+  const supabase = getSupabaseClient(url, anonKey)
+  const { data: sessionData } = await supabase.auth.getSession()
+  const accessToken = sessionData?.session?.access_token
+  if (!accessToken) throw new Error('Sign in to Cloud Sync first.')
+
+  const response = await fetch(`${url}/functions/v1/google-oauth-exchange`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ code, clientId }),
+  })
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(body.error || `Could not connect automatic sync (${response.status}).`)
+  return body
+}
+
+// Turns automatic sync back off by deleting the stored refresh token —
+// through the normal supabase-js client, so it's RLS-scoped to the
+// caller's own row (see calendar_auto_sync.sql's "delete own row" policy).
+export async function deleteGoogleCalendarToken(url, anonKey) {
+  const supabase = getSupabaseClient(url, anonKey)
+  const { data: sessionData } = await supabase.auth.getSession()
+  const userId = sessionData?.session?.user?.id
+  if (!userId) return
+  await supabase.from('google_calendar_tokens').delete().eq('user_id', userId)
+}
+
 export function onAuthStateChange(url, anonKey, callback) {
   const supabase = getSupabaseClient(url, anonKey)
   if (!supabase) return () => {}

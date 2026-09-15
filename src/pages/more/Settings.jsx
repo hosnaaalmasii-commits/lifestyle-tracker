@@ -45,6 +45,7 @@ export default function Settings({ onBack }) {
     setHeadingFont, setDensity, setUseGradientAccents, setGentleMode, setWallpaper,
     setWeightUnit, exportData, importData, clearAll,
     connectGoogleCalendar, disconnectGoogleCalendar, syncTasksToGoogleCalendar,
+    enableCalendarAutoSync, disableCalendarAutoSync,
     setSupabaseConfig, disconnectSupabase, cloudSignUp, cloudSignIn, cloudSignOut, syncNow,
     refreshOura,
   } = useApp()
@@ -64,6 +65,8 @@ export default function Settings({ onBack }) {
   const [calendarError, setCalendarError] = useState('')
   const [calendarSyncing, setCalendarSyncing] = useState(false)
   const [calendarSyncResult, setCalendarSyncResult] = useState(null)
+  const [autoSyncBusy, setAutoSyncBusy] = useState(false)
+  const [autoSyncError, setAutoSyncError] = useState('')
 
   const [ouraKeyInput, setOuraKeyInput] = useState(getOuraApiKey())
   const [ouraStatus, setOuraStatusMsg] = useState('idle') // idle | testing | ok | error
@@ -116,6 +119,22 @@ export default function Settings({ onBack }) {
     setApiKeyInput(value)
     setApiKey(value)
     setTestStatus('idle')
+  }
+
+  const handleToggleAutoSync = async () => {
+    setAutoSyncBusy(true)
+    setAutoSyncError('')
+    try {
+      if (data.settings.googleAutoSyncEnabled) {
+        await disableCalendarAutoSync()
+      } else {
+        await enableCalendarAutoSync()
+      }
+    } catch (e) {
+      setAutoSyncError(e.message || 'Something went wrong.')
+    } finally {
+      setAutoSyncBusy(false)
+    }
   }
 
   const handleSyncCalendar = async () => {
@@ -409,6 +428,26 @@ export default function Settings({ onBack }) {
               </button>
             </div>
             {calendarSyncResult && <div className="text-sm faint">{calendarSyncResult}</div>}
+
+            <div className="row" style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-soft)' }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>Automatic sync</div>
+                <div className="text-sm faint" style={{ maxWidth: 260 }}>
+                  {data.settings.googleAutoSyncEnabled
+                    ? 'Runs once a day on our server, even with the app closed.'
+                    : sync.signedIn
+                      ? 'Requires re-approving Google access once — needed so a daily server job can sync without the app open.'
+                      : 'Sign in to Cloud Sync above first — a daily server job needs your account to store this under.'}
+                </div>
+              </div>
+              <button
+                className={`switch${data.settings.googleAutoSyncEnabled ? ' on' : ''}`}
+                onClick={handleToggleAutoSync}
+                disabled={autoSyncBusy || (!sync.signedIn && !data.settings.googleAutoSyncEnabled)}
+                aria-label="Automatic sync"
+              />
+            </div>
+            {autoSyncError && <div className="text-sm" style={{ color: 'var(--danger)' }}>{autoSyncError}</div>}
           </>
         ) : (
           <>
