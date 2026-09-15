@@ -89,9 +89,9 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
     `calendar.events` (still not the broad `calendar` management scope) so
     scheduled tasks can be pushed in as real events, via
     `syncTasksToCalendar()` (More → Settings → "Taken syncen naar agenda").
-    It's a **manual** sync (7 days ahead, re-run on demand — auto-resync
-    happens on reconnect but not on a timer), because a client-only PWA has
-    no scheduler; `data.googleCalendarEventIds` (`{date: {taskId:
+    The **manual** sync (7 days ahead, re-run on demand — auto-resync
+    happens on reconnect but not on a timer) still works exactly as
+    before; `data.googleCalendarEventIds` (`{date: {taskId:
     eventId}}`) is what makes re-syncing update in place instead of
     duplicating events — don't drop that map without also handling
     duplicate-event cleanup. A Google OAuth Client ID is *not* a secret
@@ -99,8 +99,10 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
     fine to keep in `data.settings.googleClientId` — opposite trust model
     from the Anthropic key, don't conflate the two. The access token itself
     stays in memory only (a ref), never localStorage; a silent,
-    non-prompting reconnect is attempted on load. Still not configured on
-    the user's live site as of this note — optional.
+    non-prompting reconnect is attempted on load. **A second, automatic
+    sync path was added on top of this — see "Automatic Google Calendar
+    sync" below** — the manual button and its token flow are unchanged and
+    still the fallback if the user never enables auto-sync.
   - **Oura** (`ouraApi.js`): BYOK Personal Access Token
     (cloud.ouraring.com/personal-access-tokens), same storage/trust model
     as the Anthropic key — own localStorage slot, never in `data`/export.
@@ -225,8 +227,13 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
     brightening into a glow), Athlete (a comet building a longer trail).
     Fire and Moon got the deepest polish (multiple rounds of "make it look
     more real" — layered gradients, embers, lunar shading/craters); the
-    other eight got one solid pass at the same technique but slightly less
-    iteration — worth another look if asked to refine further.
+    other eight each got a second pass in a later session (forge-glow/
+    fuller for Warrior, bark/roots for Nature, floor-glow/vents for Robot,
+    a tail for the fox, layered inner petals for Plant, wing membranes/
+    horns for Dragon, a wisp tail for Spirit, extra motion trails for
+    Athlete) — still one notch below Fire/Moon's iteration count, but no
+    longer a single bare pass. Worth another look only if the user asks
+    for more, not proactively.
   - Each archetype has its **own fitting 5 stage names**
     (`ARCHETYPE_STAGE_NAMES`) over the *same* shared point thresholds —
     Fire's Spark→Kindle→Rise→Flourish→Radiant, Moon's real phase names,
@@ -275,10 +282,66 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
     underlying daily logs just get re-read through a different archetype's
     weight profile, so switching never resets progress to zero.
   - "Nutrition" as a growth input is a **proxy**, not real macro tracking:
-    the existing 5-item daily checklist (`NUTRITION_KEYS`), since this app
-    doesn't track protein/fiber directly. If the user ever wants literal
-    protein/fiber tracking, that's new scope (a real nutrition subsystem),
-    not a tweak to the existing weighting.
+    the existing 5-item daily checklist (`NUTRITION_KEYS`) still drives
+    growth — the newer per-meal macro logging (see "Meal macro tracking"
+    below) exists as a separate, real number the user can see, but nothing
+    wires it into `characterEngine.js`'s weighting yet. That's a plausible
+    next step, not done.
+- **Wallpaper** (`Wallpaper.jsx` + `Wallpaper.css`, toggled in Settings →
+  Wallpaper, applies to every page — the user's explicit choice when this
+  was scoped): three real-photography backgrounds (Stars/Sea/Rain, all
+  Unsplash, license-verified "Free Photo" before downloading, resized/
+  compressed via `scripts/optimize-wallpapers.mjs`), went through many
+  rounds of "make it more realistic/darker/more cohesive" before landing.
+  Load-bearing details, not stylistic:
+  - **DOM-order stacking, not `z-index`**: `#wallpaper-root` is the first
+    child of `<body>` in `index.html`, before `#root`, so the wallpaper
+    paints behind everything by plain paint order. A negative `z-index`
+    was tried first and proved unreliable for full-page-behind-content
+    stacking in this environment — don't revert to it.
+  - **A wallpaper forces the dark palette, regardless of the user's own
+    Light/Dark/System theme choice** (`global.css`,
+    `:root[data-wallpaper]:not([data-wallpaper="none"])`, higher
+    specificity than `:root[data-theme="light"]`). Found from a real bug
+    report: Light theme's cream `--surface`/dark `--text` values, read by
+    the same translucent-card and on-wallpaper-text rules, produced pale
+    washed-out cards and invisible dark-on-dark headings over a night-sky
+    photo. Wallpapers were always meant to be a dark, moody look on
+    purpose — this makes that true unconditionally instead of only when
+    the user happens to also have Dark theme selected.
+  - **Every wallpaper shares one neutral off-white accent** (`Wallpaper.jsx`,
+    `NEUTRAL_ACCENT`), not a per-photo matched color — an earlier version
+    used saturated per-photo colors (gold/teal/amber) and every button/
+    ring/tab across the whole app read as that one color, which the user
+    flagged as "everything is orange." The neutral accent fixed that but
+    created a second problem: hardcoded `color: #fff` text (on
+    `.btn-primary`, `.chip.selected`, the Settings segmented-control
+    active state, the Coach chat bubble, tags, the voice-log mic button)
+    went illegible on a near-white background. Fixed once, centrally, via
+    a **`--accent-contrast` CSS variable** (`theme.css` default `#fff`,
+    overridden to a dark color by the same wallpaper-active block in
+    `global.css`) — every accent-background element reads this instead of
+    hardcoding a color, so a future accent-background component gets
+    correct contrast for free instead of needing its own fix.
+  - **Filled buttons/chips go translucent-dark under a wallpaper, not a
+    solid accent fill** — after the contrast fix made them legible, the
+    user still flagged them as a stark bright block against the otherwise
+    all-dark UI (screenshotted against the Oura app as the reference for
+    "how this should look" — see the Overview hierarchy note in Design
+    system below for the same reference point reused). `.btn-primary`/
+    `.chip.selected`/`.segmented-btn.active` get a `[data-wallpaper]`-scoped
+    override to the same translucent-card treatment as everything else,
+    with the accent surviving only as a subtle border/tint.
+- **Meal macro tracking** (`mealAnalysis.js`, `data.meals`, Nutrition
+  page's "Log a meal" sheet): real per-meal calories/protein/carbs/fat,
+  distinct from the older 5-item nutrition checklist proxy. One Claude
+  call (vision, when a photo is attached) estimates macros from a name
+  and/or photo — mirrors the voice-logging pipeline's pattern (strict-JSON
+  system prompt, always returns a best-guess estimate with a confidence
+  level rather than refusing on thin input). Gated on `hasApiKey()`, same
+  optional-AI pattern as voice logging. Rides the existing whole-blob
+  Supabase sync automatically (`data.meals` is just another top-level
+  array) — no new table.
 - **Explicitly out of scope**, on purpose: social/multiplayer features
   (personal single-user app by explicit request), fridge/camera
   computer-vision features, a third paid network service for Safari
@@ -385,10 +448,14 @@ tiny always-on trigger a static GitHub Pages site can't provide on its own:
   key is a real secret and was deliberately never typed into any command,
   SQL editor, or web form by automation in that session — it was written to
   a local file and handed to the project owner to paste into the Supabase
-  Dashboard's Edge Function secret `VAPID_PRIVATE_KEY` themselves. **As of
-  the end of that session it was unconfirmed whether the user had actually
-  set that secret yet** — if push notifications aren't firing, check that
-  first before debugging the function logic.
+  Dashboard's Edge Function secret `VAPID_PRIVATE_KEY` themselves.
+  **Confirmed set in a later session** (checked the Supabase Secrets page
+  directly — it was genuinely missing, which is exactly why push had never
+  fired; the user gave explicit go-ahead to paste it in, mirroring the
+  same "never type a secret without asking" rule). If push still isn't
+  arriving, check next: the user is on the installed home-screen PWA (not
+  a Safari tab), has tapped "Meldingen inschakelen op dit apparaat", and
+  `cron.job_run_details` in Supabase for actual invocation errors.
 - **Client side**: `vite.config.js` switched `vite-plugin-pwa` from
   `generateSW` to **`strategies: 'injectManifest'`** (`srcDir: 'src'`,
   `filename: 'sw.js'`) specifically so `src/sw.js` could carry custom
@@ -413,6 +480,86 @@ tiny always-on trigger a static GitHub Pages site can't provide on its own:
   confirming with the user if push reports "not working" on their iPhone
   specifically — the fix might just be "open the home-screen icon, not
   Safari."
+
+## Automatic Google Calendar sync
+
+A second exception to "no custom backend," same reasoning as push
+notifications: the existing manual Calendar sync (see Architecture above)
+only ever has a short-lived, in-memory access token — nothing a
+background job with the browser closed can use. Automatic sync needed a
+Google **refresh token**, which only comes from the authorization-code
+flow, exchanged server-side with a client secret that can never live in
+the browser.
+
+- **Google Cloud setup, done from scratch in this session** — the
+  project had never been configured before this, despite the manual
+  Calendar feature existing in code (CLAUDE.md previously said "still not
+  configured on the user's live site," which was accurate). New Google
+  Cloud project **"Lifestyle Tracker"** (`eighth-service-508709-n0`),
+  Calendar API enabled, OAuth consent screen configured (External /
+  Testing mode — a personal Gmail account can't use Internal, which needs
+  a Workspace org; the user's own email is added as the one test user),
+  and a **Web application** OAuth client (`465688798119-
+  td67kk2kealvlj1gjdtj6snon20m0dbc.apps.googleusercontent.com`,
+  authorized JavaScript origin `https://hosnaaalmasii-commits.github.io`).
+  The ToS acceptance and the "buy usage credits"/billing screens were
+  explicitly left to the user to click through themselves — Claude
+  navigated everything else (Skip for now was used to bypass billing
+  entirely; it isn't needed just to create OAuth credentials).
+- **`src/utils/googleCalendar.js` — `requestGoogleAuthCode()`**: Google
+  Identity Services' **popup code-client** flow (`initCodeClient`),
+  separate from the existing token-client flow the manual connect/sync
+  uses (that one is untouched). Returns a one-time authorization code,
+  not a token.
+- **`supabase/functions/google-oauth-exchange`**: JWT-verified Edge
+  Function (needs to know *which* user is connecting, so unlike push
+  notifications it must be called with the user's own Supabase session
+  token) that exchanges the code for a refresh token via
+  `https://oauth2.googleapis.com/token` — `redirect_uri: 'postmessage'`
+  is Google's documented literal string for the GIS popup flow, not a
+  real URL — and stores it in a new `google_calendar_tokens` table.
+  `GOOGLE_CLIENT_SECRET` is the one Supabase secret this needs (and
+  `sync-calendar-tasks` below reuses the same value); the Client ID
+  itself isn't secret, so it's passed in the request body instead of
+  duplicating it as a second Supabase secret.
+- **`supabase/functions/sync-calendar-tasks`**: JWT verification **OFF**
+  (same reasoning as `send-due-notifications` — only ever invoked by
+  pg_cron inside this project), runs **once daily** via
+  `supabase/calendar_auto_sync.sql`'s cron job (`sync-calendar-tasks-daily`,
+  06:17 UTC — deliberately not once a minute like push notifications,
+  to stay well inside Calendar API rate limits and minimize the
+  whole-blob-write race window against a device actively using the app).
+  For every stored refresh token: mints a fresh access token, reads that
+  user's `taskSchedule` from `app_data`, upserts the next 7 days of
+  Calendar events (a Deno port of `syncTasksToCalendar`'s logic — this
+  function can't import the Vite app's `src/` modules directly), writes
+  the updated `googleCalendarEventIds` map back.
+- **`supabase/calendar_auto_sync.sql`**: creates `google_calendar_tokens`
+  (`user_id` primary key, `refresh_token`, RLS enabled) and the cron
+  job. **One client-facing RLS policy on purpose**: a signed-in user can
+  `delete` their own row (self-revoke, via the normal supabase-js client
+  respecting RLS — `disableCalendarAutoSync()`), but there's no
+  select/insert/update policy — writing the refresh token only ever
+  happens through `google-oauth-exchange`'s service-role client, which
+  bypasses RLS entirely.
+- **`enableCalendarAutoSync`/`disableCalendarAutoSync`** (`AppContext.jsx`)
+  and a **"Automatic sync" toggle** (Settings → Google Calendar, below
+  the existing manual sync button) — gated on being signed into Cloud
+  Sync, same reasoning as push notifications (a server job needs
+  somewhere to look up whose schedule to sync).
+- **Everything above was deployed and smoke-tested successfully**
+  (`sync-calendar-tasks` invoked directly, returned `{"synced":0,"note":
+  "no connected accounts"}` as expected with nobody connected yet). **Not
+  yet confirmed working end-to-end**: the user hit `401 — the OAuth
+  client was not found` when actually trying to connect from the app.
+  The client genuinely exists (re-checked directly in Google Cloud
+  Console right after the error) — most likely cause is Google's own
+  documented propagation delay ("5 minutes to a few hours to take
+  effect" per the console's own warning, and the client was only a few
+  minutes old when the error hit). **If this comes up again: first ask
+  the user to retry**, then double-check the pasted Client ID matches
+  exactly (no truncation/whitespace) before assuming anything is broken
+  server-side — the backend itself is confirmed deployed and correct.
 
 ## Design system
 
@@ -440,6 +587,26 @@ tiny always-on trigger a static GitHub Pages site can't provide on its own:
 - Color presets: `colorPresets.js` — grouped into named families rather
   than one flat list. `ColorPicker.jsx` shows a compact "quick pick" row
   by default with a "More shades" expand toggle.
+- **"Wall of same-weight cards" is a recurring visual complaint — the fix
+  pattern, not just a one-off Overview change.** The user sent screenshots
+  of the Oura app as a concrete reference (per the Character System note
+  above, concrete references converge fast; abstract adjectives don't) and
+  named what Oura does that this app didn't: one dominant hero number with
+  generous whitespace, everything else quiet, never many same-weight
+  bordered boxes stacked with equal visual priority. Applied to Overview:
+  the hero score ring got bigger/more padded to stay the obvious focal
+  point (`Ring` 168px → 196px, the number 36px → 54px); several groups of
+  small "icon + one line + chevron" cards that used to each be their own
+  bordered `.card` (calendar status/level bar/GPS phase; the At-a-glance
+  mini stats; the Today's-focus water/sleep/workout rows) were collapsed
+  into **one shared `.card` with a thin divider between rows/columns**
+  instead — same info, far fewer competing borders/shadows. `MiniCard`
+  and `SummaryRow` both dropped their own card chrome and take a
+  `divider` prop for this. The default `.card + .card` gap
+  (`global.css`) also went from 12px to 20px, app-wide. **Reuse this
+  divided-single-card pattern** the next time a page reads as "too many
+  boxes" instead of introducing a new visual treatment — it's now the
+  established fix, not a one-off.
 
 ## Known environment quirks (don't re-debug these)
 
@@ -575,89 +742,121 @@ preinstalled.** What's true there instead:
   this environment renders at — don't take an empty-looking Table Editor
   as evidence of no tables; verify via the SQL Editor instead.
 
+**A later session, same Windows PC, different harness** (Claude Code
+desktop app rather than the surface used above) found `git` genuinely
+installed but **not on PATH for this shell** — don't conclude it needs
+`winget install` again. It's at
+`$env:LOCALAPPDATA\Programs\Git\cmd\git.exe`; call it via
+`$git = "$env:LOCALAPPDATA\Programs\Git\cmd\git.exe"; & $git <args>`
+rather than a bare `git` command. Also true in this harness:
+
+- **The desktop app's "Claude in Chrome" browser tool runs on this same
+  machine** — a file it downloads (e.g. a Google Cloud "Download JSON"
+  for an OAuth client secret) lands in the normal Windows Downloads
+  folder and is readable with the regular file-reading tool immediately
+  after. Delete it once the value is captured — don't leave a secret
+  sitting in Downloads as plaintext.
+- **Navigating a Claude-in-Chrome tab away from a page with unsaved
+  edits (e.g. the Supabase SQL Editor with an untyped query) throws a
+  "Leave site?" block**, and a `force` navigation flag did not bypass it
+  in practice. Opening a fresh tab instead of reusing the stale one was
+  the reliable fix every time this came up.
+- **The `computer` screenshot action in that same browser tool
+  intermittently timed out** (`CDP sendCommand "Page.captureScreenshot"
+  timed out`) on otherwise-fine pages, especially right after a click.
+  A bare retry of the same screenshot call, or falling back to
+  `get_page_text`/`read_page` for that step, worked every time — this
+  wasn't a sign the page or action had actually failed.
+- **This harness's own dev-server error/log tool (`preview_logs`)
+  returned one specific stale cached error message repeatedly, unchanged
+  timestamp, across multiple full page reloads and re-checks**, well
+  after the underlying syntax error had actually been fixed and
+  confirmed fixed via DOM checks and screenshots. This is the same
+  known-stale-tooling class documented earlier in this file for a
+  different harness — same fix: trust a direct DOM check
+  (`document.body.innerText.includes(...)`, a real screenshot of
+  rendered content) over what the log tool reports before concluding a
+  fix didn't take.
+
 ## Current status (as of this note)
 
-Everything is **committed, pushed, and deployed** — most recent commit on
-`main` is `0c62b9e` ("Add weekly/monthly progress rollup, measurements,
-calorie review (item 6)"). No known open bugs in the older feature set;
-the `position:fixed`/portal fix (`01675ae`) is still worth re-confirming
-with the user on both their phone and PC if it comes up, since it was
-found and fixed based on a screenshot rather than a live confirmed retest.
+Everything is **committed, pushed, and deployed** to `main`. This note's
+session shipped, in order: the wallpaper feature (real-photography
+backgrounds, dark-palette-forced-under-wallpaper fix, the
+`--accent-contrast` contrast fix, translucent-not-solid buttons), a fix
+confirming and setting the previously-unconfirmed `VAPID_PRIVATE_KEY`
+secret (push notifications should now actually fire), Fintech's
+`OverviewTerminal` now showing `TodayTasks`, a second visual pass on the
+eight less-polished Character System archetypes, real per-meal macro
+tracking (`data.meals`, AI-analyzed from name/photo), a full **automatic
+Google Calendar sync** build (new Google Cloud project + two new Edge
+Functions + new Supabase table — deployed and smoke-tested, but not yet
+confirmed working end-to-end, see "Automatic Google Calendar sync"
+above), and an Overview-page hierarchy pass referencing the Oura app
+(hero ring enlarged, several card groups consolidated into single
+divided cards — see the "wall of same-weight cards" note in Design
+system above).
 
-The **transformation-plan tracker session** (this note's main update)
-shipped all six items from the user's spec, verified with real production
-builds and dev-preview testing throughout, across these commits:
-`4caa3ae` (task schedule + meal rotation + editable schema, items 1/3),
-`e25e5d3` (moved the seed data file to `src/data/`), `89e185f` +
-`1788c5f` (push notification backend + client, item 2), `ac6db38`
-(Google Calendar write-sync + Oura, items 4/5), `0c62b9e` (progress
-rollup, item 6). See "Transformation-plan tracker" and "Push
-notifications" above for the full architecture. **Open loose end**: the
-`VAPID_PRIVATE_KEY` Supabase secret was handed off to the user to set
-manually and was unconfirmed as done by the end of that session — real
-push notifications won't fire until it is.
+**Two genuinely open items from this session** (not bugs, just
+unfinished):
+1. **Automatic Calendar sync isn't confirmed working yet** — the user hit
+   a `401 OAuth client not found` error connecting from the app,
+   most likely Google's own propagation delay on a brand-new OAuth
+   client (created minutes before the error). Ask the user to retry; see
+   "Automatic Google Calendar sync" above for the full troubleshooting
+   note before assuming anything is broken server-side.
+2. **No Anthropic API key is configured on the user's live site** — the
+   user asked to set one up, got as far as understanding the cost
+   (Claude API billing is separate from any Claude.ai subscription;
+   realistic personal use of this app's AI features is roughly $1-2/
+   month on Sonnet 5, under $1 on Haiku 4.5) and explicitly said to hold
+   off before a key was actually created. Nothing was created — pick this
+   back up only if the user brings it up again. Without a key, AI Coach,
+   meal-photo macro analysis, and voice-logging's AI-parse step are all
+   inactive (the app degrades gracefully — manual logging and everything
+   else works with zero key).
 
-Also discovered (not caused) this session: the user's Supabase project
-"Tessera" had **auto-paused from inactivity**, which is why it looked
-empty on first glance — once resumed, it turned out the whole
-`app_data`/normalized/encrypted schema was already live with real
-synced data (2 users, logged water/weight rows). Nothing was actually
-broken or lost; don't re-run the schema-setup SQL files as if from
-scratch if this comes up again, just check whether the project needs
-resuming.
+Also discovered (not caused) in an earlier session: the user's Supabase
+project "Tessera" had **auto-paused from inactivity**, which is why it
+looked empty on first glance — once resumed, the whole schema was
+already live with real synced data. Don't re-run schema-setup SQL files
+from scratch if this comes up again, just check whether the project
+needs resuming.
 
-Shipped and stable in earlier sessions, on top of the prior v1/v2 feature
-set:
-- **Voice logging works with zero API key configured** (mic + "Save as
-  note" → `data.notes`); AI parsing remains an optional upgrade layer.
-- **Hydration Autopilot** (Water page): an adjusted daily target (baseline
-  + workout/cycle bumps) with a status label and one action, not a raw ml
-  readout.
-- **Cycle-aware coaching**: phase estimation (`cyclePhase.js`, always
-  estimate-qualified copy, never diagnostic), feeding a hydration nudge, a
-  workout-readiness nudge (extends the existing `suggestTier` heuristic,
-  and specifically backs off if the user's own logged history shows they
-  train through their period fine — generic template only applies until
-  real personal data overrides it), and a Nutrition-page tip.
-- **Cloud Sync**: fully configured and verified end-to-end on the user's
-  own live Supabase project (see Architecture above).
-- **The full Character System**, replacing Spark and Companion State.
+Shipped and stable from earlier sessions, on top of the prior feature
+set: voice logging works with zero API key configured (mic + "Save as
+note" → `data.notes`, AI parsing is an optional upgrade layer);
+Hydration Autopilot; cycle-aware coaching; Cloud Sync (fully configured
+and verified on the user's own live Supabase project); the full
+Character System, replacing Spark and Companion State; the full
+transformation-plan tracker (task schedule, meal rotation, push
+notification backend, manual Calendar write-sync, Oura integration,
+progress rollup).
 
 ## Next steps
 
-1. **Confirm the `VAPID_PRIVATE_KEY` Supabase secret got set** (More →
-   Edge Functions → send-due-notifications → Secrets) — this is the one
-   thing standing between the push-notification backend and it actually
-   sending anything. If notifications still don't arrive after that's
-   confirmed set, check next: the user is using the **installed
-   home-screen PWA** on iOS (not a Safari tab — push silently can't work
-   there), they've tapped "Meldingen inschakelen op dit apparaat" in More
-   → Dagschema & Menu, and `cron.job_run_details` in Supabase for
-   actual invocation errors.
-2. Fintech's `OverviewTerminal.jsx` doesn't show `TodayTasks` (the new
-   day-screen checklist) — only the Classic Overview layout has it. Worth
-   wiring in if the user uses Fintech style day-to-day.
-3. Google Calendar sync (item 4) is manual-only (a button, not a
-   background job) — if the user wants it automatic, that would mean
-   either a second cron-triggered Edge Function (same pattern as push
-   notifications) or accepting the manual-button tradeoff long-term;
-   worth asking which before building anything.
-4. **Re-confirm with the user, on both their iPhone and PC**, that
+1. **Follow up on the automatic Calendar sync 401** — ask the user to
+   retry connecting now that time has passed since the OAuth client was
+   created. If it still fails, re-verify the exact Client ID pasted into
+   the app matches `465688798119-td67kk2kealvlj1gjdtj6snon20m0dbc.apps.googleusercontent.com`
+   before assuming the backend is broken (it was smoke-tested and works).
+2. **If the user wants AI features (Coach, meal-photo analysis, AI voice
+   parsing) working**, they still need to create and paste in an
+   Anthropic API key — this was scoped and explained but deliberately
+   not done. Don't create one without the user explicitly asking again.
+3. Not yet requested, but a plausible next ask given the pattern so far:
+   wiring the new real meal-macro data (`data.meals`) into the Character
+   System's growth weighting as a second nutrition signal alongside the
+   existing 5-item checklist proxy — or extending the voice pipeline to
+   also cover weight/sleep intents.
+4. If asked to deepen the Character System's visuals further, or touch
+   Fintech visuals: get a concrete reference (named app/brand/image)
+   before building — abstract adjectives alone have repeatedly taken
+   many rounds to converge (six rounds for the original Character System
+   direction; the Oura screenshots this session are the model for how a
+   concrete reference should look going in).
+5. **Re-confirm with the user, on both their iPhone and PC**, that
    companion onboarding/interaction still works correctly after the
    `position:fixed` portal fix from an earlier session — this was
    diagnosed and fixed via a screenshot rather than a live confirmed
    retest, and it's easy for this to get lost among newer work.
-5. Not yet requested, but a plausible next ask given the pattern so far:
-   extending the voice pipeline to also cover weight and sleep intents.
-6. If asked to deepen the Character System's visuals further: Fire and
-   Moon got the most polish; Warrior/Nature/Robot/Animal/Plant/Dragon/
-   Spirit/Athlete each got one solid pass at the same
-   gradient-plus-radial-glow technique but less iteration — a reasonable
-   place to focus if the user wants more.
-7. If the user ever wants real protein/fiber tracking (currently just the
-   5-item nutrition checklist used as a proxy everywhere it's needed,
-   including as a Character System growth input), that's new scope, not a
-   tweak.
-8. If asked to touch Fintech or Character System visuals again, get a
-   concrete reference (named app/brand/image) before building — abstract
-   adjectives alone took six rounds to converge last time.
