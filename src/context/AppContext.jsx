@@ -77,6 +77,7 @@ const DEFAULT_DATA = {
   weight: [],
   mood: [],
   nutrition: {},
+  meals: [],
   photos: [],
   habitContracts: [],
   painLog: {},
@@ -467,6 +468,11 @@ export function AppProvider({ children }) {
 
     addPhoto: (photo) => setData((d) => ({ ...d, photos: [...d.photos, { id: makeId(), ...photo }].sort((a, b) => a.date.localeCompare(b.date)) })),
     deletePhoto: (id) => setData((d) => ({ ...d, photos: d.photos.filter((p) => p.id !== id) })),
+
+    addMeal: (meal, dateKey = todayKey()) => {
+      setData((d) => ({ ...d, meals: [...d.meals, { id: makeId(), date: dateKey, loggedAt: Date.now(), ...meal }].sort((a, b) => a.date.localeCompare(b.date) || a.loggedAt - b.loggedAt) }))
+    },
+    deleteMeal: (id) => setData((d) => ({ ...d, meals: d.meals.filter((m) => m.id !== id) })),
 
     addHabitContract: (contract) => {
       setData((d) => ({ ...d, habitContracts: [...d.habitContracts, { id: makeId(), createdAt: todayKey(), ...contract }] }))
