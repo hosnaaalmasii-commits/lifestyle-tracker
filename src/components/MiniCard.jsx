@@ -1,13 +1,19 @@
 import Icon from './Icon'
 
-export default function MiniCard({ label, value, sub, icon, accent, onClick }) {
+// Deliberately no card chrome of its own (no border/background/shadow) —
+// meant to sit as one column inside a single shared .card via a
+// borderLeft divider, Oura's top-row-of-bare-stats look, rather than as
+// its own boxed card. Three of these next to each other used to be three
+// separate bordered boxes; one shared card with quiet dividers between
+// columns reads as one glanceable strip instead.
+export default function MiniCard({ label, value, sub, icon, accent, onClick, divider }) {
   return (
     <button
-      className="card"
       onClick={onClick}
       style={{
-        flex: 1, textAlign: 'left', cursor: onClick ? 'pointer' : 'default',
-        border: '1px solid var(--border-soft)', minWidth: 0,
+        flex: 1, textAlign: 'left', cursor: onClick ? 'pointer' : 'default', minWidth: 0,
+        background: 'none', border: 'none', padding: '18px 14px',
+        borderLeft: divider ? '1px solid var(--border-soft)' : 'none',
       }}
     >
       <div className="row" style={{ marginBottom: 10, alignItems: 'flex-start' }}>

@@ -427,7 +427,7 @@ export default function Overview({ onNavigate }) {
       )}
 
       <div className="section-title">At a glance</div>
-      <div className="card-row">
+      <div className="card" style={{ display: 'flex', padding: 0 }}>
         <MiniCard
           label="Mood"
           value={todaysMood ? <Icon name={faceIconForEmoji(todaysMood.emoji)} size={22} /> : '—'}
@@ -437,6 +437,7 @@ export default function Overview({ onNavigate }) {
           onClick={() => onNavigate('more', 'mood')}
         />
         <MiniCard
+          divider
           label="Weight"
           value={data.settings.gentleMode ? (latestWeight ? <Icon name="leaf" size={20} /> : '—') : (latestWeight ? `${latestWeight.kg}${data.settings.weightUnit}` : '—')}
           sub={data.settings.gentleMode ? 'Gentle mode' : (latestWeight ? latestWeight.date.slice(5) : 'No entries')}
@@ -445,6 +446,7 @@ export default function Overview({ onNavigate }) {
           onClick={() => onNavigate('more', 'weight')}
         />
         <MiniCard
+          divider
           label="Nutrition"
           value={`${nutritionCount}/5`}
           sub="today"
@@ -457,7 +459,7 @@ export default function Overview({ onNavigate }) {
       {!fintechOn && (
         <>
           <div className="section-title">Today's focus</div>
-          <div className="stack">
+          <div className="card" style={{ padding: '4px 18px' }}>
             <SummaryRow
               color="var(--accent-water)"
               label="Water"
@@ -468,6 +470,7 @@ export default function Overview({ onNavigate }) {
               onClick={() => onNavigate('water')}
             />
             <SummaryRow
+              divider
               color="var(--accent-sleep)"
               label="Sleep"
               value={sleepToday ? `${sleepToday.hours}h logged` : `Goal: ${data.settings.sleepGoalHours}h`}
@@ -478,6 +481,7 @@ export default function Overview({ onNavigate }) {
               onClick={() => onNavigate('sleep')}
             />
             <SummaryRow
+              divider
               color="var(--accent-workout)"
               label="Workout"
               value={isRestDay ? 'Rest day' : (workoutCompleted ? 'Completed' : todaysWorkout?.label || 'Not set up')}
@@ -497,10 +501,20 @@ function weekdayAbbrev(key) {
   return days[new Date(y, m - 1, d).getDay()]
 }
 
-function SummaryRow({ color, label, value, ratio, trend, delta, deltaSuffix = '', onClick }) {
+// No card chrome of its own — three of these used to be three separate
+// bordered cards in a .stack; now they're rows sharing one .card with a
+// divider between them, same "one strip, not a pile of boxes" idea as
+// the Overview quick-links card and the At-a-glance mini stats.
+function SummaryRow({ color, label, value, ratio, trend, delta, deltaSuffix = '', onClick, divider }) {
   const hasTrend = trend && trend.some((v) => v > 0)
   return (
-    <button className="card" onClick={onClick} style={{ textAlign: 'left', cursor: 'pointer' }}>
+    <button
+      onClick={onClick}
+      style={{
+        textAlign: 'left', cursor: 'pointer', width: '100%', background: 'none', border: 'none',
+        padding: '16px 0', borderTop: divider ? '1px solid var(--border-soft)' : 'none',
+      }}
+    >
       <div className="row">
         <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
           <span className="badge-dot" style={{ background: color }} />
