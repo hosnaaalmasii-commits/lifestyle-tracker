@@ -185,6 +185,25 @@ a { color: inherit; }
   background: transparent;
 }
 
+/* Filled "primary" elements (CTA buttons, selected chips/toggles)
+   normally fill solidly with --accent-fill — under a wallpaper that's
+   the neutral off-white accent, so next to the dark translucent cards
+   everywhere else, a "+ Add photo" or "Generate my schedule" button
+   read as a stark bright-white block, breaking the same dark, moody
+   look every card already has. Give these the same translucent dark
+   treatment instead, with the accent kept only as a border/tint so a
+   selected state still reads clearly rather than disappearing into a
+   plain card. */
+[data-wallpaper]:not([data-wallpaper="none"]) .btn-primary,
+[data-wallpaper]:not([data-wallpaper="none"]) .chip.selected,
+[data-wallpaper]:not([data-wallpaper="none"]) .segmented-btn.active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface) 68%);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--text);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+}
+
 /* ---------- Buttons ---------- */
 
 .btn {
