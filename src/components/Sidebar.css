@@ -20,7 +20,15 @@
   max-width: 320px;
   height: 100%;
   height: 100dvh;
-  background: var(--surface);
+  /* --bg-soft, not --surface: under Fintech, --surface is redefined to a
+     near-transparent rgba(255,255,255,0.07) meant to be paired with
+     backdrop-filter blur on small .card elements — correct for a card
+     floating over a photo, but it left this full-height drawer almost
+     see-through, with the page behind bleeding straight through the menu
+     text. --bg-soft stays a solid opaque color in every style/theme
+     (Classic, Fintech, wallpaper-on-or-off alike), which a full-screen
+     drawer that's meant to fully obscure what's behind it actually needs. */
+  background: var(--bg-soft);
   border-right: 1px solid var(--border-soft);
   box-shadow: var(--shadow-lg);
   padding: calc(env(safe-area-inset-top, 0px) + 22px) 22px calc(var(--safe-bottom) + 22px);
