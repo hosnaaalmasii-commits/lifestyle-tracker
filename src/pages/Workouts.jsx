@@ -403,7 +403,7 @@ function WorkoutPlan({
                       border: `2px solid ${done ? 'var(--accent-workout)' : 'var(--border)'}`,
                       background: done ? 'var(--accent-workout)' : 'transparent',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: '#fff', fontSize: 13, transition: 'all 0.15s ease',
+                      color: 'var(--accent-contrast)', fontSize: 13, transition: 'all 0.15s ease',
                     }}
                   >
                     {done && <Icon name="check" size={13} />}

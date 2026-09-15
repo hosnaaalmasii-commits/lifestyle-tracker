@@ -187,7 +187,7 @@ export default function VoiceLogSheet({ open, onClose }) {
                 style={{
                   width: 72, height: 72, borderRadius: '50%', border: 'none', cursor: 'pointer',
                   background: listening ? 'var(--danger)' : 'var(--accent-fill)',
-                  color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: listening ? '#fff' : 'var(--accent-contrast)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: 'var(--shadow-md)',
                   animation: listening ? 'mic-pulse 1.2s ease-in-out infinite' : 'none',
                 }}

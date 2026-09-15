@@ -58,7 +58,7 @@ export default function LifestyleGPS({ onBack }) {
                     <p className="text-sm muted" style={{ marginTop: 4, lineHeight: 1.5, maxWidth: 260 }}>{phase.description}</p>
                   </div>
                 </div>
-                {state === 'current' && <span className="tag" style={{ background: 'var(--accent)', color: '#fff', whiteSpace: 'nowrap' }}>You are here</span>}
+                {state === 'current' && <span className="tag" style={{ background: 'var(--accent)', color: 'var(--accent-contrast)', whiteSpace: 'nowrap' }}>You are here</span>}
               </div>
               {state === 'locked' && (
                 <div className="text-sm faint mono" style={{ marginTop: 8 }}>Unlocks at Consistency Score {phase.threshold}</div>

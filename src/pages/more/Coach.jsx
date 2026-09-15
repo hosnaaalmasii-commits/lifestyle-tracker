@@ -166,7 +166,7 @@ export default function Coach({ onBack, setView }) {
               alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
               maxWidth: '85%',
               background: m.role === 'user' ? 'var(--accent-fill)' : 'var(--surface-soft)',
-              color: m.role === 'user' ? '#fff' : 'var(--text)',
+              color: m.role === 'user' ? 'var(--accent-contrast)' : 'var(--text)',
               padding: '10px 14px',
               borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
               fontSize: 14.5,

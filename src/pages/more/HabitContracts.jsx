@@ -47,7 +47,7 @@ export default function HabitContracts({ onBack }) {
                     <div className="text-sm faint">If {type ? type.label.toLowerCase().replace(/^i /, '') : c.triggerType}{type?.hasParam ? ` (${c.param}h)` : ''}…</div>
                     <div style={{ fontWeight: 600, marginTop: 4 }}>{c.response}</div>
                   </div>
-                  {active && <span className="tag" style={{ background: 'var(--accent)', color: '#fff', whiteSpace: 'nowrap' }}>Active today</span>}
+                  {active && <span className="tag" style={{ background: 'var(--accent)', color: 'var(--accent-contrast)', whiteSpace: 'nowrap' }}>Active today</span>}
                 </div>
                 <button
                   className="btn-ghost"

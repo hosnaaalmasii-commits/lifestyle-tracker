@@ -161,6 +161,12 @@ a { color: inherit; }
   --text-faint: #837e69;
   --moss: #8ba377;
   --moss-soft: #263020;
+  /* Every hand-picked Classic accent is mid-to-dark, so white text/icons
+     on top of it (buttons, selected chips, tags, the mic button) always
+     worked — but a wallpaper's accent is a neutral off-white, where white
+     text disappears. This flips every one of those call sites at once via
+     var(--accent-contrast) instead of patching each usage. */
+  --accent-contrast: #221f18;
 }
 
 /* When a Wallpaper (Wallpaper.jsx) is active, cards go translucent with a
@@ -177,15 +183,6 @@ a { color: inherit; }
 }
 [data-wallpaper]:not([data-wallpaper="none"]) .page {
   background: transparent;
-}
-
-/* The wallpaper accent is a neutral off-white (so it doesn't fight the
-   photo), but .btn-primary/.chip.selected hardcode white text for the
-   normal (dark accent) case — illegible on a near-white background.
-   Swap to a dark, readable text color only while a wallpaper is active. */
-[data-wallpaper]:not([data-wallpaper="none"]) .btn-primary,
-[data-wallpaper]:not([data-wallpaper="none"]) .chip.selected {
-  color: #221f18;
 }
 
 /* ---------- Buttons ---------- */
@@ -210,7 +207,7 @@ a { color: inherit; }
 
 .btn-primary {
   background: var(--accent-fill);
-  color: #fff;
+  color: var(--accent-contrast);
   box-shadow: var(--shadow-sm);
 }
 
@@ -254,7 +251,34 @@ a { color: inherit; }
 .chip.selected {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast);
+}
+
+.segmented-control {
+  display: flex;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  gap: 2px;
+}
+
+.segmented-btn {
+  flex: 1;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-soft);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.segmented-btn.active {
+  background: var(--accent);
+  color: var(--accent-contrast);
 }
 
 /* ---------- Forms ---------- */

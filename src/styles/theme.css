@@ -27,6 +27,13 @@
   --accent-gradient-end: #c9a6f2;
   --accent-fill: var(--accent);
   --ring-fill: var(--accent-ring);
+  /* Text/icon color for anything sitting on an accent-colored background
+     (buttons, selected chips, tags, the mic button). White works for
+     every hand-picked accent color, which is always mid-to-dark — but
+     a wallpaper's accent is a neutral off-white (see global.css), where
+     white text/icons disappear. Flipped to a dark color there instead of
+     hardcoding #fff at each call site. */
+  --accent-contrast: #fff;
 
   /* Fintech style gradient — overridden at runtime from the chosen preset */
   --fintech-grad-from: #7C3AED;
