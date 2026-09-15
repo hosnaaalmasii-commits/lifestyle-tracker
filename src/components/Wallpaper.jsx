@@ -55,16 +55,27 @@ export const WALLPAPER_OPTIONS = [
     accent: NEUTRAL_ACCENT,
     palette: WARM_PALETTE,
   },
+  // No `file` — the image is whatever the user uploaded (a data URL held
+  // in data.settings.customWallpaper), not a static asset shipped with
+  // the app. Same accent/palette treatment as the built-in photos, since
+  // there's no way to know an arbitrary uploaded photo's own colors.
+  {
+    key: 'custom', label: 'Your photo',
+    accent: NEUTRAL_ACCENT,
+    palette: WARM_PALETTE,
+  },
 ]
 
 const BASE = import.meta.env.BASE_URL
 
-export default function Wallpaper({ type }) {
+export default function Wallpaper({ type, customUrl }) {
   const opt = WALLPAPER_OPTIONS.find((w) => w.key === type)
-  if (!opt || !opt.file || typeof document === 'undefined') return null
+  if (!opt || typeof document === 'undefined') return null
+  const imageUrl = type === 'custom' ? customUrl : (opt.file ? `${BASE}wallpapers/${opt.file}` : null)
+  if (!imageUrl) return null
   const target = document.getElementById('wallpaper-root') || document.body
   return createPortal(
-    <div className="wallpaper" style={{ backgroundImage: `url(${BASE}wallpapers/${opt.file})` }}>
+    <div className="wallpaper" style={{ backgroundImage: `url(${imageUrl})` }}>
       <div className="wallpaper-vignette" />
     </div>,
     target

@@ -5,6 +5,7 @@ import { FINTECH_GRADIENTS } from '../../utils/fintechGradients'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
 import { getOuraApiKey, setOuraApiKey } from '../../utils/ouraApi'
 import { WALLPAPER_OPTIONS } from '../../components/Wallpaper'
+import { resizeImageToDataUrl } from '../../utils/image'
 import { PERSONALITIES } from '../../utils/coachContext'
 import { isCloudSyncConfigured } from '../../utils/supabaseClient'
 import BackHeader from '../../components/BackHeader'
@@ -43,6 +44,7 @@ export default function Settings({ onBack }) {
   const {
     data, sync, setThemeMode, setUiStyle, setFintechGradient, setColor, resetColors, applyThemePreset,
     setHeadingFont, setDensity, setUseGradientAccents, setGentleMode, setWallpaper,
+    setCustomWallpaper, removeCustomWallpaper,
     setWeightUnit, exportData, importData, clearAll,
     connectGoogleCalendar, disconnectGoogleCalendar, syncTasksToGoogleCalendar,
     enableCalendarAutoSync, disableCalendarAutoSync,
@@ -53,6 +55,30 @@ export default function Settings({ onBack }) {
   const [confirmClear, setConfirmClear] = useState(false)
   const [importError, setImportError] = useState('')
   const [importedOk, setImportedOk] = useState(false)
+
+  const wallpaperFileRef = useRef(null)
+  const [wallpaperBusy, setWallpaperBusy] = useState(false)
+  const [wallpaperError, setWallpaperError] = useState('')
+
+  const handleWallpaperFile = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setWallpaperBusy(true)
+    setWallpaperError('')
+    try {
+      // 1600px matches the built-in wallpapers' own resize target
+      // (scripts/optimize-wallpapers.mjs) — big enough to cover a full
+      // screen without visible softness, small enough to stay reasonable
+      // in localStorage/Cloud Sync as a base64 data URL.
+      const { dataUrl } = await resizeImageToDataUrl(file, 1600, 0.82)
+      setCustomWallpaper(dataUrl)
+    } catch {
+      setWallpaperError('Could not read that image — try a different file.')
+    } finally {
+      setWallpaperBusy(false)
+      e.target.value = ''
+    }
+  }
 
   const [apiKeyInput, setApiKeyInput] = useState(getApiKey())
   const [showKey, setShowKey] = useState(false)
@@ -274,7 +300,7 @@ export default function Settings({ onBack }) {
           An animated background behind every page. Cards go translucent so it reads through.
         </p>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-          {WALLPAPER_OPTIONS.map((w) => (
+          {WALLPAPER_OPTIONS.filter((w) => w.key !== 'custom').map((w) => (
             <button
               key={w.key}
               className={`btn btn-sm ${data.settings.wallpaper === w.key ? 'btn-primary' : 'btn-secondary'}`}
@@ -283,6 +309,36 @@ export default function Settings({ onBack }) {
               {w.label}
             </button>
           ))}
+        </div>
+
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-soft)' }}>
+          {data.settings.customWallpaper ? (
+            <div className="row" style={{ gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <img
+                src={data.settings.customWallpaper.dataUrl}
+                alt="Your uploaded wallpaper"
+                style={{ width: 52, height: 52, borderRadius: 'var(--radius-sm)', objectFit: 'cover', flexShrink: 0 }}
+              />
+              <button
+                className={`btn btn-sm ${data.settings.wallpaper === 'custom' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setWallpaper('custom')}
+              >
+                {data.settings.wallpaper === 'custom' ? 'Using your photo' : 'Use your photo'}
+              </button>
+              <button className="btn btn-ghost btn-sm" disabled={wallpaperBusy} onClick={() => wallpaperFileRef.current?.click()}>
+                Replace
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={removeCustomWallpaper}>
+                Remove
+              </button>
+            </div>
+          ) : (
+            <button className="btn btn-secondary btn-sm" disabled={wallpaperBusy} onClick={() => wallpaperFileRef.current?.click()}>
+              {wallpaperBusy ? 'Processing…' : '+ Upload your own photo'}
+            </button>
+          )}
+          {wallpaperError && <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 8 }}>{wallpaperError}</div>}
+          <input ref={wallpaperFileRef} type="file" accept="image/*" hidden onChange={handleWallpaperFile} />
         </div>
       </div>
 

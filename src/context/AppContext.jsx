@@ -62,6 +62,13 @@ const DEFAULT_DATA = {
     timezone: '',
     pushEnabled: false,
     wallpaper: 'none',
+    // A user-uploaded wallpaper photo, resized client-side to a data URL
+    // (utils/image.js — same approach already used for Progress photos
+    // and meal photos) rather than a file path under public/wallpapers,
+    // since there's nowhere to upload an actual file to on a static
+    // GitHub Pages site. Rides the existing whole-blob Cloud Sync and
+    // Export/Import automatically, same as any other settings field.
+    customWallpaper: null, // { dataUrl } | null
   },
   taskSchedule: seedTaskSchedule(),
   mealRotation: structuredClone(transformatieplan.meal_rotation || null),
@@ -613,6 +620,18 @@ export function AppProvider({ children }) {
     setUseGradientAccents: (on) => setData((d) => ({ ...d, settings: { ...d.settings, useGradientAccents: on } })),
     setGentleMode: (on) => setData((d) => ({ ...d, settings: { ...d.settings, gentleMode: on } })),
     setWallpaper: (key) => setData((d) => ({ ...d, settings: { ...d.settings, wallpaper: key } })),
+    setCustomWallpaper: (dataUrl) => setData((d) => ({
+      ...d,
+      settings: { ...d.settings, customWallpaper: { dataUrl }, wallpaper: 'custom' },
+    })),
+    removeCustomWallpaper: () => setData((d) => ({
+      ...d,
+      settings: {
+        ...d.settings,
+        customWallpaper: null,
+        wallpaper: d.settings.wallpaper === 'custom' ? 'none' : d.settings.wallpaper,
+      },
+    })),
 
     connectGoogleCalendar: async (clientId) => {
       setData((d) => ({ ...d, settings: { ...d.settings, googleClientId: clientId } }))

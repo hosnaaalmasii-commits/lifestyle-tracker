@@ -48,7 +48,7 @@ function Shell() {
   if (comeback.isComeback && !comebackDismissed) {
     return (
       <div className="app-shell">
-        <Wallpaper type={data.settings.wallpaper} />
+        <Wallpaper type={data.settings.wallpaper} customUrl={data.settings.customWallpaper?.dataUrl} />
         <ComebackScreen
           gapDays={comeback.gapDays}
           onContinue={() => setComebackDismissed(true)}
@@ -60,7 +60,7 @@ function Shell() {
 
   return (
     <div className="app-shell">
-      <Wallpaper type={data.settings.wallpaper} />
+      <Wallpaper type={data.settings.wallpaper} customUrl={data.settings.customWallpaper?.dataUrl} />
       <div className="menu-fab-wrap">
         <div className="menu-fab-inner">
           <button className="menu-fab" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
