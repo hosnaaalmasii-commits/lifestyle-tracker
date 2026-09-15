@@ -15,6 +15,25 @@ import {
   getSession, onAuthStateChange, reconcile, pushToCloud, markLocalModified,
   exchangeGoogleAuthCode, deleteGoogleCalendarToken,
 } from '../utils/cloudSync'
+// The normalized/encrypted Supabase tables (see supabase/normalized_tables.sql
+// and supabase/encrypted_tables.sql) — built in an earlier session, live on
+// the user's Supabase project, but never wired up until now. Every relevant
+// action below fires a best-effort dual-write here (see syncNormalized) on
+// top of the existing whole-blob Cloud Sync, which stays untouched as the
+// source of truth for local state and cross-device sync.
+import { upsertWaterLog, deleteWaterLog } from '../services/waterService'
+import { upsertSleepLog, deleteSleepLog } from '../services/sleepService'
+import {
+  upsertWorkoutScheduleDay, setWorkoutCompletion, addExerciseLog, deleteExerciseLog,
+} from '../services/workoutService'
+import { addMoodLog, deleteMoodLog } from '../services/moodService'
+import { upsertNutritionLog } from '../services/nutritionService'
+import { addBudgetEntry, deleteBudgetEntry } from '../services/budgetService'
+import { addScheduleItem as addScheduleItemLog, deleteScheduleItemLog } from '../services/scheduleService'
+import { addWeightLog, deleteWeightLog } from '../services/weightService'
+import { addCycleLog, deleteCycleLog } from '../services/cycleService'
+import { addNote as addNoteLog, deleteNote as deleteNoteLog } from '../services/notesService'
+import { backfillNormalizedTables as runNormalizedBackfill } from '../utils/normalizedBackfill'
 
 const STORAGE_KEY = 'lifestyle-tracker-data-v1'
 
@@ -328,19 +347,34 @@ export function AppProvider({ children }) {
     root.setAttribute('data-wallpaper', wallpaper || 'none')
   }, [data.settings])
 
+  // Best-effort mirror to the normalized Supabase tables — fires only when
+  // signed into Cloud Sync (needs a user to attribute the row to) with
+  // Supabase configured, never blocks or throws into the caller, and never
+  // touches local state or the whole-blob sync either way. `fn` is a
+  // zero-arg thunk returning the service-layer promise, so callers can
+  // build the call with values captured at the moment of the edit.
+  const syncNormalized = (fn) => {
+    if (!isCloudSyncConfigured(data.settings) || !sessionUserRef.current) return
+    fn().catch((err) => console.warn('[normalized sync]', err))
+  }
+
   const actions = useMemo(() => ({
     addWater: (ml, dateKey = todayKey()) => {
       lastWaterAdd.current = { dateKey, ml }
-      setData((d) => ({ ...d, water: { ...d.water, [dateKey]: Math.max(0, (d.water[dateKey] || 0) + ml) } }))
+      const newMl = Math.max(0, (data.water[dateKey] || 0) + ml)
+      setData((d) => ({ ...d, water: { ...d.water, [dateKey]: newMl } }))
+      syncNormalized(() => upsertWaterLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, dateKey, newMl))
     },
     undoLastWater: () => {
       const last = lastWaterAdd.current
       if (!last) return
       lastWaterAdd.current = null
+      const newMl = Math.max(0, (data.water[last.dateKey] || 0) - last.ml)
       setData((d) => ({
         ...d,
-        water: { ...d.water, [last.dateKey]: Math.max(0, (d.water[last.dateKey] || 0) - last.ml) },
+        water: { ...d.water, [last.dateKey]: newMl },
       }))
+      syncNormalized(() => upsertWaterLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, last.dateKey, newMl))
     },
     setWaterGoal: (ml) => setData((d) => ({ ...d, settings: { ...d.settings, waterGoalMl: ml } })),
     setMacroGoals: (goals) => setData((d) => ({ ...d, settings: { ...d.settings, macroGoals: { ...d.settings.macroGoals, ...goals } } })),
@@ -351,10 +385,12 @@ export function AppProvider({ children }) {
         delete water[dateKey]
         return { ...d, water }
       })
+      syncNormalized(() => deleteWaterLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, dateKey))
     },
 
     logSleep: (dateKey, hours, quality) => {
       setData((d) => ({ ...d, sleep: { ...d.sleep, [dateKey]: { hours, quality } } }))
+      syncNormalized(() => upsertSleepLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, dateKey, hours, quality))
     },
     deleteSleep: (dateKey) => {
       setData((d) => {
@@ -362,23 +398,31 @@ export function AppProvider({ children }) {
         delete sleep[dateKey]
         return { ...d, sleep }
       })
+      syncNormalized(() => deleteSleepLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, dateKey))
     },
     setSleepGoal: (hours) => setData((d) => ({ ...d, settings: { ...d.settings, sleepGoalHours: hours } })),
 
     setWorkoutProfile: (profile) => {
       const schedule = generateWorkoutSchedule(profile)
       setData((d) => ({ ...d, workouts: { ...d.workouts, profile, schedule } }))
+      const { supabaseUrl: url, supabaseAnonKey: key } = data.settings
+      for (const s of schedule) {
+        syncNormalized(() => upsertWorkoutScheduleDay(url, key, s.day, s.exercises, !!s.rest))
+      }
     },
     toggleWorkoutDay: (dateKey) => {
+      const newCompleted = !data.workouts.completions[dateKey]
       setData((d) => ({
         ...d,
         workouts: {
           ...d.workouts,
-          completions: { ...d.workouts.completions, [dateKey]: !d.workouts.completions[dateKey] },
+          completions: { ...d.workouts.completions, [dateKey]: newCompleted },
         },
       }))
+      syncNormalized(() => setWorkoutCompletion(data.settings.supabaseUrl, data.settings.supabaseAnonKey, dateKey, newCompleted))
     },
     swapExercise: (day, exerciseIndex) => {
+      let updatedDay = null
       setData((d) => ({
         ...d,
         workouts: {
@@ -391,34 +435,51 @@ export function AppProvider({ children }) {
               if (!region) return ex
               return { ...ex, region, name: getAlternateExercise(region, ex.name) }
             })
-            return { ...s, exercises }
+            updatedDay = { ...s, exercises }
+            return updatedDay
           }),
         },
       }))
+      if (updatedDay) {
+        syncNormalized(() => upsertWorkoutScheduleDay(data.settings.supabaseUrl, data.settings.supabaseAnonKey, day, updatedDay.exercises, !!updatedDay.rest))
+      }
     },
     addCustomExercise: (day, exercise) => {
+      let updatedDay = null
       setData((d) => ({
         ...d,
         workouts: {
           ...d.workouts,
-          schedule: d.workouts.schedule.map((s) =>
-            s.day === day ? { ...s, exercises: [...s.exercises, { ...exercise, custom: true }] } : s
-          ),
+          schedule: d.workouts.schedule.map((s) => {
+            if (s.day !== day) return s
+            updatedDay = { ...s, exercises: [...s.exercises, { ...exercise, custom: true }] }
+            return updatedDay
+          }),
         },
       }))
+      if (updatedDay) {
+        syncNormalized(() => upsertWorkoutScheduleDay(data.settings.supabaseUrl, data.settings.supabaseAnonKey, day, updatedDay.exercises, !!updatedDay.rest))
+      }
     },
     removeExercise: (day, exerciseIndex) => {
+      let updatedDay = null
       setData((d) => ({
         ...d,
         workouts: {
           ...d.workouts,
-          schedule: d.workouts.schedule.map((s) =>
-            s.day === day ? { ...s, exercises: s.exercises.filter((_, i) => i !== exerciseIndex) } : s
-          ),
+          schedule: d.workouts.schedule.map((s) => {
+            if (s.day !== day) return s
+            updatedDay = { ...s, exercises: s.exercises.filter((_, i) => i !== exerciseIndex) }
+            return updatedDay
+          }),
         },
       }))
+      if (updatedDay) {
+        syncNormalized(() => upsertWorkoutScheduleDay(data.settings.supabaseUrl, data.settings.supabaseAnonKey, day, updatedDay.exercises, !!updatedDay.rest))
+      }
     },
     logExercisePR: (exerciseName, weight, reps, dateKey = todayKey()) => {
+      const entryId = makeId()
       setData((d) => ({
         ...d,
         workouts: {
@@ -427,11 +488,12 @@ export function AppProvider({ children }) {
             ...d.workouts.exerciseLogs,
             [exerciseName]: [
               ...(d.workouts.exerciseLogs[exerciseName] || []),
-              { id: makeId(), date: dateKey, weight, reps },
+              { id: entryId, date: dateKey, weight, reps },
             ],
           },
         },
       }))
+      syncNormalized(() => addExerciseLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, entryId, exerciseName, dateKey, weight, reps))
     },
     deleteExercisePR: (exerciseName, id) => {
       setData((d) => ({
@@ -444,31 +506,41 @@ export function AppProvider({ children }) {
           },
         },
       }))
+      syncNormalized(() => deleteExerciseLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, id))
     },
 
     addWeight: (kg, dateKey = todayKey()) => {
-      setData((d) => ({ ...d, weight: [...d.weight, { id: makeId(), date: dateKey, kg }].sort((a, b) => a.date.localeCompare(b.date)) }))
+      const entryId = makeId()
+      setData((d) => ({ ...d, weight: [...d.weight, { id: entryId, date: dateKey, kg }].sort((a, b) => a.date.localeCompare(b.date)) }))
+      syncNormalized(() => addWeightLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, entryId, dateKey, kg))
     },
-    deleteWeight: (id) => setData((d) => ({ ...d, weight: d.weight.filter((w) => w.id !== id) })),
+    deleteWeight: (id) => {
+      setData((d) => ({ ...d, weight: d.weight.filter((w) => w.id !== id) }))
+      syncNormalized(() => deleteWeightLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, id))
+    },
     setWeightUnit: (unit) => setData((d) => ({ ...d, settings: { ...d.settings, weightUnit: unit } })),
 
     addMood: (emoji, note, dateKey = todayKey()) => {
-      setData((d) => ({ ...d, mood: [...d.mood, { id: makeId(), date: dateKey, emoji, note }].sort((a, b) => a.date.localeCompare(b.date)) }))
+      const entryId = makeId()
+      setData((d) => ({ ...d, mood: [...d.mood, { id: entryId, date: dateKey, emoji, note }].sort((a, b) => a.date.localeCompare(b.date)) }))
+      syncNormalized(() => addMoodLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, entryId, dateKey, emoji, note))
     },
-    deleteMood: (id) => setData((d) => ({ ...d, mood: d.mood.filter((m) => m.id !== id) })),
+    deleteMood: (id) => {
+      setData((d) => ({ ...d, mood: d.mood.filter((m) => m.id !== id) }))
+      syncNormalized(() => deleteMoodLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, id))
+    },
 
     setNutritionItem: (dateKey, key, value) => {
+      const fullDay = {
+        breakfast: false, lunch: false, dinner: false, vegetables: false, snacks: false,
+        ...data.nutrition[dateKey],
+        [key]: value,
+      }
       setData((d) => ({
         ...d,
-        nutrition: {
-          ...d.nutrition,
-          [dateKey]: {
-            breakfast: false, lunch: false, dinner: false, vegetables: false, snacks: false,
-            ...d.nutrition[dateKey],
-            [key]: value,
-          },
-        },
+        nutrition: { ...d.nutrition, [dateKey]: fullDay },
       }))
+      syncNormalized(() => upsertNutritionLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, dateKey, fullDay))
     },
 
     addPhoto: (photo) => setData((d) => ({ ...d, photos: [...d.photos, { id: makeId(), ...photo }].sort((a, b) => a.date.localeCompare(b.date)) })),
@@ -485,9 +557,14 @@ export function AppProvider({ children }) {
     deleteHabitContract: (id) => setData((d) => ({ ...d, habitContracts: d.habitContracts.filter((c) => c.id !== id) })),
 
     addCycleEntry: (entry, dateKey = todayKey()) => {
-      setData((d) => ({ ...d, cycle: [...d.cycle, { id: makeId(), date: dateKey, ...entry }].sort((a, b) => a.date.localeCompare(b.date)) }))
+      const entryId = makeId()
+      setData((d) => ({ ...d, cycle: [...d.cycle, { id: entryId, date: dateKey, ...entry }].sort((a, b) => a.date.localeCompare(b.date)) }))
+      syncNormalized(() => addCycleLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, entryId, dateKey, entry.flow, entry.symptoms, entry.note))
     },
-    deleteCycleEntry: (id) => setData((d) => ({ ...d, cycle: d.cycle.filter((c) => c.id !== id) })),
+    deleteCycleEntry: (id) => {
+      setData((d) => ({ ...d, cycle: d.cycle.filter((c) => c.id !== id) }))
+      syncNormalized(() => deleteCycleLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, id))
+    },
 
     addAlcoholEntry: (entry, dateKey = todayKey()) => {
       setData((d) => ({ ...d, alcohol: [...d.alcohol, { id: makeId(), date: dateKey, ...entry }].sort((a, b) => a.date.localeCompare(b.date)) }))
@@ -495,9 +572,14 @@ export function AppProvider({ children }) {
     deleteAlcoholEntry: (id) => setData((d) => ({ ...d, alcohol: d.alcohol.filter((a) => a.id !== id) })),
 
     addExpense: (expense, dateKey = todayKey()) => {
-      setData((d) => ({ ...d, budget: [...d.budget, { id: makeId(), date: dateKey, ...expense }].sort((a, b) => a.date.localeCompare(b.date)) }))
+      const entryId = makeId()
+      setData((d) => ({ ...d, budget: [...d.budget, { id: entryId, date: dateKey, ...expense }].sort((a, b) => a.date.localeCompare(b.date)) }))
+      syncNormalized(() => addBudgetEntry(data.settings.supabaseUrl, data.settings.supabaseAnonKey, entryId, dateKey, expense.amount, expense.category, expense.note))
     },
-    deleteExpense: (id) => setData((d) => ({ ...d, budget: d.budget.filter((b) => b.id !== id) })),
+    deleteExpense: (id) => {
+      setData((d) => ({ ...d, budget: d.budget.filter((b) => b.id !== id) }))
+      syncNormalized(() => deleteBudgetEntry(data.settings.supabaseUrl, data.settings.supabaseAnonKey, id))
+    },
 
     toggleTask: (dateKey, taskId) => {
       setData((d) => {
@@ -569,14 +651,24 @@ export function AppProvider({ children }) {
     deleteMeasurement: (id) => setData((d) => ({ ...d, measurements: d.measurements.filter((m) => m.id !== id) })),
 
     addScheduleItem: (item, dateKey = todayKey()) => {
-      setData((d) => ({ ...d, schedule: [...d.schedule, { id: makeId(), date: dateKey, ...item }].sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))) }))
+      const entryId = makeId()
+      setData((d) => ({ ...d, schedule: [...d.schedule, { id: entryId, date: dateKey, ...item }].sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))) }))
+      syncNormalized(() => addScheduleItemLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, entryId, dateKey, item.time, item.text))
     },
-    deleteScheduleItem: (id) => setData((d) => ({ ...d, schedule: d.schedule.filter((s) => s.id !== id) })),
+    deleteScheduleItem: (id) => {
+      setData((d) => ({ ...d, schedule: d.schedule.filter((s) => s.id !== id) }))
+      syncNormalized(() => deleteScheduleItemLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, id))
+    },
 
     addNote: (text, dateKey = todayKey()) => {
-      setData((d) => ({ ...d, notes: [...d.notes, { id: makeId(), date: dateKey, text, createdAt: Date.now() }] }))
+      const entryId = makeId()
+      setData((d) => ({ ...d, notes: [...d.notes, { id: entryId, date: dateKey, text, createdAt: Date.now() }] }))
+      syncNormalized(() => addNoteLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, entryId, dateKey, text))
     },
-    deleteNote: (id) => setData((d) => ({ ...d, notes: d.notes.filter((n) => n.id !== id) })),
+    deleteNote: (id) => {
+      setData((d) => ({ ...d, notes: d.notes.filter((n) => n.id !== id) }))
+      syncNormalized(() => deleteNoteLog(data.settings.supabaseUrl, data.settings.supabaseAnonKey, id))
+    },
 
     saveRecipe: (recipe) => {
       setData((d) => ({ ...d, recipes: [...d.recipes, { ...recipe, id: recipe.id || makeId(), savedAt: Date.now() }] }))
@@ -727,6 +819,13 @@ export function AppProvider({ children }) {
       setSync({ signedIn: false, email: null, status: 'idle', lastSyncedAt: null, error: null })
     },
     syncNow: () => sessionUserRef.current && doReconcile(sessionUserRef.current.id),
+    backfillNormalizedTables: async (onProgress) => {
+      if (!isCloudSyncConfigured(data.settings) || !sessionUserRef.current) {
+        throw new Error('Sign in to Cloud Sync first.')
+      }
+      const { supabaseUrl: url, supabaseAnonKey: anonKey } = data.settings
+      return runNormalizedBackfill(data, url, anonKey, onProgress)
+    },
 
     exportData: () => {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })

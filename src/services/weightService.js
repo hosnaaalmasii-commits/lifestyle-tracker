@@ -16,8 +16,13 @@ export async function listWeightLogs(url, anonKey) {
   return data
 }
 
-export async function deleteWeightLog(url, anonKey, id) {
+// Keyed on client_id (the id the local app already has for an entry),
+// not the row's own Supabase-generated id — the app never learns that
+// id since RPC inserts return only the row id, not the full row, and
+// nothing stores it locally. client_id is unique per user (see
+// supabase/normalized_tables.sql), so it's a reliable delete key.
+export async function deleteWeightLog(url, anonKey, clientId) {
   const supabase = getSupabaseClient(url, anonKey)
-  const { error } = await supabase.from('weight_logs').delete().eq('id', id)
+  const { error } = await supabase.from('weight_logs').delete().eq('client_id', clientId)
   if (error) throw error
 }

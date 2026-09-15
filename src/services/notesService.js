@@ -16,8 +16,8 @@ export async function listNotes(url, anonKey) {
   return data
 }
 
-export async function deleteNote(url, anonKey, id) {
+export async function deleteNote(url, anonKey, clientId) {
   const supabase = getSupabaseClient(url, anonKey)
-  const { error } = await supabase.from('notes').delete().eq('id', id)
+  const { error } = await supabase.from('notes').delete().eq('client_id', clientId)
   if (error) throw error
 }

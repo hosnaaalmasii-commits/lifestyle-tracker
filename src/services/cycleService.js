@@ -16,8 +16,8 @@ export async function listCycleLogs(url, anonKey) {
   return data
 }
 
-export async function deleteCycleLog(url, anonKey, id) {
+export async function deleteCycleLog(url, anonKey, clientId) {
   const supabase = getSupabaseClient(url, anonKey)
-  const { error } = await supabase.from('cycle_logs').delete().eq('id', id)
+  const { error } = await supabase.from('cycle_logs').delete().eq('client_id', clientId)
   if (error) throw error
 }

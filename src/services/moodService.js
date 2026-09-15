@@ -17,3 +17,9 @@ export async function listMoodLogs(url, anonKey) {
   if (error) throw error
   return data
 }
+
+export async function deleteMoodLog(url, anonKey, clientId) {
+  const supabase = getSupabaseClient(url, anonKey)
+  const { error } = await supabase.from('mood_logs').delete().eq('client_id', clientId)
+  if (error) throw error
+}

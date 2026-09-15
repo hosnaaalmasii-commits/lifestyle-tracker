@@ -49,6 +49,7 @@ export default function Settings({ onBack }) {
     connectGoogleCalendar, disconnectGoogleCalendar, syncTasksToGoogleCalendar,
     enableCalendarAutoSync, disableCalendarAutoSync,
     setSupabaseConfig, disconnectSupabase, cloudSignUp, cloudSignIn, cloudSignOut, syncNow,
+    backfillNormalizedTables,
     refreshOura,
   } = useApp()
   const importRef = useRef(null)
@@ -59,6 +60,26 @@ export default function Settings({ onBack }) {
   const wallpaperFileRef = useRef(null)
   const [wallpaperBusy, setWallpaperBusy] = useState(false)
   const [wallpaperError, setWallpaperError] = useState('')
+
+  const [backfillBusy, setBackfillBusy] = useState(false)
+  const [backfillStage, setBackfillStage] = useState('')
+  const [backfillResult, setBackfillResult] = useState(null)
+  const [backfillError, setBackfillError] = useState('')
+
+  const runBackfill = async () => {
+    setBackfillBusy(true)
+    setBackfillError('')
+    setBackfillResult(null)
+    try {
+      const results = await backfillNormalizedTables((label) => setBackfillStage(label))
+      setBackfillResult(results)
+    } catch (err) {
+      setBackfillError(err?.message || 'Backfill failed.')
+    } finally {
+      setBackfillBusy(false)
+      setBackfillStage('')
+    }
+  }
 
   const handleWallpaperFile = async (e) => {
     const file = e.target.files?.[0]
@@ -625,6 +646,31 @@ export default function Settings({ onBack }) {
             <div className="row" style={{ gap: 8 }}>
               <button className="btn btn-ghost btn-sm" onClick={cloudSignOut}>Sign out</button>
               <button className="btn btn-ghost btn-sm" onClick={disconnectSupabase}>Disconnect Supabase</button>
+            </div>
+
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-soft)' }}>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>Backfill existing data</div>
+              <p className="text-sm faint" style={{ margin: '2px 0 10px' }}>
+                New entries already mirror to individual Supabase tables (water_logs, sleep_logs, weight_logs, etc.)
+                alongside the usual whole-app backup. This pushes everything logged before that was wired up. Safe to
+                run more than once — it won't create duplicates.
+              </p>
+              <button className="btn btn-secondary btn-sm" disabled={backfillBusy} onClick={runBackfill}>
+                {backfillBusy ? `Backfilling ${backfillStage || '…'}` : 'Backfill existing data'}
+              </button>
+              {backfillError && <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 8 }}>{backfillError}</div>}
+              {backfillResult && (
+                <div className="text-sm" style={{ marginTop: 8 }}>
+                  {Object.entries(backfillResult).map(([label, r]) => (
+                    <div key={label} className="row" style={{ padding: '2px 0' }}>
+                      <span className="muted">{label}</span>
+                      <span className={r.errors.length ? '' : 'muted'} style={r.errors.length ? { color: 'var(--danger)' } : undefined}>
+                        {r.ok} synced{r.errors.length ? `, ${r.errors.length} failed` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}

@@ -60,3 +60,9 @@ export async function listExerciseLogs(url, anonKey, exerciseName) {
   if (error) throw error
   return data
 }
+
+export async function deleteExerciseLog(url, anonKey, clientId) {
+  const supabase = getSupabaseClient(url, anonKey)
+  const { error } = await supabase.from('exercise_logs').delete().eq('client_id', clientId)
+  if (error) throw error
+}

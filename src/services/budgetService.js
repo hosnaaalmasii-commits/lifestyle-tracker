@@ -20,3 +20,9 @@ export async function listBudgetEntries(url, anonKey) {
   if (error) throw error
   return data
 }
+
+export async function deleteBudgetEntry(url, anonKey, clientId) {
+  const supabase = getSupabaseClient(url, anonKey)
+  const { error } = await supabase.from('budget_entries').delete().eq('client_id', clientId)
+  if (error) throw error
+}

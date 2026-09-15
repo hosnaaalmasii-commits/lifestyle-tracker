@@ -17,3 +17,9 @@ export async function listSleepLogs(url, anonKey) {
   if (error) throw error
   return data
 }
+
+export async function deleteSleepLog(url, anonKey, date) {
+  const supabase = getSupabaseClient(url, anonKey)
+  const { error } = await supabase.from('sleep_logs').delete().eq('date', date)
+  if (error) throw error
+}

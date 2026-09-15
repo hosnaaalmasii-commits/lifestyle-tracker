@@ -17,3 +17,9 @@ export async function listWaterLogs(url, anonKey) {
   if (error) throw error
   return data
 }
+
+export async function deleteWaterLog(url, anonKey, date) {
+  const supabase = getSupabaseClient(url, anonKey)
+  const { error } = await supabase.from('water_logs').delete().eq('date', date)
+  if (error) throw error
+}
