@@ -247,25 +247,31 @@ export default function Overview({ onNavigate }) {
 
           <TodayTasks onOpenSchedule={() => onNavigate('more', 'dailyschedule')} />
 
-          <div className="card hero-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 18px' }}>
+          {/* The hero card is the one thing on this page meant to read as
+              THE number, Oura-dial style — everything else on Overview is
+              deliberately quieter than this (smaller type, flatter cards,
+              rows sharing one boundary instead of a stack of same-weight
+              boxes) so this stays the obvious first thing your eye lands
+              on, not one card among many that all look equally important. */}
+          <div className="card hero-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 18px 32px', marginTop: 20 }}>
             <Ring
               value={score / 100}
-              size={168}
-              stroke={15}
+              size={196}
+              stroke={14}
               color="var(--accent-ring)"
               gradientTo={useGradientAccents ? 'var(--accent-gradient-end)' : undefined}
             >
-              <div className="mono" style={{ fontSize: 36, fontWeight: 700, lineHeight: 1 }}>{score}</div>
-              <div className="text-sm muted" style={{ marginTop: 4 }}>daily score</div>
+              <div className="mono" style={{ fontSize: 54, fontWeight: 700, lineHeight: 1 }}>{score}</div>
+              <div className="text-sm muted" style={{ marginTop: 6 }}>daily score</div>
             </Ring>
-            <div style={{ display: 'flex', gap: 18, marginTop: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: 18, marginTop: 28, flexWrap: 'wrap', justifyContent: 'center' }}>
               <StreakBadge days={waterStreak} label="water" />
               <StreakBadge days={sleepStreak} label="sleep" />
               <StreakBadge days={workoutStreak} label="workout" />
             </div>
             <div
               style={{
-                marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-soft)',
+                marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-soft)',
                 width: '100%', display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8,
               }}
             >
@@ -283,7 +289,7 @@ export default function Overview({ onNavigate }) {
 
       <button
         className="btn btn-primary btn-block"
-        style={{ marginTop: 12, gap: 8 }}
+        style={{ marginTop: 20, gap: 8 }}
         onClick={() => setVoiceLogOpen(true)}
       >
         <Icon name="mic" size={16} /> Log by voice
@@ -293,7 +299,7 @@ export default function Overview({ onNavigate }) {
       {activeContracts.length > 0 && (
         <button
           className="card"
-          style={{ marginTop: 12, textAlign: 'left', cursor: 'pointer', borderColor: 'color-mix(in srgb, var(--accent) 45%, var(--border-soft))' }}
+          style={{ marginTop: 20, textAlign: 'left', cursor: 'pointer', borderColor: 'color-mix(in srgb, var(--accent) 45%, var(--border-soft))' }}
           onClick={() => onNavigate('more', 'contracts')}
         >
           <div className="tag row" style={{ background: 'transparent', color: 'var(--accent)', padding: 0, marginBottom: 6, gap: 6, justifyContent: 'flex-start' }}>
@@ -307,33 +313,53 @@ export default function Overview({ onNavigate }) {
         </button>
       )}
 
-      {data.calendarStatus?.connected && (
-        <button className="card row" style={{ marginTop: 12, cursor: 'pointer' }} onClick={() => onNavigate('workouts')}>
+      {/* Three formerly-separate same-weight cards (calendar status, level
+          bar, GPS phase) collapsed into one card with internal dividers —
+          each was just an icon + a line of text + a chevron, so stacking
+          them as full cards read as more "boxes" than the content ever
+          warranted. Same info, far less border/shadow/corner-radius noise
+          competing with the hero ring above. */}
+      <div className="card" style={{ marginTop: 20, padding: '4px 18px' }}>
+        {data.calendarStatus?.connected && (
+          <button className="row" style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 0' }} onClick={() => onNavigate('workouts')}>
+            <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
+              <span style={{ color: 'var(--accent)' }}><Icon name="calendar" size={18} /></span>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>
+                Today's calendar: {data.calendarStatus.busyMinutesToday >= 360 ? 'packed' : data.calendarStatus.busyMinutesToday >= 180 ? 'busy' : 'light'}
+              </span>
+            </div>
+            <span className="faint" aria-hidden><Icon name="chevronRight" size={16} /></span>
+          </button>
+        )}
+        {!fintechOn && (
+          <button
+            className="row"
+            style={{
+              width: '100%', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: '14px 0',
+              borderTop: data.calendarStatus?.connected ? '1px solid var(--border-soft)' : 'none',
+            }}
+            onClick={() => onNavigate('more', 'badges')}
+          >
+            <LevelBar xp={xp} compact />
+          </button>
+        )}
+        <button
+          className="row"
+          style={{
+            width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 0',
+            borderTop: (data.calendarStatus?.connected || !fintechOn) ? '1px solid var(--border-soft)' : 'none',
+          }}
+          onClick={() => onNavigate('more', 'gps')}
+        >
           <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
-            <span style={{ color: 'var(--accent)' }}><Icon name="calendar" size={18} /></span>
-            <span style={{ fontWeight: 600, fontSize: 14 }}>
-              Today's calendar: {data.calendarStatus.busyMinutesToday >= 360 ? 'packed' : data.calendarStatus.busyMinutesToday >= 180 ? 'busy' : 'light'}
-            </span>
+            <span style={{ color: 'var(--accent)' }}><Icon name={gps.current.icon} size={18} /></span>
+            <span style={{ fontWeight: 600, fontSize: 14 }}>{gps.current.label} phase</span>
           </div>
           <span className="faint" aria-hidden><Icon name="chevronRight" size={16} /></span>
         </button>
-      )}
+      </div>
 
-      {!fintechOn && (
-        <button className="card" style={{ marginTop: 12, textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('more', 'badges')}>
-          <LevelBar xp={xp} compact />
-        </button>
-      )}
-
-      <button className="card row" style={{ marginTop: 12, cursor: 'pointer' }} onClick={() => onNavigate('more', 'gps')}>
-        <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
-          <span style={{ color: 'var(--accent)' }}><Icon name={gps.current.icon} size={18} /></span>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>{gps.current.label} phase</span>
-        </div>
-        <span className="faint" aria-hidden><Icon name="chevronRight" size={16} /></span>
-      </button>
-
-      <div className="card-row" style={{ marginTop: 12 }}>
+      <div className="card-row" style={{ marginTop: 20 }}>
         <button className="card" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => onNavigate('more', 'coach')}>
           <div style={{ marginBottom: 8, color: 'var(--accent)' }}><Icon name="sparkle" size={20} /></div>
           <div style={{ fontWeight: 600, fontSize: 14 }}>Ask your coach</div>
@@ -347,7 +373,7 @@ export default function Overview({ onNavigate }) {
       </div>
 
       {showEod && (
-        <div className="card" style={{ marginTop: 12 }}>
+        <div className="card" style={{ marginTop: 20 }}>
           <div className="row" style={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div className="text-sm faint" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
               {eodReport?.source === 'ai' ? 'AI recap' : "Today's recap"}
@@ -372,7 +398,7 @@ export default function Overview({ onNavigate }) {
 
       <MoodCheckIn open={moodCheckInOpen} onClose={() => setMoodCheckInOpen(false)} />
 
-      <div className="card" style={{ marginTop: 12 }}>
+      <div className="card" style={{ marginTop: 20 }}>
         <div className="tag row" style={{ background: 'transparent', color: 'var(--moss)', padding: 0, marginBottom: 6, gap: 6, justifyContent: 'flex-start' }}>
           <Icon name="leaf" size={13} /> Today's micro-habit
         </div>
