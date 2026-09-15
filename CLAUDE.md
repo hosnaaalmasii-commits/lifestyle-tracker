@@ -133,6 +133,40 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
     Org", project "Tessera", ref `lsxyejppowqdtcchzhjt`, one confirmed user
     account. Don't re-walk the whole setup from scratch if sync comes up
     again; it's already working.
+  - **A second, normalized layer sits on top of `app_data`, added in a
+    2026-09-15 session**: `supabase/normalized_tables.sql` (9 plain
+    tables — water_logs, sleep_logs, workout_schedule,
+    workout_completions, exercise_logs, mood_logs, nutrition_logs,
+    budget_entries, schedule_items) and `supabase/encrypted_tables.sql`
+    (weight_logs, cycle_logs, notes — encrypted at rest via a Supabase
+    Vault key + security-definer RPCs, so even Supabase itself can't read
+    the plaintext) were built by an **earlier, undocumented session**
+    (last touched 2026-08-05) with a full CRUD layer in `src/services/`,
+    but were never connected to the app and never written up here — pure
+    dead code until this session found and finished it. **Confirmed live**
+    on the Tessera project (all 16 tables present, checked directly via
+    the SQL Editor) before wiring anything. Every relevant `AppContext.jsx`
+    action now fires a best-effort dual-write to the matching table
+    (`syncNormalized()` helper — silently no-ops unless signed into Cloud
+    Sync, catches and logs failures, never surfaces them to the user or
+    touches local state) alongside the existing whole-blob write. **The
+    whole-blob `app_data` sync above is untouched and remains the actual
+    source of truth** for local state, cross-device sync, and
+    Export/Import — this normalized layer is a purely additive mirror,
+    not a replacement. A few service-layer gaps got filled while wiring
+    this up: delete functions were missing for 6 of the 9 plain tables
+    (added, keyed on `client_id`), and the three encrypted-table delete
+    functions took the row's own Supabase-generated id, which the app
+    never actually has — switched to `client_id` too. A one-time
+    **"Backfill existing data"** button (Settings → Cloud Sync, shown
+    once signed in) pushes everything logged before this session into
+    the same tables; safe to re-run since every write is an upsert or a
+    no-op-on-conflict insert. **Why keep both systems**: this was scoped
+    as "finish what was already half-built," not a deliberate architecture
+    decision to move away from whole-blob sync — if asked to go further
+    (e.g. read from the normalized tables instead of local state, or
+    retire `app_data`), that's a much bigger, separate undertaking with
+    real risk to live data, not a natural next step to take unprompted.
 - **Voice-logging pipeline** (`voiceLogging.js` + `VoiceLogSheet.jsx`,
   entry point: "Log by voice" button on Overview): capture (mic or typed
   text) and AI parsing are **deliberately decoupled**. The mic (native
