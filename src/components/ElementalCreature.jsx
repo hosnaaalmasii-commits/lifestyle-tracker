@@ -121,23 +121,30 @@ function warriorIcon({ growth, vitality }) {
   const steelDark = mix('#2a2822', '#4a4640', growth)
   const steelLight = mix('#5a564c', '#f2ecd8', growth)
   const edgeGlow = mix('#3a352c', '#fff8e0', vitality)
+  const forgeGlow = mix('#3a1c10', '#ff8a3a', vitality)
   const goldAcc = mix('#3a2e1a', '#d9b45a', Math.max(0, (growth - 0.5) / 0.5))
+  const wrapColor = mix('#2a1c12', '#6a3f22', growth)
   const len = 26 + growth * 36
   const gw = 5 + growth * 2.2
+  const forge = vitality > 0.4 ? `<ellipse cx="50" cy="86" rx="${16 + vitality * 10}" ry="7" fill="url(#${id}f)" opacity="${0.35 + vitality * 0.4}"/>` : ''
   const glow = vitality > 0.55 ? `<ellipse cx="50" cy="${78 - len * 0.5}" rx="${gw + 6}" ry="${len * 0.55}" fill="url(#${id}g)" opacity="0.6"/>` : ''
+  const fuller = growth > 0.3 ? `<line x1="50" y1="${76 - len * 0.85}" x2="50" y2="75" stroke="${steelDark}" stroke-width="1" opacity="0.5"/>` : ''
+  const wrap = growth > 0.4 ? `<line x1="37.5" y1="81.5" x2="62.5" y2="81.5" stroke="${wrapColor}" stroke-width="1" opacity="0.7"/><line x1="37.5" y1="83.5" x2="62.5" y2="83.5" stroke="${wrapColor}" stroke-width="1" opacity="0.7"/>` : ''
   const orn = growth > 0.6 ? `<circle cx="50" cy="72" r="3" fill="${goldAcc}"/><path d="M44,80 L38,84 M56,80 L62,84" stroke="${goldAcc}" stroke-width="1.6" stroke-linecap="round"/>` : ''
-  const sparks = vitality > 0.85 ? `<path d="M62,${78 - len * 0.6} L68,${74 - len * 0.6} M60,${74 - len * 0.7} L64,${68 - len * 0.7}" stroke="${edgeGlow}" stroke-width="1.4" stroke-linecap="round" opacity="0.85"/>` : ''
+  const sparks = vitality > 0.85 ? `<path d="M62,${78 - len * 0.6} L68,${74 - len * 0.6} M60,${74 - len * 0.7} L64,${68 - len * 0.7}" stroke="${edgeGlow}" stroke-width="1.4" stroke-linecap="round" opacity="0.85"/><circle class="ember" cx="70" cy="${72 - len * 0.6}" r="1.2" fill="${edgeGlow}"/><circle class="ember" cx="65" cy="${66 - len * 0.7}" r="1" fill="${edgeGlow}" style="animation-delay:0.4s"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
       <linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${steelDark}"/><stop offset="45%" stop-color="${steelLight}"/><stop offset="100%" stop-color="${steelDark}"/></linearGradient>
       ${glowGradientDef(id + 'g', edgeGlow)}
+      ${glowGradientDef(id + 'f', forgeGlow)}
     </defs>
-    ${glow}
+    ${forge}${glow}
     <line x1="50" y1="${78 - len}" x2="50" y2="78" stroke="url(#${id}b)" stroke-width="${gw}" stroke-linecap="round"/>
     <line x1="50" y1="${78 - len}" x2="50" y2="78" stroke="${edgeGlow}" stroke-width="1" opacity="${0.4 + vitality * 0.5}"/>
+    ${fuller}
     <line x1="37" y1="80" x2="63" y2="80" stroke="url(#${id}b)" stroke-width="4.5" stroke-linecap="round"/>
     <rect x="47" y="80" width="6" height="13" rx="1.5" fill="${mix('#3a2a1a', '#7a4a24', growth)}"/>
-    ${orn}${sparks}
+    ${wrap}${orn}${sparks}
   </svg>`
 }
 
@@ -146,6 +153,7 @@ function natureIcon({ growth, vitality }) {
   const canopyDeep = mix('#1e2a16', '#2f5a2a', vitality)
   const canopyLight = mix('#33421f', '#8fce62', vitality)
   const trunk = mix('#2a1e12', '#5a3d22', growth)
+  const trunkLight = mix('#3a2a18', '#7a5432', growth)
   const clusters = 3 + Math.round(growth * 6)
   let leaves = ''
   for (let i = 0; i < clusters; i++) {
@@ -155,11 +163,19 @@ function natureIcon({ growth, vitality }) {
     const cy = 36 + Math.sin(ang) * r * (0.35 + growth * 0.55) - growth * 4
     leaves += `<circle cx="${cx}" cy="${cy}" r="${5 + growth * 4.5}" fill="url(#${id}leaf)" opacity="0.92" class="${i % 2 === 0 ? 'drift-y' : ''}"/>`
   }
-  const dapple = vitality > 0.6 ? `<circle cx="44" cy="30" r="3" fill="#fff" opacity="0.18"/><circle cx="58" cy="38" r="2" fill="#fff" opacity="0.15"/>` : ''
+  const bark = growth > 0.3 ? `<path d="M48,${88 - growth * 4} C47,${76 - growth * 4} 48,${66 - growth * 4} 49,${58 - growth * 4}" fill="none" stroke="${trunkLight}" stroke-width="0.9" opacity="0.55"/>` : ''
+  const roots = growth > 0.45 ? `<path d="M50,89 Q44,92 39,93 M50,89 Q56,92 61,93" fill="none" stroke="${trunk}" stroke-width="2.4" stroke-linecap="round" opacity="0.85"/>` : ''
+  const glow = vitality > 0.55 ? `<ellipse cx="50" cy="34" rx="${26 + growth * 10}" ry="${20 + growth * 8}" fill="url(#${id}g)" opacity="0.4"/>` : ''
+  const dapple = vitality > 0.6 ? `<circle cx="44" cy="30" r="3" fill="#fff" opacity="0.18"/><circle cx="58" cy="38" r="2" fill="#fff" opacity="0.15"/><circle class="ember" cx="36" cy="44" r="1.4" fill="${canopyLight}" opacity="0.7"/><circle class="ember" cx="64" cy="46" r="1.2" fill="${canopyLight}" opacity="0.6" style="animation-delay:0.6s"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
-    <defs><radialGradient id="${id}leaf" cx="35%" cy="30%" r="75%"><stop offset="0%" stop-color="${canopyLight}"/><stop offset="100%" stop-color="${canopyDeep}"/></radialGradient></defs>
+    <defs>
+      <radialGradient id="${id}leaf" cx="35%" cy="30%" r="75%"><stop offset="0%" stop-color="${canopyLight}"/><stop offset="100%" stop-color="${canopyDeep}"/></radialGradient>
+      ${glowGradientDef(id + 'g', canopyLight)}
+    </defs>
     <ellipse cx="50" cy="92" rx="${14 + growth * 8}" ry="3" fill="#000" opacity="0.2"/>
+    ${glow}
     <path d="M50,90 C49,72 51,58 50,${52 - growth * 6}" fill="none" stroke="${trunk}" stroke-width="4" stroke-linecap="round"/>
+    ${bark}${roots}
     ${leaves}${dapple}
   </svg>`
 }
@@ -170,16 +186,22 @@ function robotIcon({ growth, vitality }) {
   const shellLight = mix('#3a4148', '#adc4d2', growth)
   const light = mix('#3a2a20', '#7fe0c0', vitality)
   const panels = growth > 0.35 ? `<rect x="34" y="42" width="10" height="18" rx="1.5" fill="${shellDark}" opacity="0.8"/><rect x="56" y="42" width="10" height="18" rx="1.5" fill="${shellDark}" opacity="0.8"/><line x1="39" y1="44" x2="39" y2="58" stroke="${shellLight}" stroke-width="0.6" opacity="0.5"/><line x1="61" y1="44" x2="61" y2="58" stroke="${shellLight}" stroke-width="0.6" opacity="0.5"/>` : ''
+  const struts = growth > 0.5 ? `<line x1="38" y1="76" x2="34" y2="86" stroke="url(#${id}s)" stroke-width="2.4" stroke-linecap="round"/><line x1="62" y1="76" x2="66" y2="86" stroke="url(#${id}s)" stroke-width="2.4" stroke-linecap="round"/><ellipse cx="34" cy="87" rx="3.5" ry="1.6" fill="${shellDark}"/><ellipse cx="66" cy="87" rx="3.5" ry="1.6" fill="${shellDark}"/>` : ''
+  const vent = growth > 0.55 ? `<rect x="45" y="66" width="10" height="3" rx="1" fill="${shellDark}" opacity="0.7"/><line x1="46" y1="67.5" x2="54" y2="67.5" stroke="${light}" stroke-width="0.5" opacity="${0.3 + vitality * 0.5}"/>` : ''
+  const scan = vitality > 0.6 ? `<line x1="34" y1="${36 + vitality * 30}" x2="66" y2="${36 + vitality * 30}" stroke="${light}" stroke-width="1" opacity="0.35"/>` : ''
   const antenna = growth > 0.65 ? `<line x1="50" y1="28" x2="50" y2="17" stroke="url(#${id}s)" stroke-width="2"/><circle cx="50" cy="15" r="4.5" fill="url(#${id}g)"/><circle cx="50" cy="15" r="1.6" fill="${light}"/>` : ''
   const lightGlow = vitality > 0.3 ? `<circle cx="42" cy="48" r="${7 + vitality * 4}" fill="url(#${id}g)"/><circle cx="58" cy="48" r="${7 + vitality * 4}" fill="url(#${id}g)"/>` : ''
+  const floorGlow = vitality > 0.4 ? `<ellipse cx="50" cy="88" rx="${20 + vitality * 8}" ry="4" fill="url(#${id}g)" opacity="0.4"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
       <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${shellLight}"/><stop offset="100%" stop-color="${shellDark}"/></linearGradient>
       ${glowGradientDef(id + 'g', light)}
     </defs>
+    ${floorGlow}${struts}
     <rect x="32" y="30" width="36" height="46" rx="7" fill="none" stroke="url(#${id}s)" stroke-width="2.8"/>
     <rect x="32" y="30" width="36" height="46" rx="7" fill="${shellDark}" opacity="0.12"/>
-    ${panels}${lightGlow}
+    <g style="clip-path:inset(0)"><rect x="32" y="30" width="36" height="46" rx="7" fill="none"/>${scan}</g>
+    ${panels}${vent}${lightGlow}
     <circle cx="42" cy="48" r="${2.2 + vitality * 1.6}" fill="${light}"/>
     <circle cx="58" cy="48" r="${2.2 + vitality * 1.6}" fill="${light}"/>
     <rect x="42" y="62" width="16" height="4" rx="2" fill="${light}" opacity="${0.4 + vitality * 0.5}"/>
@@ -191,22 +213,31 @@ function animalIcon({ growth, vitality }) {
   const id = uid()
   const furDeep = mix('#3a2a1e', '#a85a28', growth)
   const furLight = mix('#5a4030', '#e8b366', growth)
+  const tailTip = mix('#2a201a', '#f5ece0', growth)
   const eye = mix('#2a2a2a', '#fff2c0', vitality)
   const s = 0.6 + growth * 0.42
+  const tailLen = 14 + growth * 20
   const eyeGlow = vitality > 0.6 ? `<circle cx="44" cy="60" r="5" fill="url(#${id}g)"/><circle cx="56" cy="60" r="5" fill="url(#${id}g)"/>` : ''
+  const warmGlow = vitality > 0.5 ? `<ellipse cx="50" cy="62" rx="${30 + growth * 8}" ry="22" fill="url(#${id}g)" opacity="0.25"/>` : ''
+  const tail = `<path d="M70,74 Q${86 + growth * 6},${68 - growth * 4} ${82 + tailLen * 0.3},${86 + growth * 8}" fill="none" stroke="url(#${id}f2)" stroke-width="${7 + growth * 4}" stroke-linecap="round" class="drift-y"/><circle cx="${82 + tailLen * 0.3}" cy="${86 + growth * 8}" r="${3.5 + growth * 2}" fill="${tailTip}" opacity="0.85"/>`
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
       <radialGradient id="${id}f" cx="40%" cy="30%" r="75%"><stop offset="0%" stop-color="${furLight}"/><stop offset="100%" stop-color="${furDeep}"/></radialGradient>
+      <linearGradient id="${id}f2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${furDeep}"/><stop offset="100%" stop-color="${furLight}"/></linearGradient>
       ${glowGradientDef(id + 'g', eye)}
     </defs>
     <ellipse cx="50" cy="94" rx="20" ry="3" fill="#000" opacity="0.18"/>
+    ${warmGlow}
     <g transform="translate(50 58) scale(${s}) translate(-50 -58)">
+      ${tail}
       <path d="M70,64 Q88,58 85,76 Q78,72 70,68 Z" fill="url(#${id}f)"/>
       <ellipse cx="50" cy="63" rx="23" ry="17" fill="url(#${id}f)"/>
       <path d="M32,50 Q25,34 40,40 Z" fill="url(#${id}f)"/>
       <path d="M68,50 Q75,34 60,40 Z" fill="url(#${id}f)"/>
       <path d="M32,52 Q27,38 39,42 Z" fill="${furDeep}" opacity="0.5"/>
       <path d="M68,52 Q73,38 61,42 Z" fill="${furDeep}" opacity="0.5"/>
+      <ellipse cx="50" cy="66" rx="7" ry="5.5" fill="${furLight}" opacity="0.6"/>
+      <circle cx="50" cy="65" r="1.6" fill="${mix('#2a1c14', '#4a2e1c', growth)}"/>
       ${eyeGlow}
       <circle cx="44" cy="60" r="2.2" fill="${eye}"/>
       <circle cx="56" cy="60" r="2.2" fill="${eye}"/>
@@ -219,10 +250,16 @@ function plantIcon({ growth, vitality }) {
   const id = uid()
   const deep = mix('#243a1c', '#3f7a46', vitality)
   const light = mix('#3a5228', '#8fd68f', vitality)
+  const petalGold = mix('#3a3018', '#e8d878', Math.max(0, (growth - 0.6) / 0.4))
   const petals = growth < 0.2 ? 1 : 6
+  const innerPetals = growth > 0.7 ? 5 : 0
   const len = 6 + growth * 15
   let p = ''
   for (let i = 0; i < petals; i++) p += `<ellipse cx="0" cy="${-len / 2}" rx="${3.5 + growth * 4.5}" ry="${len / 2}" fill="url(#${id}p)" opacity="0.95" transform="rotate(${(360 / petals) * i})"/>`
+  let inner = ''
+  for (let i = 0; i < innerPetals; i++) inner += `<ellipse cx="0" cy="${-len * 0.32}" rx="${2 + growth * 2}" ry="${len * 0.32}" fill="${petalGold}" opacity="0.9" transform="rotate(${(360 / innerPetals) * i + 20})"/>`
+  const dew = vitality > 0.65 ? `<circle cx="47" cy="58" r="1.3" fill="#dff2ff" opacity="0.7"/>` : ''
+  const leaves = growth > 0.15 ? `<ellipse cx="41" cy="74" rx="6" ry="3" fill="${deep}" opacity="0.75" transform="rotate(-25 41 74)"/><ellipse cx="59" cy="66" rx="5.5" ry="2.8" fill="${deep}" opacity="0.75" transform="rotate(25 59 66)"/>` : ''
   const glow = vitality > 0.6 ? `<circle cx="50" cy="34" r="${22 + growth * 10}" fill="url(#${id}g)"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
@@ -233,8 +270,9 @@ function plantIcon({ growth, vitality }) {
     <path d="M50,90 C49,70 51,55 50,42" fill="none" stroke="${deep}" stroke-width="2.6" stroke-linecap="round"/>
     <path d="M50,72 Q40,68 36,74" fill="none" stroke="${deep}" stroke-width="2" stroke-linecap="round" opacity="${0.4 + growth * 0.5}"/>
     <path d="M50,64 Q60,60 64,66" fill="none" stroke="${deep}" stroke-width="2" stroke-linecap="round" opacity="${0.4 + growth * 0.5}"/>
+    ${leaves}${dew}
     ${glow}
-    <g transform="translate(50 34)">${p}<circle r="${2.8 + growth * 2.2}" fill="${light}"/></g>
+    <g transform="translate(50 34)">${p}${inner}<circle r="${2.8 + growth * 2.2}" fill="${light}"/></g>
   </svg>`
 }
 
@@ -243,31 +281,39 @@ function dragonIcon({ growth, vitality }) {
   const scaleDeep = mix('#241a34', '#5a2e7a', vitality)
   const scaleLight = mix('#3a2a4a', '#c48fe8', vitality)
   const eye = mix('#3a2a4a', '#ffd94f', vitality)
+  const membrane = mix('#241a34', '#8a5ab0', vitality)
   const wing = 10 + growth * 32
   const glow = vitality > 0.6 ? `<ellipse cx="50" cy="60" rx="${38 + wing * 0.6}" ry="34" fill="url(#${id}g)"/>` : ''
+  const wingFill = growth > 0.25 ? `<path d="M${50 - 10},55 Q${50 - 10 - wing},${45 - growth * 10} ${50 - 6},70 Q${50 - 10 - wing * 0.5},${58 - growth * 6} ${50 - 10},55 Z" fill="${membrane}" opacity="0.28"/><path d="M${50 + 10},55 Q${50 + 10 + wing},${45 - growth * 10} ${50 + 6},70 Q${50 + 10 + wing * 0.5},${58 - growth * 6} ${50 + 10},55 Z" fill="${membrane}" opacity="0.28"/>` : ''
+  const horns = growth > 0.55 ? `<path d="M45,42 Q43,36 44,31" fill="none" stroke="url(#${id}s)" stroke-width="1.6" stroke-linecap="round"/><path d="M55,42 Q57,36 56,31" fill="none" stroke="url(#${id}s)" stroke-width="1.6" stroke-linecap="round"/>` : ''
+  const tailGlow = vitality > 0.7 && growth > 0.5 ? `<circle cx="50" cy="96" r="${2.5 + vitality * 2}" fill="url(#${id}g)" opacity="0.8"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
       <linearGradient id="${id}s" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${scaleLight}"/><stop offset="100%" stop-color="${scaleDeep}"/></linearGradient>
       ${glowGradientDef(id + 'g', scaleLight)}
     </defs>
-    ${glow}
+    ${glow}${wingFill}
     <path d="M${50 - 10},55 Q${50 - 10 - wing},${45 - growth * 10} ${50 - 6},70" fill="none" stroke="url(#${id}s)" stroke-width="2.2" opacity="${0.55 + growth * 0.45}"/>
     <path d="M${50 + 10},55 Q${50 + 10 + wing},${45 - growth * 10} ${50 + 6},70" fill="none" stroke="url(#${id}s)" stroke-width="2.2" opacity="${0.55 + growth * 0.45}"/>
     <ellipse cx="50" cy="64" rx="15" ry="19" fill="none" stroke="url(#${id}s)" stroke-width="2.4"/>
     <path d="M42,58 Q50,54 58,58" stroke="${scaleDeep}" stroke-width="1.2" fill="none" opacity="0.6"/>
+    ${horns}
     <circle cx="50" cy="48" r="7.5" fill="none" stroke="url(#${id}s)" stroke-width="2.2"/>
     <circle cx="50" cy="48" r="1.8" fill="${eye}"/>
     <path d="M46,45 L48,42 M54,45 L52,42" stroke="url(#${id}s)" stroke-width="1.6" stroke-linecap="round"/>
     ${growth > 0.5 ? `<path d="M50,82 Q55,90 50,96" fill="none" stroke="url(#${id}s)" stroke-width="2" stroke-linecap="round"/>` : ''}
+    ${tailGlow}
   </svg>`
 }
 
 function spiritIcon({ growth, vitality }) {
   const id = uid()
   const color = mix('#3a3a48', '#d8e2ff', vitality)
+  const coreColor = mix('#4a4a58', '#fff8ea', vitality)
   const s = 0.65 + growth * 0.35
   const glow = vitality > 0.3 ? `<ellipse cx="50" cy="55" rx="${(24 + vitality * 16) * s}" ry="${(28 + vitality * 16) * s}" fill="url(#${id}g)"/>` : ''
-  const sparkles = growth > 0.75 ? `<circle cx="34" cy="40" r="1.4" fill="${color}" opacity="0.8"/><circle cx="66" cy="50" r="1.2" fill="${color}" opacity="0.7"/><circle cx="58" cy="30" r="1" fill="${color}" opacity="0.6"/>` : ''
+  const tail = growth > 0.3 ? `<path d="M50,80 C46,88 48,${94 + growth * 6} 50,${98 + growth * 4} C52,${94 + growth * 6} 54,88 50,80 Z" fill="url(#${id}gr)" opacity="0.55" class="drift-y"/>` : ''
+  const sparkles = growth > 0.75 ? `<circle class="ember" cx="34" cy="40" r="1.4" fill="${color}" opacity="0.8"/><circle class="ember" cx="66" cy="50" r="1.2" fill="${color}" opacity="0.7" style="animation-delay:0.5s"/><circle class="ember" cx="58" cy="30" r="1" fill="${color}" opacity="0.6" style="animation-delay:1s"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
       <linearGradient id="${id}gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="${0.3 + vitality * 0.4}"/><stop offset="100%" stop-color="${color}" stop-opacity="${0.15 + vitality * 0.5}"/></linearGradient>
@@ -275,8 +321,10 @@ function spiritIcon({ growth, vitality }) {
     </defs>
     ${glow}
     <g class="drift-y" transform="translate(50 58) scale(${s}) translate(-50 -58)">
+      ${tail}
       <path d="M50,28 C63,42 61,60 50,82 C39,60 37,42 50,28 Z" fill="none" stroke="${color}" stroke-width="1.8" opacity="${0.4 + vitality * 0.6}"/>
       <path d="M50,37 C58,46 57,58 50,72 C43,58 42,46 50,37 Z" fill="url(#${id}gr)"/>
+      <ellipse cx="50" cy="52" rx="5" ry="7" fill="${coreColor}" opacity="${0.3 + vitality * 0.5}"/>
     </g>
     ${sparkles}
   </svg>`
@@ -286,14 +334,18 @@ function athleteIcon({ growth, vitality }) {
   const id = uid()
   const color = mix('#4a4030', '#ffcf6b', vitality)
   const trailLen = 8 + growth * 42
+  const speedLines = growth > 0.4 ? `<line x1="${10 - trailLen * 0.2}" y1="80" x2="${28 - trailLen * 0.2}" y2="80" stroke="${color}" stroke-width="1.4" stroke-linecap="round" opacity="0.35"/><line x1="${16 - trailLen * 0.15}" y1="88" x2="${32 - trailLen * 0.15}" y2="88" stroke="${color}" stroke-width="1.1" stroke-linecap="round" opacity="0.28"/>` : ''
+  const thirdTrail = vitality > 0.5 ? `<line x1="${52 - trailLen * 0.5}" y1="${65 + trailLen * 0.2}" x2="56" y2="62" stroke="url(#${id}t)" stroke-width="${1 + growth}" stroke-linecap="round" opacity="0.6"/>` : ''
   return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
     <defs>
       <linearGradient id="${id}t" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${color}" stop-opacity="0"/><stop offset="100%" stop-color="${color}" stop-opacity="${0.5 + vitality * 0.4}"/></linearGradient>
       ${glowGradientDef(id + 'g', color)}
     </defs>
+    ${speedLines}
     <circle cx="62" cy="58" r="${9 + vitality * 5}" fill="url(#${id}g)"/>
     <line x1="${64 - trailLen}" y1="${60 + trailLen * 0.35}" x2="62" y2="58" stroke="url(#${id}t)" stroke-width="${3 + growth * 3}" stroke-linecap="round"/>
     <line x1="${58 - trailLen * 0.7}" y1="${55 + trailLen * 0.25}" x2="58" y2="54" stroke="url(#${id}t)" stroke-width="${1.6 + growth * 1.5}" stroke-linecap="round" opacity="0.8"/>
+    ${thirdTrail}
     <circle cx="62" cy="58" r="${3 + vitality * 2.6}" fill="${color}"/>
     <circle cx="62" cy="58" r="${1.2 + vitality}" fill="#fff" opacity="${0.5 + vitality * 0.4}"/>
   </svg>`

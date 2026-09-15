@@ -5,6 +5,7 @@ import BoardingPass from '../components/BoardingPass'
 import PassportStamp from '../components/PassportStamp'
 import CharacterCard from '../components/CharacterCard'
 import CharacterErrorBoundary from '../components/CharacterErrorBoundary'
+import TodayTasks from '../components/TodayTasks'
 import { humanDateFull } from '../utils/dates'
 
 const STAMP_COLORS = ['var(--fintech-grad-from)', 'var(--fintech-accent)', 'var(--fintech-grad-to)']
@@ -24,6 +25,8 @@ export default function OverviewTerminal({
           <h1 className="headline">Today</h1>
         </div>
       </div>
+
+      <TodayTasks onOpenSchedule={() => onNavigate('more', 'dailyschedule')} />
 
       <WalletRail cards={wallet} />
 
