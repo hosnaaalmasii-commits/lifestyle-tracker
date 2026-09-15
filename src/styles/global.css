@@ -135,6 +135,34 @@ a { color: inherit; }
 
 .card-row > .card { flex: 1; }
 
+/* A wallpaper forces the dark palette, regardless of the user's own
+   light/dark theme choice. Found the hard way: with Light theme selected,
+   --surface/--text below are the cream/near-white light-mode values, so
+   the translucent card tint two rules down washes out to pale white
+   cards over the photo, and text sitting directly on the wallpaper
+   (headings, tab bar labels) renders dark-on-dark against the night/sea/
+   rain photo — nearly invisible. Wallpapers were built as an inherently
+   dark, moody look (the user's explicit ask), so once one is on, every
+   component reading these variables should just get the dark palette for
+   free rather than trying to make a light theme work over a dark photo.
+   Higher specificity than :root[data-theme="light"] so it wins regardless
+   of which theme the user has picked or load order. */
+:root[data-wallpaper]:not([data-wallpaper="none"]) {
+  color-scheme: dark;
+  --bg: #14180f;
+  --bg-soft: #191e12;
+  --surface: #1d2317;
+  --surface-soft: #242b1b;
+  --surface-raised: #262e1d;
+  --border: #333c24;
+  --border-soft: #2a331f;
+  --text: #ede9da;
+  --text-soft: #b3ad98;
+  --text-faint: #837e69;
+  --moss: #8ba377;
+  --moss-soft: #263020;
+}
+
 /* When a Wallpaper (Wallpaper.jsx) is active, cards go translucent with a
    blur so the background actually reads through instead of every card
    fully hiding it — off by default (data-wallpaper="none" or unset), same
