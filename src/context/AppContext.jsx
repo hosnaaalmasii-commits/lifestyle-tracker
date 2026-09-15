@@ -279,30 +279,26 @@ export function AppProvider({ children }) {
     // active, since Fintech already has a complete color identity of its
     // own; the wallpaper override only applies to Classic.
     const wallpaperOpt = !fintechOn ? WALLPAPER_OPTIONS.find((w) => w.key === wallpaper && w.accent) : null
+    const wp = wallpaperOpt?.palette
     // Under Fintech, every accent throughout the app (rings, streak flame,
     // mini-card icons, section dots) switches to the chosen gradient family
     // instead of the user's Classic accent — otherwise only card chrome
     // changes and the app barely reads as redesigned.
-    // A wallpaper deliberately collapses water/sleep/workout to the SAME
-    // single accent color (unlike Classic's own three independently-picked
-    // section colors) — the whole point is everything reading as one
-    // cohesive tint matching the photo, not a clash of unrelated hues on
-    // top of it. gradientEnd is only ever used as the far end of a
-    // same-hue-family gradient fill, never as its own flat section color.
-    // Classic used to let water/sleep/workout be independently picked
-    // colors (blue/purple/brown by default) — every page reading as its
-    // own hue instead of one app. Collapsed to always match the main
-    // accent (Overview's color), same idea as the wallpaper override just
-    // above, so every page reads as one cohesive color, not per-section
-    // ones. Ring stays independent — that's a same-screen two-tone pairing
-    // with accent (see THEME_PRESETS, e.g. Emerald & Gold), not a
-    // page-to-page inconsistency.
+    // Solid-fill chrome (buttons/chips/tags — the `accent` var) still
+    // collapses to one neutral tone under a wallpaper, same reasoning as
+    // ever: a full-width solid button in the photo's own saturated color
+    // read as "everything is orange." Ring/water/sleep/workout are a
+    // different case — small-area color (a ring stroke, a thin bar fill,
+    // a streak icon) doesn't reproduce that problem, and collapsing all
+    // four to one flat tone flattened the whole app into one monochrome
+    // look, which read as "boring." They now draw from the wallpaper's own
+    // warm palette (see WARM_PALETTE in Wallpaper.jsx) instead.
     const accent = fintechOn ? grad.from : wallpaperOpt?.accent || colors.accent
-    const ring = fintechOn ? grad.from : wallpaperOpt?.accent || colors.ring
-    const water = fintechOn ? grad.from : wallpaperOpt?.accent || colors.accent
-    const sleep = fintechOn ? grad.accent : wallpaperOpt?.accent || colors.accent
-    const workout = fintechOn ? grad.to : wallpaperOpt?.accent || colors.accent
-    const gradientEnd = fintechOn ? grad.to : wallpaperOpt?.gradientEnd || colors.gradientEnd
+    const ring = fintechOn ? grad.from : wp?.ring || colors.ring
+    const water = fintechOn ? grad.from : wp?.water || colors.accent
+    const sleep = fintechOn ? grad.accent : wp?.sleep || colors.accent
+    const workout = fintechOn ? grad.to : wp?.workout || colors.accent
+    const gradientEnd = fintechOn ? grad.to : wp?.ringEnd || colors.gradientEnd
     // Deliberately NOT forcing gradient fills on for wallpapers the way
     // Fintech does — Fintech is a complete alternate visual language built
     // around two-tone gradients throughout, but Classic's pill buttons

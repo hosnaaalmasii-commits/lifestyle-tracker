@@ -15,28 +15,12 @@ import WeeklyProgress from './more/WeeklyProgress'
 import Notes from './more/Notes'
 import Alcohol from './more/Alcohol'
 import Recipes from './more/Recipes'
-import Icon from '../components/Icon'
 
-const ITEMS = [
-  { id: 'coach', label: 'Coach', desc: 'AI chat grounded in your data', icon: 'sparkle' },
-  { id: 'gps', label: 'Lifestyle GPS', desc: 'Your phased roadmap', icon: 'compass' },
-  { id: 'contracts', label: 'Habit Contracts', desc: 'If-then agreements with yourself', icon: 'handshake' },
-  { id: 'weight', label: 'Weight', desc: 'Trend over time', icon: 'scale' },
-  { id: 'mood', label: 'Mood', desc: 'Scale & notes', icon: 'faceGood' },
-  { id: 'nutrition', label: 'Nutrition', desc: 'Daily checklist', icon: 'apple' },
-  { id: 'recipes', label: 'Recipes', desc: 'Ask for one, save your favorites', icon: 'utensils' },
-  { id: 'cycle', label: 'Cycle', desc: 'Flow & symptoms', icon: 'droplet' },
-  { id: 'schedule', label: 'Schedule', desc: 'Upcoming items', icon: 'calendar' },
-  { id: 'dailyschedule', label: 'Dagschema & Menu', desc: 'Taken per dag en menurotatie', icon: 'repeat' },
-  { id: 'weeklyprogress', label: 'Voortgang', desc: 'Week/maand score, streak, omtrekmaten', icon: 'trendUp' },
-  { id: 'budget', label: 'Budget', desc: 'Expenses & spending', icon: 'scale' },
-  { id: 'alcohol', label: 'Alcohol', desc: 'Drinks logged', icon: 'droplet' },
-  { id: 'notes', label: 'Notes', desc: 'Quick jottings, no AI needed', icon: 'chat' },
-  { id: 'insights', label: 'Insights', desc: 'Patterns in your data', icon: 'trendUp' },
-  { id: 'badges', label: 'Badges & Level', desc: 'Achievements, XP, challenges', icon: 'trophy' },
-  { id: 'settings', label: 'Settings', desc: 'Colors, theme, data', icon: 'gear' },
-]
-
+// The "everything else" hub list used to render here (17 items grouped
+// into sections). It's now the Sidebar (components/Sidebar.jsx, opened
+// via the hamburger button in App.jsx) instead of a full page you tab
+// into — this component's only job now is routing `view` to the right
+// page. Section/item data lives in data/moreMenu.js, shared with Sidebar.
 export default function More({ view, setView }) {
   if (view === 'weight') return <Weight onBack={() => setView(null)} />
   if (view === 'mood') return <Mood onBack={() => setView(null)} />
@@ -56,40 +40,5 @@ export default function More({ view, setView }) {
   if (view === 'badges') return <Badges onBack={() => setView(null)} />
   if (view === 'settings') return <Settings onBack={() => setView(null)} />
 
-  return (
-    <div className="page">
-      <div className="page-header">
-        <div className="eyebrow">More</div>
-        <h1>Everything else</h1>
-      </div>
-      <div className="stack">
-        {ITEMS.map((item) => (
-          <button
-            key={item.id}
-            className="card"
-            style={{ textAlign: 'left', cursor: 'pointer' }}
-            onClick={() => setView(item.id)}
-          >
-            <div className="row">
-              <div className="row" style={{ gap: 14, justifyContent: 'flex-start' }}>
-                <span style={{
-                  width: 40, height: 40, borderRadius: '50%',
-                  background: 'color-mix(in srgb, var(--accent) 12%, var(--surface-soft))',
-                  color: 'var(--accent)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                  <Icon name={item.icon} size={19} />
-                </span>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{item.label}</div>
-                  <div className="text-sm faint">{item.desc}</div>
-                </div>
-              </div>
-              <span className="faint" aria-hidden><Icon name="chevronRight" size={16} /></span>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
+  return null
 }

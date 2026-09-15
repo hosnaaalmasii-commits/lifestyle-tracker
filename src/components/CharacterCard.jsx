@@ -52,13 +52,26 @@ export default function CharacterCard({ variant = 'hero' }) {
     </button>
   ) : (
     <button className="card" onClick={() => setOpen(true)} style={{ textAlign: 'left', cursor: 'pointer', width: '100%', padding: '20px 18px' }}>
-      <div className="row" style={{ alignItems: 'center', gap: 16 }}>
-        <div style={{ flexShrink: 0 }}>
-          <ElementalCreature {...creatureProps} size={64} />
+      <div className="row" style={{ alignItems: 'center', gap: 18 }}>
+        {/* A radial spotlight in the archetype's own color, sized well
+            past the creature itself — at a bare 64px with no backdrop the
+            creature read as a small icon lost in empty card space; this
+            gives it the same "obvious focal point" treatment the hero
+            score ring above it already gets. */}
+        <div style={{ position: 'relative', flexShrink: 0, width: 92, height: 92, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute', inset: -14,
+              background: `radial-gradient(circle, color-mix(in srgb, ${archetype.color} 45%, transparent) 0%, transparent 72%)`,
+              pointerEvents: 'none',
+            }}
+          />
+          <ElementalCreature {...creatureProps} size={92} />
         </div>
         <div style={{ minWidth: 0 }}>
           <div className="text-sm muted">{archetype.name} · {stage.name}</div>
-          <div style={{ fontWeight: 700, fontSize: 19, fontFamily: 'var(--font-heading)' }}>{condition.name}</div>
+          <div style={{ fontWeight: 700, fontSize: 20, fontFamily: 'var(--font-heading)' }}>{condition.name}</div>
           <div className="text-sm faint" style={{ marginTop: 2 }}>{condition.headline}</div>
         </div>
       </div>

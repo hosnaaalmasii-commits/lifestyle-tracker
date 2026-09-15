@@ -288,6 +288,8 @@ const ICONS = {
       <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6" />
     </g>
   ),
+  menu: <path {...stroke} d="M4 6.5h16M4 12h16M4 17.5h16" />,
+  close: <path {...stroke} d="M5.5 5.5 18.5 18.5M18.5 5.5 5.5 18.5" />,
 }
 
 export default function Icon({ name, size = 18, className, style, title }) {

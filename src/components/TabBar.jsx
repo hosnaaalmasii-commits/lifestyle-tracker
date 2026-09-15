@@ -40,13 +40,6 @@ const ICONS = {
       <path d="M8.5 6l1-2h5l1 2" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
-  more: (active) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <circle cx="5.5" cy="12" r="1.7" fill="currentColor" opacity={active ? 1 : 0.75} />
-      <circle cx="12" cy="12" r="1.7" fill="currentColor" opacity={active ? 1 : 0.75} />
-      <circle cx="18.5" cy="12" r="1.7" fill="currentColor" opacity={active ? 1 : 0.75} />
-    </svg>
-  ),
 }
 
 const TABS = [
@@ -55,7 +48,6 @@ const TABS = [
   { id: 'sleep', label: 'Sleep' },
   { id: 'workouts', label: 'Workouts' },
   { id: 'progress', label: 'Progress' },
-  { id: 'more', label: 'More' },
 ]
 
 export default function TabBar({ active, onChange }) {

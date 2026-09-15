@@ -93,16 +93,24 @@ export default function TodayTasks({ onOpenSchedule }) {
         </div>
       )}
 
-      <div className="stack" style={{ marginTop: 14, gap: 8 }}>
-        {tasks.map((t) => {
+      {/* A divided list, not a stack of individually-boxed pills — the
+          same "wall of same-weight boxes" fix already used on Overview's
+          hero card and the More page, applied here too since a daily
+          checklist repeats this pattern the most (8+ rows, every day). A
+          thin gold left-accent marks a completed row instead of filling
+          the whole row with color, which reads calmer/more considered
+          than a solid-block "done" state. */}
+      <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column' }}>
+        {tasks.map((t, i) => {
           const done = !!completionsToday[t.id]
           return (
             <label
               key={t.id}
-              className="row"
+              className={`row${done ? ' task-row-done' : ''}`}
               style={{
-                gap: 10, padding: '10px 12px', borderRadius: 12, cursor: 'pointer',
-                background: done ? 'color-mix(in srgb, var(--accent) 8%, transparent)' : 'var(--surface-soft)',
+                gap: 10, padding: '12px 4px 12px 11px', cursor: 'pointer',
+                borderTop: i > 0 ? '1px solid var(--border-soft)' : 'none',
+                borderLeft: `2px solid ${done ? 'var(--accent-ring)' : 'transparent'}`,
                 justifyContent: 'flex-start',
               }}
             >
@@ -110,13 +118,13 @@ export default function TodayTasks({ onOpenSchedule }) {
                 type="checkbox"
                 checked={done}
                 onChange={() => toggleTask(today, t.id)}
-                style={{ width: 18, height: 18, accentColor: 'var(--accent)', flexShrink: 0 }}
+                style={{ width: 18, height: 18, accentColor: 'var(--accent-ring)', flexShrink: 0 }}
               />
               <span aria-hidden className="faint" style={{ flexShrink: 0 }}>
                 <Icon name={CATEGORY_ICON[t.category] || 'check'} size={16} />
               </span>
-              <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: 13 }} className="faint">{t.time}</span>
-              <span style={{ textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1, flex: 1 }}>{t.label}</span>
+              <span className="mono faint" style={{ fontSize: 12.5 }}>{t.time}</span>
+              <span style={{ textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.55 : 1, flex: 1, fontWeight: done ? 500 : 600 }}>{t.label}</span>
             </label>
           )
         })}

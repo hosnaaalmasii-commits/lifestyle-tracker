@@ -172,14 +172,22 @@ a { color: inherit; }
 /* When a Wallpaper (Wallpaper.jsx) is active, cards go translucent with a
    blur so the background actually reads through instead of every card
    fully hiding it — off by default (data-wallpaper="none" or unset), same
-   opt-in pattern as every other personalization setting in this app. */
+   opt-in pattern as every other personalization setting in this app.
+   Opacity/border/shadow are all boosted relative to the plain dark
+   palette above: at the original 72% opacity with a low-contrast
+   green-tinted border and the light-theme-tuned --shadow-sm, cards read
+   as barely-there against a busy photo — the whole screen blended into
+   one dark mass instead of legible panels sitting above the wallpaper. */
 [data-wallpaper]:not([data-wallpaper="none"]) .card {
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(14px) saturate(1.3);
   -webkit-backdrop-filter: blur(14px) saturate(1.3);
 }
 [data-wallpaper]:not([data-wallpaper="none"]) .hero-card {
-  background: linear-gradient(165deg, color-mix(in srgb, var(--hero-tint) 16%, var(--surface) 72%), color-mix(in srgb, var(--surface) 72%, transparent) 60%);
+  background: linear-gradient(165deg, color-mix(in srgb, var(--hero-tint) 20%, var(--surface) 88%), color-mix(in srgb, var(--surface) 88%, transparent) 60%);
+  border-color: color-mix(in srgb, var(--hero-tint) 30%, rgba(255, 255, 255, 0.09));
 }
 [data-wallpaper]:not([data-wallpaper="none"]) .page {
   background: transparent;
@@ -202,6 +210,49 @@ a { color: inherit; }
   color: var(--text);
   backdrop-filter: blur(14px) saturate(1.3);
   -webkit-backdrop-filter: blur(14px) saturate(1.3);
+}
+
+/* ---------- Menu button (opens Sidebar.jsx) ---------- */
+/* Same fixed-full-width-wrapper + centered-max-width-inner trick as
+   .tabbar below, so the button stays pinned to the app's own centered
+   column (not the raw viewport edge) on wider screens, and stays fixed
+   over scrolling page content. */
+
+.menu-fab-wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 55;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.menu-fab-inner {
+  width: 100%;
+  max-width: 560px;
+  position: relative;
+}
+
+.menu-fab {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  right: 18px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 /* ---------- Buttons ---------- */
@@ -474,10 +525,35 @@ a { color: inherit; }
   .flame-outer, .flame-inner, .ember, .drift-y { animation: none; }
 }
 
+/* A brief celebratory "pop" for the moment a checklist row is completed
+   (TodayTasks) — same warm gold as the hero score ring, so completing a
+   task and watching the ring fill read as the same reward, not two
+   unrelated colors. Fires once per check because the `animation`
+   property's value genuinely changes from none -> this on the row that
+   just got checked (see TodayTasks.jsx), not a class the browser has
+   already seen applied. */
+@keyframes task-complete-pop {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-ring) 45%, transparent); }
+  40% { transform: scale(1.03); box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent-ring) 22%, transparent); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+.task-row-done {
+  animation: task-complete-pop 0.5s cubic-bezier(.34, 1.56, .64, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .task-row-done { animation: none; }
+}
+
 .xp-bar-track {
-  height: 8px;
+  /* --border-soft sits too close to --surface in both dark theme and
+     under a wallpaper (same #1d2317/#2a331f pairing in each) to read as
+     a visible track — a progress bar that's supposed to show "how full"
+     shouldn't need the fill itself to prove the track exists. Deriving
+     from --text instead scales with whatever palette is active, since
+     text-on-surface contrast is guaranteed by definition. */
+  height: 10px;
   border-radius: var(--radius-pill);
-  background: var(--border-soft);
+  background: color-mix(in srgb, var(--text) 13%, transparent);
   overflow: hidden;
 }
 
@@ -485,6 +561,7 @@ a { color: inherit; }
   height: 100%;
   border-radius: var(--radius-pill);
   background: var(--accent-fill);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-fill) 55%, transparent);
   transition: width 0.6s cubic-bezier(.4,0,.2,1);
 }
 

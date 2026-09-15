@@ -146,8 +146,15 @@ export default function Overview({ onNavigate }) {
   const levelInfo = levelProgress(xp)
   const topInsights = computeInsights(data).slice(0, 2)
 
-  const { useGradientAccents, uiStyle } = data.settings
+  const { useGradientAccents, uiStyle, wallpaper } = data.settings
   const fintechOn = uiStyle === 'fintech'
+  // A wallpaper always gets the hero ring's warm two-tone gradient
+  // (amber to coral, see WARM_PALETTE in Wallpaper.jsx) regardless of the
+  // user's own gradient-accents toggle — it's the one dominant focal
+  // point on the page, and flat off-white read as flat/lifeless against
+  // the photo. Buttons elsewhere stay flat, unaffected by this.
+  const wallpaperOn = !fintechOn && wallpaper && wallpaper !== 'none'
+  const ringGradientOn = useGradientAccents || wallpaperOn
   const consistency = computeConsistencyScore(data)
   const activeContracts = activeContractsToday(data.habitContracts, data)
   const microHabit = getMicroHabit(data)
@@ -259,15 +266,21 @@ export default function Overview({ onNavigate }) {
               size={196}
               stroke={14}
               color="var(--accent-ring)"
-              gradientTo={useGradientAccents ? 'var(--accent-gradient-end)' : undefined}
+              gradientTo={ringGradientOn ? 'var(--accent-gradient-end)' : undefined}
             >
               <div className="mono" style={{ fontSize: 54, fontWeight: 700, lineHeight: 1 }}>{score}</div>
               <div className="text-sm muted" style={{ marginTop: 6 }}>daily score</div>
             </Ring>
             <div style={{ display: 'flex', gap: 18, marginTop: 28, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <StreakBadge days={waterStreak} label="water" />
-              <StreakBadge days={sleepStreak} label="sleep" />
-              <StreakBadge days={workoutStreak} label="workout" />
+              {waterStreak || sleepStreak || workoutStreak ? (
+                <>
+                  {waterStreak > 0 && <StreakBadge days={waterStreak} label="water" />}
+                  {sleepStreak > 0 && <StreakBadge days={sleepStreak} label="sleep" />}
+                  {workoutStreak > 0 && <StreakBadge days={workoutStreak} label="workout" />}
+                </>
+              ) : (
+                <span className="text-sm faint">Log today to start your first streak</span>
+              )}
             </div>
             <div
               style={{
@@ -526,8 +539,8 @@ function SummaryRow({ color, label, value, ratio, trend, delta, deltaSuffix = ''
           {delta != null && <ChangeIndicator value={delta} suffix={deltaSuffix} />}
         </div>
       </div>
-      <div style={{ height: 6, borderRadius: 4, background: 'var(--border-soft)', marginTop: 12, overflow: 'hidden' }}>
-        <div style={{ width: `${Math.round(ratio * 100)}%`, height: '100%', background: color, borderRadius: 4, transition: 'width 0.5s ease' }} />
+      <div style={{ height: 10, borderRadius: 999, background: 'color-mix(in srgb, var(--text) 13%, transparent)', marginTop: 12, overflow: 'hidden' }}>
+        <div style={{ width: `${Math.round(ratio * 100)}%`, height: '100%', background: color, borderRadius: 999, boxShadow: `0 0 10px color-mix(in srgb, ${color} 55%, transparent)`, transition: 'width 0.5s ease' }} />
       </div>
     </button>
   )

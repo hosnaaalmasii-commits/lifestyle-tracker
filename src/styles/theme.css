@@ -46,7 +46,10 @@
 
   --radius-sm: 10px;
   --radius-md: 16px;
-  --radius-lg: 24px;
+  /* 24px read as soft/bubbly — a "friendly consumer app" tell rather than
+     a structured, precise one. Tightened once here (the single source
+     every .card border-radius reads from) rather than per-component. */
+  --radius-lg: 18px;
   --radius-pill: 999px;
 
   --shadow-sm: 0 1px 2px rgba(42, 36, 20, 0.07), 0 1px 1px rgba(42, 36, 20, 0.04);
