@@ -124,7 +124,7 @@ function endOfTodayISO() {
 }
 
 export async function fetchTodayBusyMinutes(accessToken) {
-  const response = await fetch('https://www.googleapis.com/calendar/v3/freebusy', {
+  const response = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
