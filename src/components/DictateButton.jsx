@@ -8,7 +8,8 @@ export const DICTATION_SUPPORTED = isSpeechRecognitionSupported()
 // only fills in the words. Renders nothing where the browser has no
 // SpeechRecognition (Safari/iOS); callers show a hint pointing at the
 // keyboard's own dictation mic instead.
-export default function DictateButton({ onText, onDone, lang = 'nl-NL' }) {
+// compact: a round icon-only mic, for inside a pill input bar.
+export default function DictateButton({ onText, onDone, lang = 'nl-NL', compact = false }) {
   const [listening, setListening] = useState(false)
   const recognizerRef = useRef(null)
 
@@ -31,6 +32,26 @@ export default function DictateButton({ onText, onDone, lang = 'nl-NL' }) {
     recognizerRef.current = recognizer
     setListening(true)
     recognizer.start()
+  }
+
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={listening ? 'Stop met luisteren' : 'Inspreken'}
+        style={{
+          width: 36, height: 36, borderRadius: '50%', flexShrink: 0, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: listening ? 'var(--accent)' : 'transparent',
+          color: listening ? 'var(--accent-contrast)' : 'var(--second)',
+          border: listening ? 'none' : '1.2px solid color-mix(in srgb, var(--second) 70%, transparent)',
+          animation: listening ? 'mic-pulse 1.2s ease-in-out infinite' : 'none',
+        }}
+      >
+        <Icon name="mic" size={16} />
+      </button>
+    )
   }
 
   return (

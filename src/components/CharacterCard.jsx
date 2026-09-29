@@ -14,7 +14,9 @@ const TIER_COLOR = {
   positive: 'var(--success)',
 }
 
-export default function CharacterCard({ variant = 'hero' }) {
+// onOpen: when given, tapping the card opens the companion page (More →
+// companion) instead of the detail sheet.
+export default function CharacterCard({ variant = 'hero', onOpen }) {
   const { data, chooseCharacter, changeArchetype } = useApp()
   const [open, setOpen] = useState(false)
   const [changing, setChanging] = useState(false)
@@ -51,7 +53,7 @@ export default function CharacterCard({ variant = 'hero' }) {
       </div>
     </button>
   ) : (
-    <button className="card" onClick={() => setOpen(true)} style={{ textAlign: 'left', cursor: 'pointer', width: '100%', padding: '20px 18px' }}>
+    <button className="card" onClick={() => (onOpen ? onOpen() : setOpen(true))} style={{ textAlign: 'left', cursor: 'pointer', width: '100%', padding: '20px 18px' }}>
       <div className="row" style={{ alignItems: 'center', gap: 18 }}>
         {/* A radial spotlight in the archetype's own color, sized well
             past the creature itself — at a bare 64px with no backdrop the

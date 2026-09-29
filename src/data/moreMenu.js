@@ -22,6 +22,8 @@ export const MORE_SECTIONS = [
   {
     title: 'Health & body',
     items: [
+      { id: 'companion', label: 'Je figuurtje', desc: 'Hoe je metgezel groeit', icon: 'flame' },
+      { id: 'photos', label: "Voortgangsfoto's", desc: 'Foto’s en vergelijken', icon: 'camera' },
       { id: 'weight', label: 'Weight', desc: 'Trend over time', icon: 'scale' },
       { id: 'mood', label: 'Mood', desc: 'Scale & notes', icon: 'faceGood' },
       { id: 'nutrition', label: 'Nutrition', desc: 'Daily checklist', icon: 'apple' },

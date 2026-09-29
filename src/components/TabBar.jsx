@@ -33,21 +33,22 @@ const ICONS = {
         stroke="currentColor" strokeWidth={active ? 2.4 : 1.8} strokeLinecap="round" />
     </svg>
   ),
-  progress: (active) => (
+  voeding: (active) => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <rect x="3.5" y="6" width="17" height="13" rx="2.5" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} />
-      <circle cx="12" cy="12.5" r="3.4" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} />
-      <path d="M8.5 6l1-2h5l1 2" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 3.5v7.5M4.5 3.5v4.5a2.5 2.5 0 0 0 5 0V3.5M7 11v9.5M16.5 20.5V3.5c-2.2 1.2-3.5 3.6-3.5 6.5v3.5h3.5"
+        stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
 }
 
+// Same five tabs as the Richting E design. Progress photos moved into the
+// side menu (More → Voortgangsfoto's) to make room for Voeding.
 const TABS = [
   { id: 'overview', label: 'Vandaag' },
   { id: 'water', label: 'Water' },
   { id: 'sleep', label: 'Slaap' },
   { id: 'workouts', label: 'Training' },
-  { id: 'progress', label: 'Voortgang' },
+  { id: 'voeding', label: 'Voeding' },
 ]
 
 export default function TabBar({ active, onChange }) {

@@ -9,7 +9,7 @@ import Overview from './pages/Overview'
 import Water from './pages/Water'
 import Sleep from './pages/Sleep'
 import Workouts from './pages/Workouts'
-import Progress from './pages/Progress'
+import Voeding from './pages/Voeding'
 import More from './pages/More'
 
 function Shell() {
@@ -69,7 +69,7 @@ function Shell() {
       {activeTab === 'water' && <Water />}
       {activeTab === 'sleep' && <Sleep />}
       {activeTab === 'workouts' && <Workouts />}
-      {activeTab === 'progress' && <Progress />}
+      {activeTab === 'voeding' && <Voeding onNavigate={navigate} />}
       {activeTab === 'more' && <More view={moreView} setView={setMoreView} />}
       <TabBar active={activeTab} onChange={handleTabChange} />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onSelect={handleSidebarSelect} />

@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
-import { todayKey } from '../../utils/dates'
-import { hasApiKey, sendToClaude, getCoachSettings, setCoachSettings, ClaudeApiError } from '../../utils/claudeApi'
-import { PERSONALITIES, getPersonality, buildSystemPrompt } from '../../utils/coachContext'
-import BackHeader from '../../components/BackHeader'
+import { hasApiKey, sendToClaude, getCoachSettings, ClaudeApiError } from '../../utils/claudeApi'
+import { buildSystemPrompt } from '../../utils/coachContext'
 import Icon from '../../components/Icon'
+import DictateButton from '../../components/DictateButton'
+import DayReplanSheet from '../../components/DayReplanSheet'
 
 const CHAT_STORAGE = 'lifestyle-tracker-coach-chat'
-const NOTE_STORAGE_PREFIX = 'lifestyle-tracker-daily-note-'
 
 function loadChat() {
   try { return JSON.parse(localStorage.getItem(CHAT_STORAGE) || '[]') } catch { return [] }
@@ -15,57 +14,31 @@ function loadChat() {
 function saveChat(messages) {
   localStorage.setItem(CHAT_STORAGE, JSON.stringify(messages.slice(-30)))
 }
-function loadTodayNote() {
-  try { return JSON.parse(localStorage.getItem(NOTE_STORAGE_PREFIX + todayKey()) || 'null') } catch { return null }
-}
 
+// Chat layout after the Richting E Figma mockup: glowing coach orb,
+// bubbles, quick-reply pills and a pill input pinned above the tab bar.
+// The coach's personality is picked in Settings → AI Coach.
 export default function Coach({ onBack, setView }) {
   const { data } = useApp()
-  const [coachSettings, setCoachSettingsState] = useState(getCoachSettings())
+  const coachSettings = getCoachSettings()
   const [messages, setMessages] = useState(loadChat)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
-  const [note, setNote] = useState(loadTodayNote)
-  const [noteLoading, setNoteLoading] = useState(false)
+  const [replanOpen, setReplanOpen] = useState(false)
   const scrollRef = useRef(null)
 
   const keyPresent = hasApiKey()
 
   useEffect(() => { saveChat(messages) }, [messages])
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
   }, [messages, sending])
 
-  const personality = getPersonality(coachSettings.personality)
+  const send = () => sendText(input)
 
-  const changePersonality = (id) => {
-    const next = setCoachSettings({ personality: id })
-    setCoachSettingsState(next)
-  }
-
-  const generateNote = async () => {
-    setNoteLoading(true)
-    setError('')
-    try {
-      const system = buildSystemPrompt(coachSettings.personality, data)
-      const text = await sendToClaude({
-        system,
-        messages: [{ role: 'user', content: 'Write today\'s focus note: 2-3 sentences on what matters most today given my data snapshot. No greeting, no sign-off, just the note itself.' }],
-        maxTokens: 220,
-      })
-      const entry = { text, generatedAt: Date.now() }
-      localStorage.setItem(NOTE_STORAGE_PREFIX + todayKey(), JSON.stringify(entry))
-      setNote(entry)
-    } catch (e) {
-      setError(e instanceof ClaudeApiError ? e.message : 'Something went wrong generating your note.')
-    } finally {
-      setNoteLoading(false)
-    }
-  }
-
-  const send = async () => {
-    const text = input.trim()
+  const sendText = async (raw) => {
+    const text = raw.trim()
     if (!text || sending) return
     setInput('')
     setError('')
@@ -92,109 +65,106 @@ export default function Coach({ onBack, setView }) {
     localStorage.removeItem(CHAT_STORAGE)
   }
 
+  const header = (
+    <div className="row" style={{ gap: 12, justifyContent: 'flex-start', marginBottom: 16, paddingRight: 52 }}>
+      <button onClick={onBack} aria-label="Terug" style={{ background: 'none', border: 'none', color: 'var(--text-soft)', fontSize: 22, cursor: 'pointer', padding: '0 2px' }}>‹</button>
+      <span
+        aria-hidden
+        style={{
+          width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
+          background: 'radial-gradient(circle at 40% 38%, #ffffff 0%, color-mix(in srgb, var(--accent) 55%, #ffffff) 30%, var(--accent) 62%, color-mix(in srgb, var(--accent) 60%, #000000) 100%)',
+          boxShadow: '0 0 24px color-mix(in srgb, var(--accent) 55%, transparent)',
+        }}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>Je coach</div>
+        <div className="text-sm faint">Kent je schema, voeding en slaap</div>
+      </div>
+      {keyPresent && messages.length > 0 && (
+        <button onClick={clearChat} aria-label="Gesprek wissen" style={{ background: 'none', border: 'none', color: 'var(--text-faint)', cursor: 'pointer' }}>
+          <Icon name="trash" size={17} />
+        </button>
+      )}
+    </div>
+  )
+
   if (!keyPresent) {
     return (
       <div className="page">
-        <BackHeader eyebrow="More" title="Coach" onBack={onBack} />
-        <div className="empty-state">
-          <div className="icon"><Icon name="sparkle" size={26} /></div>
-          <p>Connect your own Claude API key to talk to an AI coach that knows your actual data — nothing is sent anywhere until you add a key.</p>
-          <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={() => setView('settings')}>Set up in Settings</button>
-        </div>
+        {header}
+        <Bubble role="assistant">Hoi! Om met mij te kunnen praten heb je een Claude API-key nodig. Die vul je één keer in bij Instellingen.</Bubble>
+        <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={() => setView('settings')}>Naar Instellingen</button>
       </div>
     )
   }
 
+  const quickAsk = (text) => { setInput(''); sendText(text) }
+
   return (
-    <div className="page" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 40px)' }}>
-      <BackHeader
-        eyebrow="More"
-        title="Coach"
-        onBack={onBack}
-        action={<button className="btn btn-ghost btn-sm" onClick={() => setView('settings')}><Icon name="gear" size={16} /></button>}
-      />
+    <div className="page" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100dvh - var(--tabbar-height) - 40px)' }}>
+      {header}
 
-      <div className="scroll-x" style={{ marginBottom: 16 }}>
-        {PERSONALITIES.map((p) => (
-          <button
-            key={p.id}
-            className={`chip${p.id === coachSettings.personality ? ' selected' : ''}`}
-            onClick={() => changePersonality(p.id)}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      {!note ? (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="row">
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>Today's focus</div>
-              <div className="text-sm faint">A short AI note grounded in your data</div>
-            </div>
-            <button className="btn btn-secondary btn-sm" disabled={noteLoading} onClick={generateNote}>
-              {noteLoading ? 'Thinking…' : 'Generate'}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="card hero-card" style={{ marginBottom: 16, '--hero-tint': 'var(--accent)', '--hero-glow': 'var(--accent-gradient-end)' }}>
-          <div className="tag" style={{ background: 'transparent', color: 'var(--accent)', padding: 0, marginBottom: 8 }}>Today's focus · {personality.label}</div>
-          <p style={{ margin: 0, lineHeight: 1.55 }}>{note.text}</p>
-          <button className="btn btn-ghost btn-sm" style={{ marginTop: 10, padding: '4px 0' }} disabled={noteLoading} onClick={generateNote}>
-            {noteLoading ? 'Thinking…' : 'Regenerate'}
-          </button>
-        </div>
-      )}
-
-      <div className="row" style={{ marginBottom: 4 }}>
-        <div className="section-title" style={{ margin: 0 }}>Chat</div>
-        {messages.length > 0 && <button className="btn btn-ghost btn-sm" onClick={clearChat}>Clear</button>}
-      </div>
-
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, padding: '4px 0 12px' }}>
+      <div ref={scrollRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0 14px' }}>
         {messages.length === 0 && (
-          <p className="muted text-sm" style={{ padding: '8px 0' }}>
-            Ask anything — "how's my week going", "I feel stressed, what should I do", "plan me a light day."
-          </p>
+          <Bubble role="assistant">Hoi! Vraag me alles over je dag, je voeding of je training. Ik ken je schema, je voorraad en hoe je slaapt.</Bubble>
         )}
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            style={{
-              alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-              maxWidth: '85%',
-              background: m.role === 'user' ? 'var(--accent-fill)' : 'var(--surface-soft)',
-              color: m.role === 'user' ? 'var(--accent-contrast)' : 'var(--text)',
-              padding: '10px 14px',
-              borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-              fontSize: 14.5,
-              lineHeight: 1.5,
-              whiteSpace: 'pre-wrap',
-            }}
-          >
-            {m.content}
-          </div>
-        ))}
-        {sending && (
-          <div style={{ alignSelf: 'flex-start', color: 'var(--text-faint)', fontSize: 13, padding: '4px 6px' }}>Coach is thinking…</div>
-        )}
+        {messages.map((m, i) => <Bubble key={i} role={m.role}>{m.content}</Bubble>)}
+        {sending && <div className="text-sm faint" style={{ padding: '2px 6px' }}>Coach denkt na…</div>}
       </div>
 
       {error && <div className="text-sm" style={{ color: 'var(--danger)', marginBottom: 8 }}>{error}</div>}
 
-      <div className="row" style={{ gap: 8, paddingTop: 8, borderTop: '1px solid var(--border-soft)' }}>
-        <input
-          className="input"
-          style={{ flex: 1 }}
-          placeholder="Message your coach…"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') send() }}
-        />
-        <button className="btn btn-primary" disabled={sending || !input.trim()} onClick={send}>Send</button>
+      <div
+        style={{
+          position: 'sticky', bottom: 'calc(var(--tabbar-height) + var(--safe-bottom) + 12px)',
+          paddingTop: 8,
+        }}
+      >
+        <div className="scroll-x" style={{ marginBottom: 10 }}>
+          <button className="chip" onClick={() => setReplanOpen(true)}>Pas mijn dag aan</button>
+          <button className="chip" onClick={() => quickAsk('Wat is vandaag mijn belangrijkste focus?')}>Mijn focus vandaag</button>
+          <button className="chip" onClick={() => quickAsk('Hoe gaat mijn week tot nu toe?')}>Hoe gaat mijn week?</button>
+          <button className="chip" onClick={() => quickAsk('Welke snack past vandaag bij mijn doel en wat ik in huis heb?')}>Snack-idee</button>
+        </div>
+        <div
+          className="row"
+          style={{ gap: 8, padding: '5px 5px 5px 18px', borderRadius: 999, background: 'var(--surface)', border: '1.2px solid color-mix(in srgb, var(--accent) 55%, transparent)' }}
+        >
+          <input
+            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14.5 }}
+            placeholder="Typ of spreek je bericht…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') send() }}
+          />
+          <DictateButton onText={setInput} compact />
+          <button className="btn btn-primary btn-sm" disabled={sending || !input.trim()} onClick={send}>Stuur</button>
+        </div>
       </div>
+
+      <DayReplanSheet open={replanOpen} onClose={() => setReplanOpen(false)} />
+    </div>
+  )
+}
+
+function Bubble({ role, children }) {
+  const mine = role === 'user'
+  return (
+    <div
+      style={{
+        alignSelf: mine ? 'flex-end' : 'flex-start',
+        maxWidth: mine ? '78%' : '86%',
+        background: mine ? 'var(--accent)' : 'var(--surface)',
+        color: mine ? 'var(--accent-contrast)' : 'var(--text)',
+        border: mine ? 'none' : '1px solid var(--border-soft)',
+        padding: '11px 14px',
+        borderRadius: mine ? '18px 6px 18px 18px' : '6px 18px 18px 18px',
+        fontSize: 14.5,
+        lineHeight: 1.5,
+        whiteSpace: 'pre-wrap',
+      }}
+    >
+      {children}
     </div>
   )
 }

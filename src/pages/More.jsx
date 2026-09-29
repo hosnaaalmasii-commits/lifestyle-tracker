@@ -16,6 +16,8 @@ import Notes from './more/Notes'
 import Alcohol from './more/Alcohol'
 import Recipes from './more/Recipes'
 import Pantry from './more/Pantry'
+import Companion from './more/Companion'
+import Progress from './Progress'
 
 // The "everything else" hub list used to render here (17 items grouped
 // into sections). It's now the Sidebar (components/Sidebar.jsx, opened
@@ -33,6 +35,8 @@ export default function More({ view, setView }) {
   if (view === 'schedule') return <Schedule onBack={() => setView(null)} />
   if (view === 'dailyschedule') return <DailySchedule onBack={() => setView(null)} />
   if (view === 'weeklyprogress') return <WeeklyProgress onBack={() => setView(null)} />
+  if (view === 'photos') return <Progress />
+  if (view === 'companion') return <Companion onBack={() => setView(null)} />
   if (view === 'pantry') return <Pantry onBack={() => setView(null)} />
   if (view === 'notes') return <Notes onBack={() => setView(null)} />
   if (view === 'insights') return <Insights onBack={() => setView(null)} />

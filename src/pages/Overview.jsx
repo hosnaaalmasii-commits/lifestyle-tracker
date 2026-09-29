@@ -199,7 +199,7 @@ export default function Overview({ onNavigate }) {
       <div className="card-row" style={{ marginTop: 14, gap: 10 }}>
         <StatCard label="Water" value={`${nl1(waterToday / 1000)} L`} sub={`van ${nl1(data.settings.waterGoalMl / 1000)} L`} onClick={() => onNavigate('water')} />
         <StatCard label="Slaap" value={sleepToday ? `${Math.floor(sleepToday.hours)}u ${String(Math.round((sleepToday.hours % 1) * 60)).padStart(2, '0')}` : '—'} sub={`doel ${data.settings.sleepGoalHours}u`} onClick={() => onNavigate('sleep')} />
-        <StatCard label="Eiwit" value={`${proteinToday} g`} sub={`van ${proteinGoal} g`} onClick={() => onNavigate('more', 'nutrition')} />
+        <StatCard label="Eiwit" value={`${proteinToday} g`} sub={`van ${proteinGoal} g`} onClick={() => onNavigate('voeding')} />
       </div>
 
       <div style={{ marginTop: 14 }}>
@@ -212,7 +212,7 @@ export default function Overview({ onNavigate }) {
 
       <div style={{ marginTop: 14 }}>
         <CharacterErrorBoundary>
-          <CharacterCard />
+          <CharacterCard onOpen={() => onNavigate('more', 'companion')} />
         </CharacterErrorBoundary>
       </div>
 

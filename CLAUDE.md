@@ -621,10 +621,21 @@ the browser.
   (`settings.displayName`, optional), one hero card with the *task* day
   score ring + streak chip, a row of quick-action pills, three stat cards
   (water/sleep/protein), the Vandaag checklist (`TodayTasks`), the
-  companion, a coach prompt bar, then quieter secondary info. The Figma
-  file also has mockups for Voeding, Training, Coach and the companion
-  page in this style — those page *layouts* aren't built yet (the pages
-  only inherit the new colours/components so far).
+  companion, a coach prompt bar, then quieter secondary info.
+- **The other Figma pages are built to match their mockups** (the user
+  explicitly rejected pages that only inherited the colours — "ik wil
+  die pagina's en indeling ook gelijk als op Figma"): **Voeding** is now
+  a tab (`pages/Voeding.jsx`, replacing Progress in the tab bar; progress
+  photos moved to More → Voortgangsfoto's) — week day pills, kcal/macro
+  card from logged `data.meals`, one card per rotation meal with an
+  in-huis/mist pantry chip, kcal/protein per dish AI-estimated once and
+  cached in `data.mealEstimates`, tap → "Gegeten" logs it. **Training**
+  (`Workouts.jsx`) follows the *transformation plan's* training task for
+  whether/when you train (the generated workout only supplies exercises —
+  the two used to disagree), hero card + 3 stats + week dots +
+  exercises. **Coach** is a chat with orb header, bubbles, quick-reply
+  pills (one opens the replan sheet) and a pill input. **Je figuurtje**
+  (`pages/more/Companion.jsx`, opened by tapping the companion card).
 - **Icons: `src/components/Icon.jsx`, a hand-drawn line-icon set
   (~55 icons, including `mic`), replacing emoji throughout the app.**
   Consistent stroke weight (1.7), 24×24 viewBox, `currentColor`. When

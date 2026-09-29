@@ -90,6 +90,9 @@ const DEFAULT_DATA = {
   // What's in the fridge/freezer/cupboard — [{ id, name, location, addedAt }].
   // Drives the "cook with what you have" meal swap (utils/pantry.js).
   pantry: [],
+  // AI-estimated macros per meal-rotation dish, keyed by the dish text —
+  // cached so each dish is only ever estimated once (Voeding page).
+  mealEstimates: {},
   measurements: [],
   googleCalendarEventIds: {},
   water: {},
@@ -506,6 +509,7 @@ export function AppProvider({ children }) {
       setData((d) => ({ ...d, meals: [...d.meals, { id: makeId(), date: dateKey, loggedAt: Date.now(), ...meal }].sort((a, b) => a.date.localeCompare(b.date) || a.loggedAt - b.loggedAt) }))
     },
     deleteMeal: (id) => setData((d) => ({ ...d, meals: d.meals.filter((m) => m.id !== id) })),
+    setMealEstimate: (text, estimate) => setData((d) => ({ ...d, mealEstimates: { ...d.mealEstimates, [text]: estimate } })),
 
     addHabitContract: (contract) => {
       setData((d) => ({ ...d, habitContracts: [...d.habitContracts, { id: makeId(), createdAt: todayKey(), ...contract }] }))
