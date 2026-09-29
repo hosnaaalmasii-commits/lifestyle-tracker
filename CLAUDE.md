@@ -635,7 +635,20 @@ the browser.
   the two used to disagree), hero card + 3 stats + week dots +
   exercises. **Coach** is a chat with orb header, bubbles, quick-reply
   pills (one opens the replan sheet) and a pill input. **Je figuurtje**
-  (`pages/more/Companion.jsx`, opened by tapping the companion card).
+  (`pages/more/Companion.jsx`, opened by tapping the small
+  `CompanionTile` on Vandaag).
+- **Languages** (`src/i18n/index.js` + `useT()` hook, Settings → Taal):
+  nl (default) / en / fr / de / es. Every string is one key with five
+  versions in that fixed order; dates use `Intl` with the language's
+  locale. `claudeApi.setAiLanguage()` (set from an AppContext effect)
+  makes every Claude reply come back in the chosen language. **Covered so
+  far**: tab bar, side menu, Vandaag, Voeding, Training, Water, Slaap,
+  Coach, companion page/tile, Settings' top sections, BackHeader. **Not
+  yet**: the menu sub-pages (Weight, Mood, Cycle, Budget, Pantry, Daily
+  schedule, Progress, Recipes, …), DayReplanSheet, and most of Settings'
+  longer sections — they still show their original English/Dutch text.
+  User-entered content (task names, the meal rotation) is never
+  translated.
 - **Icons: `src/components/Icon.jsx`, a hand-drawn line-icon set
   (~55 icons, including `mic`), replacing emoji throughout the app.**
   Consistent stroke weight (1.7), 24×24 viewBox, `currentColor`. When

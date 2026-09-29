@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { COLOR_THEMES } from '../../utils/colorThemes'
+import { LANGUAGES } from '../../i18n'
+import { useT } from '../../i18n/useT'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
 import { getOuraApiKey, setOuraApiKey } from '../../utils/ouraApi'
 import { isValidGoogleClientId } from '../../utils/googleCalendar'
@@ -12,7 +14,7 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 
 export default function Settings({ onBack }) {
   const {
-    data, sync, setColorTheme, setDisplayName, setGentleMode,
+    data, sync, setColorTheme, setDisplayName, setGentleMode, setLanguage,
     setWeightUnit, exportData, importData, clearAll,
     connectGoogleCalendar, disconnectGoogleCalendar, syncTasksToGoogleCalendar,
     enableCalendarAutoSync, disableCalendarAutoSync,
@@ -26,6 +28,7 @@ export default function Settings({ onBack }) {
   const [importedOk, setImportedOk] = useState(false)
 
   const [nameInput, setNameInput] = useState(data.settings.displayName || '')
+  const { t } = useT()
 
   const [backfillBusy, setBackfillBusy] = useState(false)
   const [backfillStage, setBackfillStage] = useState('')
@@ -199,40 +202,55 @@ export default function Settings({ onBack }) {
 
   return (
     <div className="page">
-      <BackHeader eyebrow="More" title="Settings" onBack={onBack} />
+      <BackHeader eyebrow="" title={t('set.title')} onBack={onBack} />
 
-      <div className="section-title">Kleur</div>
+      <div className="section-title">{t('set.language')}</div>
+      <div className="card">
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+          {LANGUAGES.map((l) => (
+            <button
+              key={l.code}
+              className={`chip${(data.settings.language || 'nl') === l.code ? ' selected' : ''}`}
+              onClick={() => setLanguage(l.code)}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="section-title">{t('set.color')}</div>
       <div className="card">
         <div className="row" style={{ gap: 10 }}>
-          {COLOR_THEMES.map((t) => {
-            const selected = data.settings.colorTheme === t.key
+          {COLOR_THEMES.map((theme) => {
+            const selected = data.settings.colorTheme === theme.key
             return (
               <button
-                key={t.key}
-                onClick={() => setColorTheme(t.key)}
+                key={theme.key}
+                onClick={() => setColorTheme(theme.key)}
                 aria-pressed={selected}
                 style={{
                   flex: 1, cursor: 'pointer', padding: 0, borderRadius: 'var(--radius-md)', overflow: 'hidden',
-                  border: selected ? `2px solid ${t.accent}` : '2px solid var(--border-soft)',
-                  background: t.bg, color: t.text, textAlign: 'left',
+                  border: selected ? `2px solid ${theme.accent}` : '2px solid var(--border-soft)',
+                  background: theme.bg, color: theme.text, textAlign: 'left',
                 }}
               >
-                <div style={{ height: 62, position: 'relative', background: `radial-gradient(ellipse at 50% 120%, ${t.glow}88 0%, transparent 70%)` }}>
-                  <span style={{ position: 'absolute', left: 10, bottom: 10, width: 34, height: 16, borderRadius: 99, background: t.accent }} />
-                  <span style={{ position: 'absolute', left: 50, bottom: 10, width: 34, height: 16, borderRadius: 99, border: `1.5px solid ${t.second}` }} />
+                <div style={{ height: 62, position: 'relative', background: `radial-gradient(ellipse at 50% 120%, ${theme.glow}88 0%, transparent 70%)` }}>
+                  <span style={{ position: 'absolute', left: 10, bottom: 10, width: 34, height: 16, borderRadius: 99, background: theme.accent }} />
+                  <span style={{ position: 'absolute', left: 50, bottom: 10, width: 34, height: 16, borderRadius: 99, border: `1.5px solid ${theme.second}` }} />
                 </div>
-                <div style={{ padding: '8px 10px', fontSize: 13, fontWeight: 700 }}>{t.label}</div>
+                <div style={{ padding: '8px 10px', fontSize: 13, fontWeight: 700 }}>{t(`theme.${theme.key}`)}</div>
               </button>
             )
           })}
         </div>
       </div>
 
-      <div className="section-title">Je naam</div>
+      <div className="section-title">{t('set.name')}</div>
       <div className="card">
         <input
           className="input"
-          placeholder="Voor de begroeting op Vandaag"
+          placeholder={t('set.namePh')}
           value={nameInput}
           onChange={(e) => setNameInput(e.target.value)}
           onBlur={() => setDisplayName(nameInput.trim())}

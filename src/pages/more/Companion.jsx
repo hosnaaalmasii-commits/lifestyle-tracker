@@ -5,29 +5,21 @@ import { computeCharacter, STAGES } from '../../utils/characterEngine'
 import { getTasksForDate, getMealsForDate } from '../../utils/taskSchedule'
 import ElementalCreature from '../../components/ElementalCreature'
 import CharacterOnboardingSheet from '../../components/CharacterOnboardingSheet'
-
-// Dutch names for the condition states (characterEngine keeps English keys).
-const CONDITION_NL = {
-  newbond: 'nieuwe band', depleted: 'uitgeput', fatigued: 'moe', overextended: 'overbelast', roughpatch: 'zware periode',
-  underhydrated: 'dorstig', underfueled: 'hongerig', underrested: 'slaperig', undermoved: 'stilzittend',
-  recovering: 'herstellend', balanced: 'in balans', energized: 'energiek', thriving: 'bloeiend', radiant: 'stralend',
-}
-const ARCHETYPE_NL = {
-  warrior: 'Strijder', nature: 'Natuurwezen', fire: 'Vuur', moon: 'Maan', robot: 'Robot',
-  animal: 'Vos', plant: 'Plant', dragon: 'Draak', spirit: 'Geest', athlete: 'Komeet',
-}
+import { useT } from '../../i18n/useT'
+import { ARCHETYPE_NAMES, CONDITION_NAMES } from '../../i18n'
 
 // "Je figuurtje" — the companion's own page, after the Richting E Figma
 // mockup: the creature large and centred in its own glow, stage/vitality
 // pills, progress to the next stage, and what feeds it today.
 export default function Companion() {
   const { data, changeArchetype } = useApp()
+  const { t, pickLang, locale } = useT()
   const [changing, setChanging] = useState(false)
 
   if (!data.character?.archetype) {
     return (
       <div className="page">
-        <p className="muted">Kies eerst je figuurtje op de Vandaag-pagina.</p>
+        <p className="muted">{t('comp.chooseFirst')}</p>
       </div>
     )
   }
@@ -35,7 +27,9 @@ export default function Companion() {
   const today = todayKey()
   const character = computeCharacter(data)
   const { archetype, condition, stage, growth } = character
-  const name = ARCHETYPE_NL[archetype.id] || archetype.name
+  const name = pickLang(ARCHETYPE_NAMES[archetype.id]) || archetype.name
+  const liters = (ml) => (ml / 1000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  const hUnit = t('unit.h')
   const nextMin = STAGES[stage.stageIndex + 1]?.min
   const pointsLeft = nextMin != null ? Math.max(0, Math.ceil(nextMin - character.totalFeedPoints)) : 0
 
@@ -48,15 +42,15 @@ export default function Companion() {
   const eatenMeals = data.meals.filter((m) => m.date === today).length
 
   const feeds = [
-    { label: 'Water', value: `${(water / 1000).toFixed(1).replace('.', ',')} / ${(data.settings.waterGoalMl / 1000).toFixed(1).replace('.', ',')} L`, done: water >= data.settings.waterGoalMl },
-    { label: 'Training', value: training ? (trainingDone ? 'gedaan ✓' : `gepland ${training.time}`) : 'rustdag', done: !training || trainingDone },
-    { label: 'Slaap', value: sleep ? `${Math.floor(sleep.hours)}u ${String(Math.round((sleep.hours % 1) * 60)).padStart(2, '0')}${sleep.hours >= data.settings.sleepGoalHours ? ' ✓' : ''}` : 'nog niet gelogd', done: !!sleep && sleep.hours >= data.settings.sleepGoalHours },
-    { label: 'Voeding', value: plannedMeals ? `${Math.min(eatenMeals, plannedMeals)} / ${plannedMeals} maaltijden` : `${eatenMeals} gelogd`, done: plannedMeals > 0 && eatenMeals >= plannedMeals },
+    { label: t('stat.water'), value: `${liters(water)} / ${liters(data.settings.waterGoalMl)} L`, done: water >= data.settings.waterGoalMl },
+    { label: t('tr.title'), value: training ? (trainingDone ? t('comp.done') : t('comp.planned', { t: training.time })) : t('ov.restDay'), done: !training || trainingDone },
+    { label: t('stat.sleep'), value: sleep ? `${Math.floor(sleep.hours)}${hUnit} ${String(Math.round((sleep.hours % 1) * 60)).padStart(2, '0')}${sleep.hours >= data.settings.sleepGoalHours ? ' ✓' : ''}` : t('comp.notLogged'), done: !!sleep && sleep.hours >= data.settings.sleepGoalHours },
+    { label: t('comp.food'), value: plannedMeals ? t('comp.meals', { a: Math.min(eatenMeals, plannedMeals), b: plannedMeals }) : t('comp.logged', { n: eatenMeals }), done: plannedMeals > 0 && eatenMeals >= plannedMeals },
   ]
 
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <div className="faint" style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.04em', marginTop: 8 }}>JE METGEZEL</div>
+      <div className="faint" style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.04em', marginTop: 8 }}>{t('comp.eyebrow')}</div>
       <h1 style={{ fontSize: 30, marginTop: 2 }}>{name}</h1>
 
       <div style={{ position: 'relative', width: 260, height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0 4px' }}>
@@ -71,8 +65,8 @@ export default function Companion() {
       </div>
 
       <div className="row" style={{ gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <span className="chip" style={{ padding: '5px 12px', fontSize: 12, cursor: 'default' }}>Fase {stage.stageIndex + 1} van {STAGES.length} · {stage.name}</span>
-        <span className="chip" style={{ padding: '5px 12px', fontSize: 12, cursor: 'default' }}>Vitaliteit: {CONDITION_NL[condition.key] || condition.name}</span>
+        <span className="chip" style={{ padding: '5px 12px', fontSize: 12, cursor: 'default' }}>{t('comp.phase', { n: stage.stageIndex + 1, total: STAGES.length, stage: stage.name })}</span>
+        <span className="chip" style={{ padding: '5px 12px', fontSize: 12, cursor: 'default' }}>{t('comp.vitality', { x: pickLang(CONDITION_NAMES[condition.key]) || condition.name })}</span>
       </div>
 
       <div style={{ width: '100%', marginTop: 14 }}>
@@ -80,12 +74,12 @@ export default function Companion() {
           <div className="xp-bar-fill" style={{ width: `${Math.round(stage.progress * 100)}%`, background: 'linear-gradient(90deg, var(--accent), var(--second))', boxShadow: 'none' }} />
         </div>
         <p className="text-sm faint" style={{ textAlign: 'center', marginTop: 8 }}>
-          {stage.next ? `Nog ${pointsLeft} punten tot ${stage.next}` : 'Volgroeid — hou het vuur brandend'}
+          {stage.next ? t('comp.pointsLeft', { n: pointsLeft, next: stage.next }) : t('comp.fullyGrown')}
         </p>
       </div>
 
       <div className="card" style={{ width: '100%', marginTop: 14, padding: '16px 16px 6px' }}>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Wat {name} vandaag voedt</div>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{t('comp.feeds', { name })}</div>
         {feeds.map((f) => (
           <div key={f.label} className="row" style={{ gap: 12, padding: '10px 0', justifyContent: 'flex-start' }}>
             <span style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: f.done ? 'var(--second)' : 'color-mix(in srgb, var(--text) 25%, transparent)' }} />
@@ -95,7 +89,7 @@ export default function Companion() {
         ))}
       </div>
 
-      <button className="btn btn-ghost btn-sm" style={{ marginTop: 16 }} onClick={() => setChanging(true)}>Ander figuurtje kiezen</button>
+      <button className="btn btn-ghost btn-sm" style={{ marginTop: 16 }} onClick={() => setChanging(true)}>{t('comp.change')}</button>
 
       <CharacterOnboardingSheet
         open={changing}

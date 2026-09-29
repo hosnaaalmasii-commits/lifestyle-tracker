@@ -56,6 +56,13 @@ export function setCoachSettings(partial) {
   return next
 }
 
+// The app language's English name ("French", …), set from AppContext —
+// every request asks Claude to write user-facing text in it.
+let aiLanguage = null
+export function setAiLanguage(name) {
+  aiLanguage = name
+}
+
 class ClaudeApiError extends Error {
   constructor(message, status) {
     super(message)
@@ -95,7 +102,9 @@ export async function sendToClaude({ system, messages, maxTokens = 1024, model, 
       body: JSON.stringify({
         model: chosenModel,
         max_tokens: maxTokens,
-        system,
+        system: aiLanguage && typeof system === 'string'
+          ? `${system}\n\nIMPORTANT: write every piece of user-facing text (replies, notes, summaries, meal names) in ${aiLanguage}, whatever language the instructions above use. Keep JSON keys and enum values exactly as specified.`
+          : system,
         messages,
         ...(Object.keys(outputConfig).length ? { output_config: outputConfig } : {}),
       }),

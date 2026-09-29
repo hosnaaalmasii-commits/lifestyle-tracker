@@ -7,11 +7,13 @@ import StreakBadge from '../components/StreakBadge'
 import WeeklyBarChart from '../components/WeeklyBarChart'
 import Sheet from '../components/Sheet'
 import ConfirmDialog from '../components/ConfirmDialog'
+import { useT } from '../i18n/useT'
 
-const QUALITY_LABELS = ['Rough', 'Poor', 'Okay', 'Good', 'Great']
 
 export default function Sleep() {
   const { data, logSleep, deleteSleep, setSleepGoal } = useApp()
+  const { t, locale } = useT()
+  const qualityLabel = (q) => t(`sleep.q${q}`)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [logOpen, setLogOpen] = useState(false)
   const [goalOpen, setGoalOpen] = useState(false)
@@ -38,8 +40,8 @@ export default function Sleep() {
   return (
     <div className="page">
       <div className="page-header">
-        <div className="eyebrow">Sleep</div>
-        <h1>Rest &amp; recovery</h1>
+        <div className="eyebrow">{t('tab.sleep')}</div>
+        <h1>{t('sleep.title')}</h1>
       </div>
 
       <div className="card hero-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '26px 18px', '--hero-tint': 'var(--accent-sleep)', '--hero-glow': 'var(--accent-sleep)' }}>
@@ -47,34 +49,34 @@ export default function Sleep() {
           <div className="mono" style={{ fontSize: 26, fontWeight: 700, lineHeight: 1 }}>
             {todayEntry ? todayEntry.hours : '—'}
           </div>
-          <div className="text-sm muted" style={{ marginTop: 4 }}>of {goal}h goal</div>
+          <div className="text-sm muted" style={{ marginTop: 4 }}>{t('sleep.ofGoal', { h: goal })}</div>
         </Ring>
 
         {todayEntry && (
           <div className="text-sm muted" style={{ marginTop: 14 }}>
-            Quality: <strong style={{ color: 'var(--text)' }}>{QUALITY_LABELS[todayEntry.quality - 1]}</strong>
+            {t('sleep.quality')}: <strong style={{ color: 'var(--text)' }}>{qualityLabel(todayEntry.quality)}</strong>
           </div>
         )}
 
         <div className="row" style={{ marginTop: 16, gap: 10 }}>
           <button className="btn btn-primary btn-sm" onClick={openLog}>
-            {todayEntry ? 'Edit last night' : 'Log last night'}
+            {todayEntry ? t('sleep.edit') : t('sleep.log')}
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setCustomGoal(goal); setGoalOpen(true) }}>Edit goal</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setCustomGoal(goal); setGoalOpen(true) }}>{t('water.editGoal')}</button>
         </div>
       </div>
 
       <div className="row" style={{ marginTop: 20, marginBottom: 4 }}>
-        <div className="section-title" style={{ margin: 0 }}>This week</div>
+        <div className="section-title" style={{ margin: 0 }}>{t('water.thisWeek')}</div>
         <StreakBadge days={streak} />
       </div>
       <div className="card">
         <WeeklyBarChart values={weekValues} goal={goal} color="var(--accent-sleep)" formatValue={(v) => `${v} h`} />
       </div>
 
-      <Sheet open={logOpen} onClose={() => setLogOpen(false)} title={`Sleep — ${humanDate(today)}`}>
+      <Sheet open={logOpen} onClose={() => setLogOpen(false)} title={t('sleep.sheetTitle', { date: new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short' }) })}>
         <div className="field">
-          <label>Hours slept</label>
+          <label>{t('sleep.hours')}</label>
           <div className="stepper">
             <button onClick={() => setHours((h) => Math.max(0, Math.round((h - 0.5) * 2) / 2))}>−</button>
             <span className="value">{hours}</span>
@@ -82,7 +84,7 @@ export default function Sleep() {
           </div>
         </div>
         <div className="field">
-          <label>Quality</label>
+          <label>{t('sleep.quality')}</label>
           <div className="row" style={{ gap: 8 }}>
             {[1, 2, 3, 4, 5].map((q) => (
               <button
@@ -98,13 +100,13 @@ export default function Sleep() {
               </button>
             ))}
           </div>
-          <div className="text-sm muted" style={{ marginTop: 8, textAlign: 'center' }}>{QUALITY_LABELS[quality - 1]}</div>
+          <div className="text-sm muted" style={{ marginTop: 8, textAlign: 'center' }}>{qualityLabel(quality)}</div>
         </div>
         <button
           className="btn btn-primary btn-block"
           onClick={() => { logSleep(today, hours, quality); setLogOpen(false) }}
         >
-          Save
+          {t('common.save')}
         </button>
         {todayEntry && (
           <button
@@ -112,24 +114,24 @@ export default function Sleep() {
             style={{ marginTop: 10 }}
             onClick={() => { setLogOpen(false); setConfirmDelete(true) }}
           >
-            Delete entry
+            {t('sleep.deleteEntry')}
           </button>
         )}
       </Sheet>
 
       <ConfirmDialog
         open={confirmDelete}
-        title="Delete last night's sleep?"
-        message="This removes tonight's log entirely — you can re-log it any time."
-        confirmLabel="Delete"
+        title={t('sleep.deleteTitle')}
+        message={t('sleep.deleteMsg')}
+        confirmLabel={t('common.delete')}
         danger
         onCancel={() => setConfirmDelete(false)}
         onConfirm={() => { deleteSleep(today); setConfirmDelete(false) }}
       />
 
-      <Sheet open={goalOpen} onClose={() => setGoalOpen(false)} title="Sleep goal">
+      <Sheet open={goalOpen} onClose={() => setGoalOpen(false)} title={t('sleep.goalTitle')}>
         <div className="field">
-          <label>Hours per night</label>
+          <label>{t('sleep.perNight')}</label>
           <div className="stepper">
             <button onClick={() => setCustomGoal((h) => Math.max(4, h - 0.5))}>−</button>
             <span className="value">{customGoal}</span>
@@ -140,7 +142,7 @@ export default function Sleep() {
           className="btn btn-primary btn-block"
           onClick={() => { setSleepGoal(customGoal); setGoalOpen(false) }}
         >
-          Save goal
+          {t('water.saveGoal')}
         </button>
       </Sheet>
     </div>

@@ -8,6 +8,7 @@ import StreakBadge from '../components/StreakBadge'
 import WeeklyBarChart from '../components/WeeklyBarChart'
 import Sheet from '../components/Sheet'
 import ConfirmDialog from '../components/ConfirmDialog'
+import { useT } from '../i18n/useT'
 
 const QUICK_ADDS = [200, 330, 500]
 
@@ -21,6 +22,7 @@ const STATUS_COLOR = {
 
 export default function Water() {
   const { data, addWater, undoLastWater, clearWater, setWaterGoal } = useApp()
+  const { t } = useT()
   const [goalSheetOpen, setGoalSheetOpen] = useState(false)
   const [customGoal, setCustomGoal] = useState(data.settings.waterGoalMl)
   const [justAdded, setJustAdded] = useState(false)
@@ -46,8 +48,8 @@ export default function Water() {
   return (
     <div className="page">
       <div className="page-header">
-        <div className="eyebrow">Water</div>
-        <h1>Stay hydrated</h1>
+        <div className="eyebrow">{t('tab.water')}</div>
+        <h1>{t('water.title')}</h1>
       </div>
 
       <div className="card hero-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '26px 18px', '--hero-tint': 'var(--accent-water)', '--hero-glow': 'var(--accent-water)' }}>
@@ -58,7 +60,7 @@ export default function Water() {
           >
             {todayMl}
           </div>
-          <div className="text-sm muted" style={{ marginTop: 4 }}>of {goal} ml</div>
+          <div className="text-sm muted" style={{ marginTop: 4 }}>{t('water.of', { goal })}</div>
         </Ring>
 
         <div className="scroll-x" style={{ marginTop: 22, justifyContent: 'center' }}>
@@ -68,17 +70,17 @@ export default function Water() {
         </div>
 
         <div className="row" style={{ marginTop: 14, gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button className="btn btn-ghost btn-sm" onClick={undoLastWater}>Undo last</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setCustomGoal(goal); setGoalSheetOpen(true) }}>Edit goal</button>
-          {todayMl > 0 && <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmClear(true)}>Clear today</button>}
+          <button className="btn btn-ghost btn-sm" onClick={undoLastWater}>{t('water.undo')}</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setCustomGoal(goal); setGoalSheetOpen(true) }}>{t('water.editGoal')}</button>
+          {todayMl > 0 && <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmClear(true)}>{t('water.clearToday')}</button>}
         </div>
       </div>
 
-      <div className="section-title" style={{ marginTop: 20 }}>Autopilot</div>
+      <div className="section-title" style={{ marginTop: 20 }}>{t('water.autopilot')}</div>
       <div className="card">
         <div className="row" style={{ alignItems: 'flex-start' }}>
           <div>
-            <div className="text-sm faint">Today's adjusted target</div>
+            <div className="text-sm faint">{t('water.adjusted')}</div>
             <div className="mono" style={{ fontWeight: 700, fontSize: 22, marginTop: 2 }}>{autopilot.target} ml</div>
           </div>
           <span
@@ -89,7 +91,7 @@ export default function Water() {
               background: `color-mix(in srgb, ${STATUS_COLOR[autopilot.status]} 14%, transparent)`,
             }}
           >
-            {autopilot.statusLabel}
+            {t(`water.status.${autopilot.status}`)}
           </span>
         </div>
         {autopilot.bumps.length > 0 && (
@@ -97,20 +99,20 @@ export default function Water() {
             {autopilot.baseline}ml baseline{autopilot.bumps.map((b) => ` + ${b.ml}ml (${b.label})`).join('')}
           </p>
         )}
-        <p className="text-sm" style={{ marginTop: 10, marginBottom: 0 }}>{autopilot.nextAction}</p>
+        <p className="text-sm" style={{ marginTop: 10, marginBottom: 0 }}>{todayMl >= autopilot.target ? t('water.reached') : t('water.left', { ml: autopilot.target - todayMl })}</p>
       </div>
 
       <div className="row" style={{ marginTop: 20, marginBottom: 4 }}>
-        <div className="section-title" style={{ margin: 0 }}>This week</div>
+        <div className="section-title" style={{ margin: 0 }}>{t('water.thisWeek')}</div>
         <StreakBadge days={streak} />
       </div>
       <div className="card">
         <WeeklyBarChart values={weekValues} goal={goal} color="var(--accent-water)" formatValue={(v) => `${v} ml`} />
       </div>
 
-      <Sheet open={goalSheetOpen} onClose={() => setGoalSheetOpen(false)} title="Daily water goal">
+      <Sheet open={goalSheetOpen} onClose={() => setGoalSheetOpen(false)} title={t('water.goalTitle')}>
         <div className="field">
-          <label>Goal (ml)</label>
+          <label>{t('water.goalLabel')}</label>
           <input
             className="input"
             type="number"
@@ -128,15 +130,15 @@ export default function Water() {
           className="btn btn-primary btn-block"
           onClick={() => { setWaterGoal(Math.max(200, customGoal)); setGoalSheetOpen(false) }}
         >
-          Save goal
+          {t('water.saveGoal')}
         </button>
       </Sheet>
 
       <ConfirmDialog
         open={confirmClear}
-        title="Clear today's water?"
-        message="This resets today's total back to 0 ml."
-        confirmLabel="Clear"
+        title={t('water.clearTitle')}
+        message={t('water.clearMsg')}
+        confirmLabel={t('common.clear')}
         danger
         onCancel={() => setConfirmClear(false)}
         onConfirm={() => { clearWater(today); setConfirmClear(false) }}

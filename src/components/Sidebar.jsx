@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import Icon from './Icon'
 import { MORE_SECTIONS } from '../data/moreMenu'
 import './Sidebar.css'
+import { useT } from '../i18n/useT'
 
 // Same portal-to-body pattern as Sheet.jsx, for the same reason: a
 // full-screen overlay rendered inline inside .page would size itself
@@ -10,6 +11,7 @@ import './Sidebar.css'
 // viewport (see the CLAUDE.md note on Sheet.jsx). A slide-in drawer is
 // exactly the kind of full-screen overlay that bug applies to.
 export default function Sidebar({ open, onClose, onSelect }) {
+  const { t } = useT()
   useEffect(() => {
     if (!open) return
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
@@ -31,7 +33,7 @@ export default function Sidebar({ open, onClose, onSelect }) {
         </button>
         {MORE_SECTIONS.map((section, s) => (
           <div key={section.title} style={{ marginTop: s === 0 ? 0 : 32 }}>
-            <div className="sidebar-section-title">{section.title}</div>
+            <div className="sidebar-section-title">{t(`menuSection.${s}`)}</div>
             {s > 0 && <div className="sidebar-divider" />}
             {section.items.map((item) => (
               <button
@@ -40,7 +42,7 @@ export default function Sidebar({ open, onClose, onSelect }) {
                 onClick={() => onSelect(item.id)}
               >
                 <Icon name={item.icon} size={21} />
-                <span>{item.label}</span>
+                <span>{t(`menu.${item.id}`)}</span>
               </button>
             ))}
           </div>

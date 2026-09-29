@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext'
 import { hasApiKey, sendToClaude, getCoachSettings, ClaudeApiError } from '../../utils/claudeApi'
 import { buildSystemPrompt } from '../../utils/coachContext'
 import DayReplanSheet from '../../components/DayReplanSheet'
+import { useT } from '../../i18n/useT'
 
 const CHAT_STORAGE = 'lifestyle-tracker-coach-chat'
 
@@ -18,6 +19,7 @@ function saveChat(messages) {
 // The coach's personality is picked in Settings → AI Coach.
 export default function Coach({ setView }) {
   const { data } = useApp()
+  const { t } = useT()
   const coachSettings = getCoachSettings()
   const [messages, setMessages] = useState(loadChat)
   const [input, setInput] = useState('')
@@ -70,8 +72,8 @@ export default function Coach({ setView }) {
         }}
       />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>Je coach</div>
-        <div className="text-sm faint">Kent je schema, voeding en slaap</div>
+        <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{t('coach.title')}</div>
+        <div className="text-sm faint">{t('coach.sub')}</div>
       </div>
     </div>
   )
@@ -80,8 +82,8 @@ export default function Coach({ setView }) {
     return (
       <div className="page">
         {header}
-        <Bubble role="assistant">Hoi! Om met mij te kunnen praten heb je een Claude API-key nodig. Die vul je één keer in bij Instellingen.</Bubble>
-        <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={() => setView('settings')}>Naar Instellingen</button>
+        <Bubble role="assistant">{t('coach.noKey')}</Bubble>
+        <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={() => setView('settings')}>{t('coach.toSettings')}</button>
       </div>
     )
   }
@@ -94,10 +96,10 @@ export default function Coach({ setView }) {
 
       <div ref={scrollRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0 14px' }}>
         {messages.length === 0 && (
-          <Bubble role="assistant">Hoi! Vraag me alles over je dag, je voeding of je training. Ik ken je schema, je voorraad en hoe je slaapt.</Bubble>
+          <Bubble role="assistant">{t('coach.hello')}</Bubble>
         )}
         {messages.map((m, i) => <Bubble key={i} role={m.role}>{m.content}</Bubble>)}
-        {sending && <div className="text-sm faint" style={{ padding: '2px 6px' }}>Coach denkt na…</div>}
+        {sending && <div className="text-sm faint" style={{ padding: '2px 6px' }}>{t('coach.thinking')}</div>}
       </div>
 
       {error && <div className="text-sm" style={{ color: 'var(--danger)', marginBottom: 8 }}>{error}</div>}
@@ -109,10 +111,10 @@ export default function Coach({ setView }) {
         }}
       >
         <div className="scroll-x" style={{ marginBottom: 10 }}>
-          <button className="chip" onClick={() => setReplanOpen(true)}>Pas mijn dag aan</button>
-          <button className="chip" onClick={() => quickAsk('Wat is vandaag mijn belangrijkste focus?')}>Mijn focus vandaag</button>
-          <button className="chip" onClick={() => quickAsk('Hoe gaat mijn week tot nu toe?')}>Hoe gaat mijn week?</button>
-          <button className="chip" onClick={() => quickAsk('Welke snack past vandaag bij mijn doel en wat ik in huis heb?')}>Snack-idee</button>
+          <button className="chip" onClick={() => setReplanOpen(true)}>{t('coach.q.replan')}</button>
+          <button className="chip" onClick={() => quickAsk(t('coach.q.focusAsk'))}>{t('coach.q.focus')}</button>
+          <button className="chip" onClick={() => quickAsk(t('coach.q.weekAsk'))}>{t('coach.q.week')}</button>
+          <button className="chip" onClick={() => quickAsk(t('coach.q.snackAsk'))}>{t('coach.q.snack')}</button>
         </div>
         <div
           className="row"
@@ -120,12 +122,12 @@ export default function Coach({ setView }) {
         >
           <input
             style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14.5 }}
-            placeholder="Typ of spreek je bericht…"
+            placeholder={t('coach.placeholder')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') send() }}
           />
-          <button className="btn btn-primary btn-sm" disabled={sending || !input.trim()} onClick={send}>Stuur</button>
+          <button className="btn btn-primary btn-sm" disabled={sending || !input.trim()} onClick={send}>{t('coach.send')}</button>
         </div>
       </div>
 

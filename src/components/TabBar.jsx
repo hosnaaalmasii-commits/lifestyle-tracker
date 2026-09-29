@@ -1,4 +1,5 @@
 import './TabBar.css'
+import { useT } from '../i18n/useT'
 
 // Same five tabs and look as the Richting E design: a small dot above a
 // word — no icons. The active tab gets an accent dot and bright label.
@@ -12,6 +13,7 @@ const TABS = [
 ]
 
 export default function TabBar({ active, onChange }) {
+  const { t } = useT()
   return (
     <nav className="tabbar">
       <div className="tabbar-inner">
@@ -22,11 +24,11 @@ export default function TabBar({ active, onChange }) {
               key={tab.id}
               className={`tab-btn${isActive ? ' active' : ''}`}
               onClick={() => onChange(tab.id)}
-              aria-label={tab.label}
+              aria-label={t(`tab.${tab.id}`)}
               aria-current={isActive ? 'page' : undefined}
             >
               <span className="tab-dot" aria-hidden />
-              <span className="tab-label">{tab.label}</span>
+              <span className="tab-label">{t(`tab.${tab.id}`)}</span>
             </button>
           )
         })}

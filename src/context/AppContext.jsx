@@ -4,6 +4,8 @@ import transformatieplan from '../data/transformatieplan-data.json'
 import { WEEKDAY_KEYS } from '../utils/taskSchedule'
 import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } from '../utils/workoutGenerator'
 import { DEFAULT_COLOR_THEME, getColorTheme } from '../utils/colorThemes'
+import { DEFAULT_LANGUAGE, languageInfo } from '../i18n'
+import { setAiLanguage } from '../utils/claudeApi'
 import { requestGoogleToken, requestGoogleAuthCode, fetchTodayBusyMinutes, syncTasksToCalendar, fetchEventsForDate, DEFAULT_GOOGLE_CLIENT_ID, resolveGoogleClientId } from '../utils/googleCalendar'
 import { hasOuraApiKey, getOuraApiKey, fetchOuraToday } from '../utils/ouraApi'
 import { isCloudSyncConfigured, getSupabaseClient } from '../utils/supabaseClient'
@@ -61,6 +63,9 @@ const DEFAULT_DATA = {
     colorTheme: DEFAULT_COLOR_THEME,
     // Shown in the Overview greeting ("Goedemorgen, <name>"). Optional.
     displayName: '',
+    // App language (i18n/index.js): nl | en | fr | de | es. Also the
+    // language every Claude reply is written in.
+    language: DEFAULT_LANGUAGE,
     waterGoalMl: 2000,
     sleepGoalHours: 8,
     macroGoals: { calories: 2000, proteinG: 100, carbsG: 250, fatG: 65 },
@@ -305,6 +310,12 @@ export function AppProvider({ children }) {
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v)
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.bg)
   }, [data.settings.colorTheme])
+
+  useEffect(() => {
+    const info = languageInfo(data.settings.language)
+    document.documentElement.lang = info.code
+    setAiLanguage(info.aiName)
+  }, [data.settings.language])
 
   // Best-effort mirror to the normalized Supabase tables — fires only when
   // signed into Cloud Sync (needs a user to attribute the row to) with
@@ -691,6 +702,7 @@ export function AppProvider({ children }) {
     },
 
     setColorTheme: (key) => setData((d) => ({ ...d, settings: { ...d.settings, colorTheme: key } })),
+    setLanguage: (code) => setData((d) => ({ ...d, settings: { ...d.settings, language: code } })),
     setDisplayName: (name) => setData((d) => ({ ...d, settings: { ...d.settings, displayName: name } })),
     setGentleMode: (on) => setData((d) => ({ ...d, settings: { ...d.settings, gentleMode: on } })),
 

@@ -12,6 +12,7 @@ import Sheet from '../components/Sheet'
 import RestTimer from '../components/RestTimer'
 import PainCheckIn from '../components/PainCheckIn'
 import Icon from '../components/Icon'
+import { useT } from '../i18n/useT'
 
 export default function Workouts() {
   const {
@@ -20,6 +21,7 @@ export default function Workouts() {
     logExercisePR, deleteExercisePR, setPainAreas, setLowMotivation,
   } = useApp()
   const { profile, schedule, completions, exerciseLogs } = data.workouts
+  const { t } = useT()
 
   if (!profile) {
     return <Questionnaire onSubmit={setWorkoutProfile} />
@@ -44,7 +46,7 @@ export default function Workouts() {
       lowMotivation={!!data.motivationFlags[todayKey()]}
       onSetLowMotivation={(on) => setLowMotivation(todayKey(), on)}
       calendarStatus={data.calendarStatus}
-      weekLabel={trainingWeekLabel()}
+      weekLabel={trainingWeekLabel(t)}
       planTrainingFor={(dateKey) => getTasksForDate(data.taskSchedule, dateKey, data.dayOverrides).find((t) => t.category === 'training') || null}
       activeCalories={data.ouraStatus?.activeCalories ?? null}
     />
@@ -52,28 +54,27 @@ export default function Workouts() {
 }
 
 // "WEEK 3 · FASE 1" — counted from the transformation plan's start date.
-function trainingWeekLabel() {
+function trainingWeekLabel(t) {
   const phases = transformatieplan.training_phases || {}
   const start = phases.fase_1?.start
-  if (!start) return 'DEZE WEEK'
+  if (!start) return t('tr.thisWeekEyebrow')
   const week = Math.floor(diffDays(start, todayKey()) / 7) + 1
-  if (week < 1) return 'VOORBEREIDING'
+  if (week < 1) return t('tr.prep')
   const phaseIndex = Object.values(phases).findIndex((p) => {
     const [a, b] = (p.weken || '').split('-').map(Number)
     return week >= a && week <= b
   })
-  const PHASE_NAMES = ['OPBOUWFASE', 'PROGRESSIEFASE', 'INTENSIVERINGSFASE']
-  return `WEEK ${week}${phaseIndex >= 0 ? ` · ${PHASE_NAMES[phaseIndex] || `FASE ${phaseIndex + 1}`}` : ''}`
+  const phaseName = phaseIndex >= 0 && phaseIndex < 3 ? t(`tr.phase${phaseIndex + 1}`) : null
+  return `${t('tr.week', { n: week })}${phaseName ? ` · ${phaseName}` : ''}`
 }
 
-const TIER_NL = { full: 'Volledig', short: 'Kort', survival: 'Mini' }
-
 function SegmentedTiers({ value, onChange }) {
+  const { t } = useT()
   return (
     <div className="segmented-control" style={{ width: 'auto' }}>
-      {TIERS.map((t) => (
-        <button key={t.id} className={`segmented-btn${value === t.id ? ' active' : ''}`} onClick={() => onChange(t.id)} style={{ padding: '6px 12px' }}>
-          {TIER_NL[t.id] || t.label}
+      {TIERS.map((tier) => (
+        <button key={tier.id} className={`segmented-btn${value === tier.id ? ' active' : ''}`} onClick={() => onChange(tier.id)} style={{ padding: '6px 12px' }}>
+          {t(`tr.tier.${tier.id}`)}
         </button>
       ))}
     </div>
@@ -177,6 +178,7 @@ function bestPR(logs) {
 // remove — open from a tap on the row instead.
 function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onOpenTimer, onOpenPR, editable = true, flaggedPainAreas }) {
   const [open, setOpen] = useState(false)
+  const { t } = useT()
   const logs = exerciseLogs[exercise.name]
   const pr = bestPR(logs)
   const isFinisher = exercise.name === 'Full-body finisher'
@@ -205,13 +207,13 @@ function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onO
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title={exercise.name}>
         <p className="text-sm faint" style={{ margin: '0 0 14px' }}>
-          {exercise.sets} × {exercise.reps}{exercise.rest ? ` · rust ${exercise.rest}` : ''}{pr ? ` · beste ${pr.weight} × ${pr.reps}` : ''}
+          {exercise.sets} × {exercise.reps}{exercise.rest ? ` · ${t('tr.rest', { x: exercise.rest })}` : ''}{pr ? ` · ${t('tr.best', { x: `${pr.weight} × ${pr.reps}` })}` : ''}
         </p>
         <div className="stack">
-          <button className="btn btn-primary btn-block" onClick={act(() => onOpenTimer(exercise))}>Rusttimer starten</button>
-          {!isFinisher && <button className="btn btn-secondary btn-block" onClick={act(() => onOpenPR(exercise))}>Gewicht loggen</button>}
-          {editable && !exercise.custom && <button className="btn btn-secondary btn-block" onClick={act(() => onSwap(day, index))}>Andere oefening</button>}
-          {editable && exercise.custom && <button className="btn btn-danger btn-block" onClick={act(() => onRemove(day, index))}>Verwijderen</button>}
+          <button className="btn btn-primary btn-block" onClick={act(() => onOpenTimer(exercise))}>{t('tr.restTimer')}</button>
+          {!isFinisher && <button className="btn btn-secondary btn-block" onClick={act(() => onOpenPR(exercise))}>{t('tr.logWeight')}</button>}
+          {editable && !exercise.custom && <button className="btn btn-secondary btn-block" onClick={act(() => onSwap(day, index))}>{t('tr.otherExercise')}</button>}
+          {editable && exercise.custom && <button className="btn btn-danger btn-block" onClick={act(() => onRemove(day, index))}>{t('common.delete')}</button>}
         </div>
       </Sheet>
     </>
@@ -304,6 +306,7 @@ function WorkoutPlan({
   const [todayTier, setTodayTier] = useState(suggestion.tier)
   const [sheetTier, setSheetTier] = useState(suggestion.tier)
   const [painOpen, setPainOpen] = useState(false)
+  const { t } = useT()
   const today = todayKey()
   const weekKeys = currentWeekKeys()
 
@@ -356,7 +359,7 @@ function WorkoutPlan({
       <div className="page-header row" style={{ alignItems: 'flex-end', marginBottom: 16, paddingRight: 52 }}>
         <div>
           <div className="eyebrow">{weekLabel}</div>
-          <h1>Training</h1>
+          <h1>{t('tr.title')}</h1>
         </div>
       </div>
 
@@ -374,22 +377,22 @@ function WorkoutPlan({
         <div aria-hidden style={{ position: 'absolute', right: -30, top: -30, color: 'rgba(255,255,255,0.07)' }}><Icon name="dumbbell" size={190} /></div>
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <span className="chip" style={{ alignSelf: 'flex-start', padding: '4px 11px', fontSize: 11.5, cursor: 'default' }}>
-            {isRestToday ? 'Vandaag · rustdag' : `Vandaag${trainingTime ? ` · ${trainingTime}` : ''}${completions[today] ? ' · gedaan ✓' : ''}`}
+            {isRestToday ? t('tr.restChip') : `${t('tr.today')}${trainingTime ? ` · ${trainingTime}` : ''}${completions[today] ? ` · ${t('tr.doneTag')}` : ''}`}
           </span>
           <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.15, color: '#fff' }}>
-            {isRestToday ? 'Herstel' : title}
+            {isRestToday ? t('tr.recovery') : title}
           </div>
           <div className="row" style={{ gap: 10 }}>
             <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)' }}>
-              {isRestToday ? 'Herstel hoort ook bij het plan.' : [`${minutesToday} min`, hasGenerated && `${exercisesToday.length} oefeningen`, ...planExtras.map((x) => `+ ${x}`)].filter(Boolean).join(' · ')}
+              {isRestToday ? t('tr.recoveryText') : [t('tr.min', { n: minutesToday }), hasGenerated && t('tr.exercisesN', { n: exercisesToday.length }), ...planExtras.map((x) => `+ ${x}`)].filter(Boolean).join(' · ')}
             </span>
             {!isRestToday && (hasGenerated ? (
               <button className="btn btn-primary btn-sm" onClick={() => exercisesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-                {completions[today] ? 'Bekijk' : 'Start'}
+                {completions[today] ? t('tr.view') : t('tr.start')}
               </button>
             ) : (
               <button className="btn btn-primary btn-sm" onClick={() => onToggle(today)}>
-                {completions[today] ? 'Gedaan ✓' : 'Afronden'}
+                {completions[today] ? t('tr.doneBtn') : t('tr.finishShort')}
               </button>
             ))}
           </div>
@@ -398,9 +401,9 @@ function WorkoutPlan({
 
       <div className="card-row" style={{ marginTop: 14, gap: 10 }}>
         {[
-          [isRestToday ? '0' : String(minutesToday), 'minuten'],
-          [activeCalories != null ? String(activeCalories) : '—', 'kcal'],
-          [`${doneThisWeek}/${plannedThisWeek.length}`, 'deze week'],
+          [isRestToday ? '0' : String(minutesToday), t('tr.minutes')],
+          [activeCalories != null ? String(activeCalories) : '—', t('tr.kcal')],
+          [`${doneThisWeek}/${plannedThisWeek.length}`, t('tr.thisWeek')],
         ].map(([v, l]) => (
           <div key={l} className="card" style={{ padding: 14, textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}>{v}</div>
@@ -411,8 +414,8 @@ function WorkoutPlan({
 
       <div className="card" style={{ marginTop: 14, padding: 16 }}>
         <div className="row" style={{ marginBottom: 12 }}>
-          <span style={{ fontSize: 15, fontWeight: 700 }}>Deze week</span>
-          {streak > 0 && <span className="text-sm faint">{streak} op rij</span>}
+          <span style={{ fontSize: 15, fontWeight: 700 }}>{t('tr.weekTitle')}</span>
+          {streak > 0 && <span className="text-sm faint">{t('tr.inARow', { n: streak })}</span>}
         </div>
         <div className="row">
           {weekKeys.map((k, i) => {
@@ -445,7 +448,7 @@ function WorkoutPlan({
 
       {hasGenerated && (
         <div className="card" ref={(el) => { exercisesRef.current = el }} style={{ marginTop: 14, padding: '16px 16px 10px', scrollMarginTop: 20 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Oefeningen</div>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{t('tr.exercises')}</div>
           <div>
             {exercisesToday.map((ex, i) => (
               <ExerciseRow
@@ -464,14 +467,14 @@ function WorkoutPlan({
             ))}
           </div>
           {todayTier === 'full' && (
-            <button className="btn btn-ghost btn-sm" style={{ marginTop: 2 }} onClick={() => setAddingTo(session.day)}>+ Oefening toevoegen</button>
+            <button className="btn btn-ghost btn-sm" style={{ marginTop: 2 }} onClick={() => setAddingTo(session.day)}>{t('tr.addExercise')}</button>
           )}
           <button
             className={`btn btn-block ${completions[today] ? 'btn-secondary' : 'btn-primary'}`}
             style={{ marginTop: 8, marginBottom: 6 }}
             onClick={() => onToggle(today)}
           >
-            {completions[today] ? <span className="row" style={{ gap: 6, justifyContent: 'center' }}><Icon name="check" size={14} />Afgerond</span> : 'Training afronden'}
+            {completions[today] ? <span className="row" style={{ gap: 6, justifyContent: 'center' }}><Icon name="check" size={14} />{t('tr.finished')}</span> : t('tr.finish')}
           </button>
         </div>
       )}
@@ -479,7 +482,7 @@ function WorkoutPlan({
       {!isRestToday && (
         <div className="card" style={{ marginTop: 14, padding: '6px 16px' }}>
           <div className="row" style={{ padding: '12px 0 10px' }}>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>Versie</span>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>{t('tr.version')}</span>
             <SegmentedTiers value={todayTier} onChange={setTodayTier} />
           </div>
           <p className="text-sm row" style={{ margin: 0, padding: '10px 0', borderTop: '1px solid var(--border-soft)', color: 'var(--text-soft)', gap: 8, justifyContent: 'flex-start' }}>
@@ -489,18 +492,18 @@ function WorkoutPlan({
             {todayPain.length > 0 ? (
               <>
                 <span style={{ color: 'var(--warning)', display: 'inline-flex' }}><Icon name="alertTriangle" size={14} /></span>
-                {`Aangegeven: ${todayPain.map((id) => PAIN_AREAS.find((a) => a.id === id)?.label || id).join(', ')}`}
+                {t('tr.flagged', { x: todayPain.map((id) => PAIN_AREAS.find((a) => a.id === id)?.label || id).join(', ') })}
               </>
-            ) : 'Hoe voelt je lichaam vandaag?'}
+            ) : t('tr.feelBody')}
           </button>
           <div className="row" style={{ borderTop: '1px solid var(--border-soft)', padding: '10px 0' }}>
-            <span className="text-sm muted">Weinig motivatie vandaag</span>
-            <button className={`switch${lowMotivation ? ' on' : ''}`} onClick={() => onSetLowMotivation(!lowMotivation)} aria-label="Weinig motivatie vandaag" />
+            <span className="text-sm muted">{t('tr.lowMotivation')}</span>
+            <button className={`switch${lowMotivation ? ' on' : ''}`} onClick={() => onSetLowMotivation(!lowMotivation)} aria-label={t('tr.lowMotivation')} />
           </div>
           {calendarStatus?.connected && (
             <p className="text-sm faint row" style={{ margin: 0, padding: '10px 0', borderTop: '1px solid var(--border-soft)', gap: 6, justifyContent: 'flex-start' }}>
               <Icon name="calendar" size={13} />
-              Agenda vandaag: {calendarStatus.busyMinutesToday >= 360 ? 'vol' : calendarStatus.busyMinutesToday >= 180 ? 'druk' : 'rustig'}
+              {t('tr.calendar', { x: t(calendarStatus.busyMinutesToday >= 360 ? 'tr.cal.packed' : calendarStatus.busyMinutesToday >= 180 ? 'tr.cal.busy' : 'tr.cal.light') })}
             </p>
           )}
         </div>

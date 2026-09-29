@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { todayKey, currentWeekKeys, keyToDate } from '../utils/dates'
-import { getMealsForDate, getTasksForDate, weekdayKeyForDate } from '../utils/taskSchedule'
-import { MEAL_SLOTS, MEAL_SLOT_LABELS, pantryNameSet, bestOption } from '../utils/pantry'
+import { getMealsForDate, getTasksForDate } from '../utils/taskSchedule'
+import { MEAL_SLOTS, pantryNameSet, bestOption } from '../utils/pantry'
 import { hasApiKey } from '../utils/claudeApi'
 import { analyzeMeal } from '../utils/mealAnalysis'
 import Sheet from '../components/Sheet'
 import Icon from '../components/Icon'
+import { useT } from '../i18n/useT'
 
-const DAY_SHORT = { mon: 'Ma', tue: 'Di', wed: 'Wo', thu: 'Do', fri: 'Vr', sat: 'Za', sun: 'Zo' }
-const DAY_LONG = { mon: 'MAANDAG', tue: 'DINSDAG', wed: 'WOENSDAG', thu: 'DONDERDAG', fri: 'VRIJDAG', sat: 'ZATERDAG', sun: 'ZONDAG' }
 // Two-tone thumbnails per slot — stand-ins for the food photos in the
 // design until real photos exist.
 const SLOT_THUMB = {
@@ -27,13 +26,16 @@ function macrosFromText(text) {
 }
 const cleanName = (text) => text.replace(/\s*\(~[^)]*\)\s*$/, '')
 
-const nlNum = (n) => Math.round(n).toLocaleString('nl-NL')
 
 // "Jouw menu" — the Voeding tab, laid out after the Richting E Figma mockup:
 // week day pills, the day's kcal/macro card, one card per meal of the
 // rotation (with an "in huis / mist" pantry check), and pantry actions.
 export default function Voeding({ onNavigate }) {
   const { data, addMeal, deleteMeal, setMealEstimate } = useApp()
+  const { t, locale } = useT()
+  const nlNum = (n) => Math.round(n).toLocaleString(locale)
+  const slotLabel = (slot) => t(`food.slot.${slot}`)
+  const dayName = (k, style) => keyToDate(k).toLocaleDateString(locale, { weekday: style }).replace('.', '')
   const today = todayKey()
   const [selected, setSelected] = useState(today)
   const [openSlot, setOpenSlot] = useState(null)
@@ -98,18 +100,15 @@ export default function Voeding({ onNavigate }) {
     setOpenSlot(null)
   }
 
-  const weekday = weekdayKeyForDate(selected)
-
   return (
     <div className="page">
       <div className="page-header" style={{ marginBottom: 16 }}>
-        <div className="eyebrow">WEEK {info?.letter || '—'} · {DAY_LONG[weekday]}</div>
-        <h1>Jouw menu</h1>
+        <div className="eyebrow">{t('food.week', { w: info?.letter || '—' })} · {dayName(selected, 'long').toUpperCase()}</div>
+        <h1>{t('food.title')}</h1>
       </div>
 
       <div className="row" style={{ gap: 6 }}>
         {week.map((k) => {
-          const wd = weekdayKeyForDate(k)
           const active = k === selected
           return (
             <button
@@ -122,7 +121,7 @@ export default function Voeding({ onNavigate }) {
                 color: active ? 'var(--accent-contrast)' : 'var(--text-faint)',
               }}
             >
-              <span style={{ fontSize: 12, fontWeight: 700 }}>{DAY_SHORT[wd]}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'capitalize' }}>{dayName(k, 'short').slice(0, 2)}</span>
               <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.85 }}>{keyToDate(k).getDate()}</span>
             </button>
           )
@@ -132,13 +131,13 @@ export default function Voeding({ onNavigate }) {
       <div className="card" style={{ marginTop: 14, padding: 16 }}>
         <div className="row" style={{ alignItems: 'baseline' }}>
           <span style={{ fontSize: 22, fontWeight: 800 }}>{nlNum(eaten.calories)} kcal</span>
-          <span className="text-sm faint">van {nlNum(kcalGoal)}</span>
+          <span className="text-sm faint">{t('stat.of', { x: nlNum(kcalGoal) })}</span>
         </div>
         <div className="xp-bar-track" style={{ height: 6, marginTop: 10 }}>
           <div className="xp-bar-fill" style={{ width: `${Math.min(100, (eaten.calories / kcalGoal) * 100)}%`, background: 'linear-gradient(90deg, var(--accent), var(--second))', boxShadow: 'none' }} />
         </div>
         <div className="row" style={{ marginTop: 12, gap: 8 }}>
-          {[['Eiwit', 'proteinG'], ['Koolh.', 'carbsG'], ['Vet', 'fatG']].map(([label, key]) => (
+          {[[t('stat.protein'), 'proteinG'], [t('food.carbs'), 'carbsG'], [t('food.fat'), 'fatG']].map(([label, key]) => (
             <div key={key} style={{ flex: 1 }}>
               <div className="faint" style={{ fontSize: 11 }}>{label}</div>
               <div style={{ fontSize: 13, fontWeight: 700 }}>{Math.round(eaten[key])}/{goals[key]} g</div>
@@ -148,7 +147,7 @@ export default function Voeding({ onNavigate }) {
       </div>
 
       {!info?.meals ? (
-        <p className="text-sm faint" style={{ marginTop: 16 }}>Geen menu gepland voor deze dag.</p>
+        <p className="text-sm faint" style={{ marginTop: 16 }}>{t('food.noMenu')}</p>
       ) : (
         <div className="stack" style={{ marginTop: 14, gap: 10 }}>
           {slots.map((slot) => {
@@ -175,16 +174,16 @@ export default function Voeding({ onNavigate }) {
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text-faint)' }}>
-                    {MEAL_SLOT_LABELS[slot].toUpperCase()}{info.swapped.includes(slot) ? ' · GEWISSELD' : ''}{done ? ' · GEGETEN' : ''}
+                    {slotLabel(slot).toUpperCase()}{info.swapped.includes(slot) ? ` · ${t('food.swapped')}` : ''}{done ? ` · ${t('food.eatenTag')}` : ''}
                   </span>
                   <span style={{ display: 'block', fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{cleanName(text)}</span>
                   <span className="faint" style={{ display: 'block', fontSize: 11.5 }}>
-                    {est ? `${nlNum(est.calories)} kcal · ${Math.round(est.proteinG)} g eiwit` : hasApiKey() ? 'Voedingswaarde schatten…' : ''}
+                    {est ? `${nlNum(est.calories)} kcal · ${Math.round(est.proteinG)} g ${t('stat.protein').toLowerCase()}` : hasApiKey() ? t('food.estimating') : ''}
                   </span>
                 </span>
                 {check && (
                   <span className="chip" style={{ padding: '4px 10px', fontSize: 11.5, flexShrink: 0, pointerEvents: 'none' }}>
-                    {check.missing.length ? `Mist ${check.missing.length}` : 'In huis'}
+                    {check.missing.length ? t('food.missing', { n: check.missing.length }) : t('food.inHouse')}
                   </span>
                 )}
               </button>
@@ -194,29 +193,29 @@ export default function Voeding({ onNavigate }) {
       )}
 
       <div className="row" style={{ gap: 8, marginTop: 16, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-        <button className="btn btn-primary btn-sm" onClick={() => onNavigate('more', 'pantry')}>Niet naar de winkel?</button>
-        <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('more', 'pantry')}>Boodschappen</button>
+        <button className="btn btn-primary btn-sm" onClick={() => onNavigate('more', 'pantry')}>{t('food.noShop')}</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('more', 'pantry')}>{t('food.shopping')}</button>
       </div>
 
-      <Sheet open={!!open} onClose={() => setOpenSlot(null)} title={open ? MEAL_SLOT_LABELS[open.slot] : ''}>
+      <Sheet open={!!open} onClose={() => setOpenSlot(null)} title={open ? slotLabel(open.slot) : ''}>
         {open && (
           <>
             <p style={{ fontSize: 17, fontWeight: 700, margin: '0 0 4px' }}>{cleanName(open.text)}</p>
             <p className="text-sm faint" style={{ margin: '0 0 14px' }}>
               {openEst
-                ? `≈ ${nlNum(openEst.calories)} kcal · ${Math.round(openEst.proteinG)} g eiwit · ${Math.round(openEst.carbsG || 0)} g koolh. · ${Math.round(openEst.fatG || 0)} g vet (geschat)`
-                : 'Nog geen voedingswaarde bekend.'}
+                ? `≈ ${nlNum(openEst.calories)} kcal · ${Math.round(openEst.proteinG)} g ${t('stat.protein').toLowerCase()} · ${Math.round(openEst.carbsG || 0)} g ${t('food.carbs').toLowerCase()} · ${Math.round(openEst.fatG || 0)} g ${t('food.fat').toLowerCase()} (${t('food.estimated')})`
+                : t('food.noEstimate')}
             </p>
             {openCheck && (
               <p className="text-sm" style={{ margin: '0 0 14px', color: openCheck.missing.length ? 'var(--text-soft)' : 'var(--second)' }}>
-                {openCheck.missing.length ? `Mist nog: ${openCheck.missing.join(', ')}` : 'Alles in huis'}
+                {openCheck.missing.length ? t('food.missingList', { x: openCheck.missing.join(', ') }) : t('food.allHome')}
               </p>
             )}
             <button className="btn btn-primary btn-block" onClick={toggleEaten}>
-              {openLog ? 'Toch niet gegeten' : 'Gegeten'}
+              {openLog ? t('food.notEaten') : t('food.eat')}
             </button>
             <button className="btn btn-secondary btn-block" style={{ marginTop: 10 }} onClick={() => { setOpenSlot(null); onNavigate('more', 'pantry') }}>
-              Wisselen met iets uit mijn voorraad
+              {t('food.swap')}
             </button>
           </>
         )}
