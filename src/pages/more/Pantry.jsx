@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { todayKey, isToday } from '../../utils/dates'
-import { getMealsForDate, weekdayKeyForDate } from '../../utils/taskSchedule'
+import { getMealsForDate, weekdayKeyForDate, getTasksForDate } from '../../utils/taskSchedule'
+import { hasApiKey } from '../../utils/claudeApi'
+import { aiMealIdeas } from '../../utils/smartDay'
 import {
   MEAL_SLOTS, MEAL_SLOT_LABELS, PANTRY_LOCATIONS,
   pantryNameSet, bestOption, suggestSwaps, shoppingList, parsePantryInput,
@@ -29,6 +31,8 @@ export default function Pantry({ onBack }) {
   const [location, setLocation] = useState('koelkast')
   const [confirmClear, setConfirmClear] = useState(false)
   const [showAllShopping, setShowAllShopping] = useState(false)
+  const [ideas, setIdeas] = useState({}) // { [slot]: { loading, error, list } }
+  const aiAvailable = hasApiKey()
 
   const today = todayKey()
   const names = pantryNameSet(data.pantry)
@@ -42,6 +46,28 @@ export default function Pantry({ onBack }) {
     const fresh = items.filter((name) => !existing.has(name.toLowerCase()))
     if (fresh.length) addPantryItems(fresh.map((name) => ({ name, location })))
     setInput('')
+  }
+
+  const trainingDay = getTasksForDate(data.taskSchedule, today, data.dayOverrides).some((t) => t.category === 'training')
+
+  const fetchIdeas = async (slot) => {
+    setIdeas((m) => ({ ...m, [slot]: { loading: true } }))
+    try {
+      const list = await aiMealIdeas({
+        slotLabel: MEAL_SLOT_LABELS[slot],
+        plannedMeal: mealInfo?.planned?.[slot] || mealInfo?.meals?.[slot],
+        pantryItems: data.pantry,
+        trainingDay,
+      })
+      setIdeas((m) => ({ ...m, [slot]: { list } }))
+    } catch (e) {
+      setIdeas((m) => ({ ...m, [slot]: { error: e.message } }))
+    }
+  }
+
+  const chooseIdea = (slot, idea) => {
+    setDayMealSwap(today, slot, `${idea.name} (~${idea.kcal} kcal, ${idea.proteinG} g eiwit)`)
+    setIdeas((m) => ({ ...m, [slot]: undefined }))
   }
 
   const boughtItem = (name) => addPantryItems([{ name, location: 'koelkast' }])
@@ -73,6 +99,36 @@ export default function Pantry({ onBack }) {
                   <button className="btn-ghost text-sm" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '4px 0' }} onClick={() => setDayMealSwap(today, slot, null)}>
                     Terug naar plan: {mealInfo.planned?.[slot]}
                   </button>
+                )}
+                {aiAvailable && !ideas[slot]?.list && (
+                  <button
+                    className="btn-ghost text-sm"
+                    style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '6px 0 0', display: 'block' }}
+                    disabled={ideas[slot]?.loading}
+                    onClick={() => fetchIdeas(slot)}
+                  >
+                    {ideas[slot]?.loading ? 'Ideeën bedenken…' : 'AI: bedenk iets met wat ik in huis heb'}
+                  </button>
+                )}
+                {ideas[slot]?.error && <div className="text-sm" style={{ color: 'var(--danger)' }}>{ideas[slot].error}</div>}
+                {ideas[slot]?.list && (
+                  <div className="stack" style={{ gap: 6, marginTop: 8 }}>
+                    <div className="text-sm faint">AI-ideeën met je voorraad:</div>
+                    {ideas[slot].list.map((idea) => (
+                      <div key={idea.name} className="row" style={{ gap: 8, padding: '8px 10px', borderRadius: 10, background: 'var(--surface-soft)', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 500 }}>{idea.name}</div>
+                          <div className="text-sm faint">~{idea.kcal} kcal · {idea.proteinG} g eiwit</div>
+                          {idea.how && <div className="text-sm faint">{idea.how}</div>}
+                          {idea.missing.length > 0
+                            ? <div className="text-sm faint">Mist: {idea.missing.join(', ')}</div>
+                            : <div className="text-sm" style={{ color: 'var(--success)' }}>Alles in huis</div>}
+                        </div>
+                        <button className="btn btn-secondary btn-sm" onClick={() => chooseIdea(slot, idea)}>Kies</button>
+                      </div>
+                    ))}
+                    <button className="btn-ghost text-sm" style={{ background: 'none', border: 'none', color: 'var(--text-soft)', cursor: 'pointer', padding: 0, textAlign: 'left' }} onClick={() => setIdeas((m) => ({ ...m, [slot]: undefined }))}>Verbergen</button>
+                  </div>
                 )}
                 {suggestions.length > 0 && (
                   <div className="stack" style={{ gap: 6, marginTop: 8 }}>

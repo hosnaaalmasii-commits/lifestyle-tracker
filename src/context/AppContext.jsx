@@ -79,6 +79,10 @@ const DEFAULT_DATA = {
     notifyCategories: { eten: true, training: true, supplement: true, herstel: true, werk: false, zelfzorg: true },
     calorieTargets: structuredClone(transformatieplan.calorie_targets || {}),
     timezone: '',
+    // Where travel is measured from when the AI day planner estimates
+    // travel time to an appointment — a free-text place ("Utrecht", an
+    // address). Not sent anywhere except inside that one Claude request.
+    homeLocation: '',
     pushEnabled: false,
     wallpaper: 'none',
     // A user-uploaded wallpaper photo, resized client-side to a data URL
@@ -628,6 +632,7 @@ export function AppProvider({ children }) {
         },
       }))
     },
+    setHomeLocation: (place) => setData((d) => ({ ...d, settings: { ...d.settings, homeLocation: place } })),
     addPantryItems: (items) => {
       setData((d) => ({ ...d, pantry: [...d.pantry, ...items.map((it) => ({ id: makeId(), addedAt: todayKey(), ...it }))] }))
     },

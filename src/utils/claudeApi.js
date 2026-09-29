@@ -8,13 +8,22 @@ const KEY_STORAGE = 'lifestyle-tracker-anthropic-key'
 const SETTINGS_STORAGE = 'lifestyle-tracker-coach-settings'
 
 export const MODEL_OPTIONS = [
-  { value: 'claude-sonnet-5', label: 'Sonnet 5 (recommended)' },
-  { value: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5 (fastest, cheapest)' },
-  { value: 'claude-opus-4-8', label: 'Opus 4.8 (most capable)' },
+  { value: 'claude-sonnet-5-5', label: 'Sonnet 5.5 (recommended)' },
+  { value: 'claude-haiku-4-5', label: 'Haiku 4.5 (fastest, cheapest)' },
+  { value: 'claude-opus-5-5', label: 'Opus 5.5 (most capable)' },
 ]
 
+// Saved choices from earlier model lists, mapped to their current successor
+// (same tier, same or lower price) so a stored setting never points at a
+// model the picker no longer shows.
+const LEGACY_MODELS = {
+  'claude-sonnet-5': 'claude-sonnet-5-5',
+  'claude-haiku-4-5-20251001': 'claude-haiku-4-5',
+  'claude-opus-4-8': 'claude-opus-5-5',
+}
+
 const DEFAULT_COACH_SETTINGS = {
-  model: 'claude-sonnet-5',
+  model: 'claude-sonnet-5-5',
   personality: 'friendly',
 }
 
@@ -33,7 +42,9 @@ export function hasApiKey() {
 
 export function getCoachSettings() {
   try {
-    return { ...DEFAULT_COACH_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_STORAGE) || '{}') }
+    const merged = { ...DEFAULT_COACH_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_STORAGE) || '{}') }
+    merged.model = LEGACY_MODELS[merged.model] || merged.model
+    return merged
   } catch {
     return { ...DEFAULT_COACH_SETTINGS }
   }
@@ -56,8 +67,18 @@ class ClaudeApiError extends Error {
  * messages: [{ role: 'user' | 'assistant', content: string }]
  * Returns the assistant's reply text, or throws ClaudeApiError with a
  * human-readable message.
+ *
+ * schema (optional): a JSON Schema — sent as structured outputs
+ * (output_config.format), which guarantees the reply text is valid JSON of
+ * that shape; the caller still JSON.parse()s it.
+ * effort (optional): 'low' | 'medium' | 'high' — thinking depth/spend on
+ * models that support it (ignored for Haiku 4.5, which rejects it).
  */
-export async function sendToClaude({ system, messages, maxTokens = 1024, model }) {
+export async function sendToClaude({ system, messages, maxTokens = 1024, model, schema, effort }) {
+  const chosenModel = model || getCoachSettings().model
+  const outputConfig = {}
+  if (schema) outputConfig.format = { type: 'json_schema', schema }
+  if (effort && !chosenModel.startsWith('claude-haiku')) outputConfig.effort = effort
   const apiKey = getApiKey()
   if (!apiKey) throw new ClaudeApiError('No API key set. Add one in Settings → AI Coach.')
 
@@ -72,10 +93,11 @@ export async function sendToClaude({ system, messages, maxTokens = 1024, model }
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: model || getCoachSettings().model,
+        model: chosenModel,
         max_tokens: maxTokens,
         system,
         messages,
+        ...(Object.keys(outputConfig).length ? { output_config: outputConfig } : {}),
       }),
     })
   } catch {
@@ -94,6 +116,8 @@ export async function sendToClaude({ system, messages, maxTokens = 1024, model }
   }
 
   const data = await response.json()
+  if (data?.stop_reason === 'refusal') throw new ClaudeApiError('Claude declined this request — try rephrasing it.')
+  if (data?.stop_reason === 'max_tokens' && schema) throw new ClaudeApiError('The answer got cut off — try again.')
   const text = data?.content?.find((c) => c.type === 'text')?.text
   if (!text) throw new ClaudeApiError('Got an empty response — try again.')
   return text

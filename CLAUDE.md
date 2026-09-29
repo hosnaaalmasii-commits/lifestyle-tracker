@@ -479,10 +479,24 @@ fully rule-based:
   were updated in source to honor `dayOverrides`, but must be redeployed
   via the Supabase Dashboard** (no CLI auth) — until then push fires at
   template times on replanned days.
-- **Still to build once an Anthropic key exists**: free-form voice →
-  replan via Claude, AI meal ideas from the pantry beyond the rotation;
-  plus travel-time lookup (OpenRouteService recommended over Google Maps
-  to avoid a billing account).
+- **AI layer (built 2026-09-29, once the user had created an Anthropic
+  key)**: `utils/smartDay.js` — `aiReplanDay()` (free-form Dutch sentence
+  + template + known appointments → full replan incl. **Claude-estimated
+  travel time** from `settings.homeLocation`, flagged `travelEstimated`)
+  and `aiMealIdeas()` (3 pantry-based meals near the planned meal's
+  kcal/protein). Both use **structured outputs** (`schema` param on
+  `sendToClaude` → `output_config.format`), and the reply is still
+  validated against real task ids / HH:MM before use. The AI proposal is
+  dropped (rule-based planner takes over) as soon as the user edits
+  appointments by hand, so the preview never disagrees with the list.
+  Tested only against a mocked fetch — no real key in the dev env.
+- `sendToClaude` also gained `effort` (skipped for Haiku, which rejects
+  it) and refusal / max_tokens handling. Model picker moved to Sonnet 5.5
+  (default) / Haiku 4.5 / Opus 5.5, with old saved values mapped forward
+  (`LEGACY_MODELS`).
+- **Still not built**: real routing-based travel time (OpenRouteService
+  recommended over Google Maps to avoid a billing account) — Claude's
+  estimate is the interim.
 
 ## Push notifications
 
@@ -882,16 +896,11 @@ unfinished):
    client (created minutes before the error). Ask the user to retry; see
    "Automatic Google Calendar sync" above for the full troubleshooting
    note before assuming anything is broken server-side.
-2. **No Anthropic API key is configured on the user's live site** — the
-   user asked to set one up, got as far as understanding the cost
-   (Claude API billing is separate from any Claude.ai subscription;
-   realistic personal use of this app's AI features is roughly $1-2/
-   month on Sonnet 5, under $1 on Haiku 4.5) and explicitly said to hold
-   off before a key was actually created. Nothing was created — pick this
-   back up only if the user brings it up again. Without a key, AI Coach,
-   meal-photo macro analysis, and voice-logging's AI-parse step are all
-   inactive (the app degrades gracefully — manual logging and everything
-   else works with zero key).
+2. **Anthropic API key: the user created one on 2026-09-29** (walked
+   through console.anthropic.com themselves; advised $5 credit,
+   auto-reload off, a monthly limit). It lives per-browser, so it has to
+   be pasted into Settings → AI Coach on each device (iPhone and PC)
+   separately.
 
 Also discovered (not caused) in an earlier session: the user's Supabase
 project "Tessera" had **auto-paused from inactivity**, which is why it
