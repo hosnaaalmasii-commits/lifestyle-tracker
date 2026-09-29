@@ -6,6 +6,7 @@ import DayReplanSheet from '../../components/DayReplanSheet'
 import { useT } from '../../i18n/useT'
 
 const CHAT_STORAGE = 'lifestyle-tracker-coach-chat'
+export const COACH_PREFILL = 'lifestyle-tracker-coach-prefill'
 
 function loadChat() {
   try { return JSON.parse(localStorage.getItem(CHAT_STORAGE) || '[]') } catch { return [] }
@@ -31,6 +32,15 @@ export default function Coach({ setView }) {
   const keyPresent = hasApiKey()
 
   useEffect(() => { saveChat(messages) }, [messages])
+  // A message handed over from the Vandaag voice sheet ("Praat met de
+  // coach") — sent once, then cleared.
+  useEffect(() => {
+    const prefill = sessionStorage.getItem(COACH_PREFILL)
+    if (prefill === null) return
+    sessionStorage.removeItem(COACH_PREFILL)
+    if (prefill.trim() && keyPresent) sendText(prefill)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   useEffect(() => {
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
   }, [messages, sending])

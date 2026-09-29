@@ -102,6 +102,9 @@ const DEFAULT_DATA = {
   // Cached AI translations of plan content per language:
   // { [lang]: { [sourceText]: translation } } — see i18n/useContentT.js.
   contentTranslations: {},
+  // Named places the user told the app about ("gym", "work", "home") —
+  // [{ id, name, address }]. Used for appointment locations/travel.
+  places: [],
   measurements: [],
   googleCalendarEventIds: {},
   water: {},
@@ -601,6 +604,10 @@ export function AppProvider({ children }) {
         },
       }))
     },
+    savePlace: ({ name, address }) => setData((d) => {
+      const rest = (d.places || []).filter((p) => p.name.toLowerCase() !== name.toLowerCase())
+      return { ...d, places: [...rest, { id: makeId(), name, address }] }
+    }),
     setHomeLocation: (place) => setData((d) => ({ ...d, settings: { ...d.settings, homeLocation: place } })),
     addPantryItems: (items) => {
       setData((d) => ({ ...d, pantry: [...d.pantry, ...items.map((it) => ({ id: makeId(), addedAt: todayKey(), ...it }))] }))

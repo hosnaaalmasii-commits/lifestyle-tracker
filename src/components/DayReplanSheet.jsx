@@ -150,6 +150,7 @@ export default function DayReplanSheet({ open, onClose }) {
         nowHHMM: toHHMM(nowMin),
         home: home.trim(),
         targets: data.settings.calorieTargets,
+        places: data.places || [],
       })
       setAppointments(result.appointments)
       setAiResult({ tasks: result.tasks, changes: result.changes, summary: result.summary })

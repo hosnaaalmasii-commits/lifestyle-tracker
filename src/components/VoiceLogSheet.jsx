@@ -7,6 +7,8 @@ import Sheet from './Sheet'
 import Icon from './Icon'
 import { tx } from '../i18n/tx'
 import { useT } from '../i18n/useT'
+import { todayKey } from '../utils/dates'
+import { getTasksForDate } from '../utils/taskSchedule'
 
 const SPEECH_SUPPORTED = isSpeechRecognitionSupported()
 
@@ -20,7 +22,9 @@ const FIELD_LABEL = {
   volumeMl: 'Amount', slot: 'Meal', includesVegetables: 'Vegetables', label: 'Mood', note: 'Note',
   mode: 'Type', exerciseName: 'Exercise', weightKg: 'Weight', reps: 'Reps',
   flow: 'Flow', symptoms: 'Symptoms', time: 'Time', text: 'Note', amount: 'Amount', category: 'Category',
-  count: 'Drinks',
+  count: 'Drinks', hours: 'Hours', quality: 'Quality', kg: 'Weight', name: 'Name', calories: 'kcal',
+  proteinG: 'Protein', carbsG: 'Carbs', fatG: 'Fat', title: 'What', start: 'From', end: 'Until',
+  location: 'Where', travelMinutes: 'Travel (min)', address: 'Address', taskId: 'Task',
 }
 
 function formatValue(name, value) {
@@ -32,7 +36,9 @@ function formatValue(name, value) {
   return String(value)
 }
 
-export default function VoiceLogSheet({ open, onClose }) {
+// onOpenCoach(text): hand what was said to the AI coach instead of
+// logging it (the coach page sends it as the first message).
+export default function VoiceLogSheet({ open, onClose, onOpenCoach }) {
   const app = useApp()
   const [transcript, setTranscript] = useState('')
   const [intents, setIntents] = useState(null)
@@ -77,7 +83,11 @@ export default function VoiceLogSheet({ open, onClose }) {
     setLoading(true)
     setError('')
     try {
-      const result = await parseVoiceTranscript(text)
+      const today = todayKey()
+      const done = app.data.taskCompletions[today] || {}
+      const tasks = getTasksForDate(app.data.taskSchedule, today, app.data.dayOverrides)
+        .map((t) => ({ id: t.id, time: t.time, label: t.label, done: !!done[t.id] }))
+      const result = await parseVoiceTranscript(text, { tasks, places: app.data.places || [] })
       setIntents(result)
       if (result.length === 0) setError('Didn\'t catch anything to log — try rephrasing.')
     } catch (e) {
@@ -173,7 +183,7 @@ export default function VoiceLogSheet({ open, onClose }) {
   }
 
   return (
-    <Sheet open={open} onClose={handleClose} title={tx("Log by voice")}>
+    <Sheet open={open} onClose={handleClose} title={tx("Inspreken")}>
       {saved ? (
         <div className="empty-state">
           <div className="icon"><Icon name="check" size={26} /></div>
@@ -209,7 +219,7 @@ export default function VoiceLogSheet({ open, onClose }) {
             <textarea
               className="input"
               style={{ minHeight: 84, resize: 'vertical' }}
-              placeholder={tx("e.g. I drank a bottle of water and had a salad for lunch")}
+              placeholder={tx("bv. ik heb 7 uur geslapen, voel me goed, om 15:00 tandarts in Utrecht en mijn gym is aan de Kerkstraat 5")}
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               disabled={loading || listening}
@@ -225,10 +235,19 @@ export default function VoiceLogSheet({ open, onClose }) {
             <div className="stack" style={{ gap: 8 }}>
               {hasApiKey() && (
                 <button className="btn btn-primary btn-block" disabled={!transcript.trim() || loading} onClick={() => parse()}>
-                  {loading ? tx("Thinking…") : tx("Parse with AI")}
+                  {loading ? tx("Thinking…") : tx("Verwerken")}
                 </button>
               )}
-              <button className="btn btn-secondary btn-block" disabled={!transcript.trim() || loading} onClick={saveAsNote}>
+              {onOpenCoach && hasApiKey() && (
+                <button
+                  className="btn btn-secondary btn-block"
+                  disabled={loading}
+                  onClick={() => { const text = transcript.trim(); handleClose(); onOpenCoach(text) }}
+                >
+                  {tx("Praat met de coach")}
+                </button>
+              )}
+              <button className="btn btn-ghost btn-block" disabled={!transcript.trim() || loading} onClick={saveAsNote}>
                 {tx("Save as note")}
               </button>
               {!hasApiKey() && (

@@ -88,12 +88,13 @@ function describeAppointments(appointments) {
  * Returns { appointments, tasks, changes, summary } in the same shapes
  * DayReplanSheet already renders for the rule-based planner.
  */
-export async function aiReplanDay({ text, templateTasks, appointments, completed = {}, nowHHMM, home, targets }) {
+export async function aiReplanDay({ text, templateTasks, appointments, completed = {}, nowHHMM, home, targets, places = [] }) {
   const trainingDay = templateTasks.some((t) => t.category === 'training')
   const kcal = trainingDay ? targets?.training_day_kcal : targets?.rest_day_kcal
   const user = [
     `Nu is het ${nowHHMM}. Vandaag is een ${trainingDay ? 'trainingsdag' : 'rustdag'}${kcal ? ` (doel ${kcal.join('–')} kcal` : ''}${targets?.protein_g ? `, ${targets.protein_g.join('–')} g eiwit)` : kcal ? ')' : ''}.`,
     `Vertrekpunt / thuis: ${home || 'onbekend'}.`,
+    places.length ? `Opgeslagen plaatsen: ${places.map((p) => `${p.name} = ${p.address}`).join('; ')}.` : '',
     '',
     'Standaardschema van vandaag:',
     describeTasks(templateTasks, completed),

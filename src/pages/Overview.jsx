@@ -7,7 +7,25 @@ import Ring from '../components/Ring'
 import TodayTasks from '../components/TodayTasks'
 import DayReplanSheet from '../components/DayReplanSheet'
 import Confetti from '../components/Confetti'
-import CompanionTile from '../components/CompanionTile'
+import CharacterCard from '../components/CharacterCard'
+import CharacterErrorBoundary from '../components/CharacterErrorBoundary'
+import VoiceLogSheet from '../components/VoiceLogSheet'
+import LevelBar from '../components/LevelBar'
+import Icon from '../components/Icon'
+import { tx } from '../i18n/tx'
+import { computeInsights } from '../utils/insights'
+import { computeBadges } from '../utils/badges'
+import { computeXP } from '../utils/gamification'
+import { getMicroHabit } from '../utils/microHabits'
+import { getGPSStatus } from '../utils/lifestyleGPS'
+import { COACH_PREFILL } from './more/Coach'
+
+// "anna.devries@…" → "Anna" — the account holder's name when no display
+// name has been set in Settings.
+function nameFromEmail(email) {
+  const local = (email || '').split('@')[0].split(/[._\-+\d]/).filter(Boolean)[0]
+  return local ? local.charAt(0).toUpperCase() + local.slice(1) : ''
+}
 
 function greetingKey() {
   const h = new Date().getHours()
@@ -16,11 +34,13 @@ function greetingKey() {
   return 'greet.evening'
 }
 
-// The "Richting E" Figma mockup (E1): greeting, the day-score hero, three
-// quick pills, three stats, the companion (small — tap for its own page),
-// today's checklist, the coach bar. Everything else lives on its own page.
+// The "Richting E" layout: greeting (the sparkle avatar opens voice input
+// that files what you say into the right parts of the app, or hands it to
+// the coach), the day-score hero, three quick pills, three stats, today's
+// checklist, the companion, the coach bar, then insights and level/phase/
+// micro-habit.
 export default function Overview({ onNavigate }) {
-  const { data, addWater } = useApp()
+  const { data, addWater, sync } = useApp()
   const { t, locale } = useT()
   const today = todayKey()
   const num1 = (n) => n.toLocaleString(locale, { maximumFractionDigits: 1, minimumFractionDigits: n % 1 ? 1 : 0 })
@@ -42,6 +62,7 @@ export default function Overview({ onNavigate }) {
   const celebratedToday = useRef(null)
   const [confettiTick, setConfettiTick] = useState(0)
   const [replanOpen, setReplanOpen] = useState(false)
+  const [voiceOpen, setVoiceOpen] = useState(false)
   useEffect(() => {
     if (tasks.length && score >= 100 && celebratedToday.current !== today) {
       celebratedToday.current = today
@@ -49,7 +70,15 @@ export default function Overview({ onNavigate }) {
     }
   }, [score, today, tasks.length])
 
-  const name = data.settings.displayName?.trim()
+  const name = data.settings.displayName?.trim() || nameFromEmail(sync?.email)
+  const topInsights = computeInsights(data).slice(0, 2)
+  const xp = computeXP(data, computeBadges(data).filter((b) => b.unlocked).length)
+  const microHabit = getMicroHabit(data)
+  const gps = getGPSStatus(data)
+  const openCoachWith = (text) => {
+    sessionStorage.setItem(COACH_PREFILL, text || '')
+    onNavigate('more', 'coach')
+  }
   const dateLabel = keyToDate(today).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
@@ -57,16 +86,17 @@ export default function Overview({ onNavigate }) {
       <Confetti trigger={confettiTick} />
 
       <div className="row" style={{ gap: 12, justifyContent: 'flex-start', marginBottom: 16, paddingRight: 52 }}>
-        <span
-          aria-hidden
+        <button
+          onClick={() => setVoiceOpen(true)}
+          aria-label={t('ov.speak')}
           style={{
-            width: 44, height: 44, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: '2px solid var(--accent)', background: 'color-mix(in srgb, var(--accent) 25%, transparent)',
-            fontWeight: 700, fontSize: 17, color: 'var(--text)',
+            width: 44, height: 44, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            border: '2px solid var(--accent)', background: 'color-mix(in srgb, var(--accent) 25%, transparent)', color: 'var(--text)',
+            boxShadow: '0 0 18px color-mix(in srgb, var(--accent) 35%, transparent)',
           }}
         >
-          {name ? name[0].toUpperCase() : null}
-        </span>
+          <Icon name="sparkle" size={18} />
+        </button>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.25 }}>{t(greetingKey())}{name ? `, ${name}` : ''}</div>
           <div className="faint" style={{ fontSize: 12, fontWeight: 500 }}>
@@ -92,7 +122,7 @@ export default function Overview({ onNavigate }) {
             {tasks.length ? t('ov.tasksOf', { done: doneCount, total: tasks.length }) : t('ov.noTasks')}
           </span>
           <span className="chip" style={{ alignSelf: 'flex-start', cursor: 'default', padding: '5px 12px', fontSize: 12 }}>
-            {streak ? t(streak === 1 ? 'ov.streakDay' : 'ov.streakDays', { n: streak }) : t('ov.startStreak')}
+            <Icon name="flame" size={13} /> {streak ? t(streak === 1 ? 'ov.streakDay' : 'ov.streakDays', { n: streak }) : t('ov.reachForStreak', { pct: threshold })}
           </span>
         </div>
       </div>
@@ -115,11 +145,13 @@ export default function Overview({ onNavigate }) {
       </div>
 
       <div style={{ marginTop: 14 }}>
-        <CompanionTile onOpen={() => onNavigate('more', 'companion')} />
+        <TodayTasks onOpenSchedule={() => onNavigate('more', 'dailyschedule')} />
       </div>
 
       <div style={{ marginTop: 14 }}>
-        <TodayTasks onOpenSchedule={() => onNavigate('more', 'dailyschedule')} />
+        <CharacterErrorBoundary>
+          <CharacterCard onOpen={() => onNavigate('more', 'companion')} />
+        </CharacterErrorBoundary>
       </div>
 
       <button
@@ -134,7 +166,46 @@ export default function Overview({ onNavigate }) {
         <span className="btn btn-primary btn-sm" style={{ pointerEvents: 'none' }}>{t('ov.ask')}</span>
       </button>
 
+      {topInsights.length > 0 && (
+        <>
+          <div className="section-title">{t('ov.insights')}</div>
+          {topInsights.map((ins) => (
+            <div key={ins.id} className={`insight-card tone-${ins.tone}`}>
+              <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}><Icon name={ins.icon} size={16} /></span>
+              <span className="text-sm" style={{ lineHeight: 1.5 }}>{tx(ins.text)}</span>
+            </div>
+          ))}
+          <button className="btn btn-ghost btn-sm" style={{ marginTop: 8, gap: 4 }} onClick={() => onNavigate('more', 'insights')}>
+            {t('ov.allInsights')} <Icon name="chevronRight" size={14} />
+          </button>
+        </>
+      )}
+
+      <div className="card" style={{ marginTop: 14, padding: '4px 18px' }}>
+        <button className="row" style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 0', textAlign: 'left' }} onClick={() => onNavigate('more', 'badges')}>
+          <LevelBar xp={xp} compact />
+        </button>
+        <button
+          className="row"
+          style={{ width: '100%', background: 'none', border: 'none', borderTop: '1px solid var(--border-soft)', cursor: 'pointer', padding: '14px 0', textAlign: 'left' }}
+          onClick={() => onNavigate('more', 'gps')}
+        >
+          <span className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
+            <span style={{ color: 'var(--accent)' }}><Icon name={gps.current.icon} size={18} /></span>
+            <span style={{ fontWeight: 600, fontSize: 14 }}>{tx(`${gps.current.label} phase`)}</span>
+          </span>
+          <span className="faint" aria-hidden><Icon name="chevronRight" size={16} /></span>
+        </button>
+        <div style={{ padding: '14px 0', borderTop: '1px solid var(--border-soft)' }}>
+          <div className="row" style={{ color: 'var(--second)', gap: 6, justifyContent: 'flex-start', fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
+            <Icon name="leaf" size={13} /> {t('ov.microHabit')}
+          </div>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>{tx(microHabit.text)}</p>
+        </div>
+      </div>
+
       <DayReplanSheet open={replanOpen} onClose={() => setReplanOpen(false)} />
+      <VoiceLogSheet open={voiceOpen} onClose={() => setVoiceOpen(false)} onOpenCoach={openCoachWith} />
     </div>
   )
 }

@@ -7,6 +7,9 @@ import ElementalCreature from './ElementalCreature'
 import CharacterOnboardingSheet from './CharacterOnboardingSheet'
 import Sheet from './Sheet'
 import { tx } from '../i18n/tx'
+import { useT } from '../i18n/useT'
+import { useContentT } from '../i18n/useContentT'
+import { ARCHETYPE_NAMES, CONDITION_NAMES } from '../i18n'
 
 const TIER_COLOR = {
   special: 'var(--text-soft)',
@@ -19,6 +22,8 @@ const TIER_COLOR = {
 // companion) instead of the detail sheet.
 export default function CharacterCard({ variant = 'hero', onOpen }) {
   const { data, chooseCharacter, changeArchetype } = useApp()
+  const { pickLang } = useT()
+  const { stageName } = useContentT()
   const [open, setOpen] = useState(false)
   const [changing, setChanging] = useState(false)
 
@@ -35,6 +40,9 @@ export default function CharacterCard({ variant = 'hero', onOpen }) {
 
   const character = computeCharacter(data)
   const { archetype, condition, stage, growth } = character
+  const archetypeName = pickLang(ARCHETYPE_NAMES[archetype.id]) || archetype.name
+  const stageLabel = stageName(archetype.id, stage.stageIndex, stage.name)
+  const conditionLabel = pickLang(CONDITION_NAMES[condition.key]) || condition.name
 
   const creatureProps = {
     archetypeId: archetype.id,
@@ -73,8 +81,8 @@ export default function CharacterCard({ variant = 'hero', onOpen }) {
           <ElementalCreature {...creatureProps} size={92} />
         </div>
         <div style={{ minWidth: 0 }}>
-          <div className="text-sm muted">{archetype.name} · {stage.name}</div>
-          <div style={{ fontWeight: 700, fontSize: 20, fontFamily: 'var(--font-heading)' }}>{condition.name}</div>
+          <div className="text-sm muted">{archetypeName} · {stageLabel}</div>
+          <div style={{ fontWeight: 700, fontSize: 20, fontFamily: 'var(--font-heading)', textTransform: 'capitalize' }}>{conditionLabel}</div>
           <div className="text-sm faint" style={{ marginTop: 2 }}>{tx(condition.headline)}</div>
         </div>
       </div>

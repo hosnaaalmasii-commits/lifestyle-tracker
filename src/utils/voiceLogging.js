@@ -6,6 +6,8 @@
 import { sendToClaude, ClaudeApiError } from './claudeApi'
 import { todayKey, addDaysToKey } from './dates'
 import { MOOD_SCALE } from './moodActions'
+import { getTasksForDate, getAppointmentsForDate } from './taskSchedule'
+import { replanDay, toMin, toHHMM } from './dayReplan'
 
 export const BUDGET_CATEGORIES = ['food', 'transport', 'shopping', 'bills', 'entertainment', 'health', 'other']
 export const CYCLE_FLOW_OPTIONS = ['spotting', 'light', 'medium', 'heavy']
@@ -21,6 +23,13 @@ export const CATEGORY_META = {
   cycle: { label: 'Cycle', icon: 'droplet', color: 'var(--danger)' },
   schedule: { label: 'Schedule', icon: 'calendar', color: 'var(--accent)' },
   budget: { label: 'Budget', icon: 'scale', color: 'var(--warning)' },
+  sleep: { label: 'Sleep', icon: 'moon', color: 'var(--accent-sleep)' },
+  weight: { label: 'Weight', icon: 'scale', color: 'var(--accent)' },
+  food: { label: 'Meal', icon: 'utensils', color: 'var(--accent)' },
+  appointment: { label: 'Appointment', icon: 'calendar', color: 'var(--second)' },
+  place: { label: 'Place', icon: 'compass', color: 'var(--second)' },
+  task_done: { label: 'Task done', icon: 'check', color: 'var(--second)' },
+  note: { label: 'Note', icon: 'chat', color: 'var(--text-soft)' },
 }
 
 // Only these field/category combinations are allowed to trigger a
@@ -35,11 +44,21 @@ const MATERIAL_FIELDS = {
   budget: ['amount'],
 }
 
-function buildSystemPrompt() {
+function buildSystemPrompt(context = {}) {
   const today = todayKey()
+  const now = new Date()
+  const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  const tasks = (context.tasks || []).map((t) => `- id=${t.id} ${t.time} ${t.label}${t.done ? ' (done)' : ''}`).join('\n') || '(none)'
+  const places = (context.places || []).map((p) => `- ${p.name}: ${p.address}`).join('\n') || '(none saved)'
   return `You convert one spoken/typed sentence from a health-tracking app's user into structured log entries. Respond with ONLY a single JSON object — no markdown fences, no prose before or after.
 
-Today's date is ${today}. A sentence may describe one or more log entries.
+Today's date is ${today}, the time is now ${nowHHMM}. A sentence may describe one or more log entries — split it into as many as it contains.
+
+Today's scheduled tasks (for "task_done"):
+${tasks}
+
+Saved places (for "appointment" locations and "place"):
+${places}
 
 Categories and their fields (use exactly these field names):
 - "drink": { volumeMl: number } — non-alcoholic fluid intake (water, tea, coffee, juice, etc.)
@@ -50,6 +69,13 @@ Categories and their fields (use exactly these field names):
 - "cycle": { flow: one of ${JSON.stringify(CYCLE_FLOW_OPTIONS)}|null, symptoms: string[] (subset of ${JSON.stringify(CYCLE_SYMPTOM_OPTIONS)}), note: string|null }
 - "schedule": { time: "HH:MM"|null, text: string }
 - "budget": { amount: number|null, category: one of ${JSON.stringify(BUDGET_CATEGORIES)}, note: string|null }
+- "sleep": { hours: number, quality: 1-5|null } — how long they slept last night (1 = rough … 5 = great)
+- "weight": { kg: number }
+- "food": { name: string, slot: one of ${JSON.stringify(NUTRITION_SLOTS)}, calories: number, proteinG: number, carbsG: number, fatG: number } — a specific thing they ate; always give a realistic single-serving estimate for the numbers (confidence "estimated"). Prefer "food" over "meal" whenever the food itself is named.
+- "appointment": { title: string, start: "HH:MM", end: "HH:MM"|null, location: string|null, travelMinutes: number|null } — something happening today at a time (doctor, meeting, dinner out). If a saved place is meant, use its address as location. Estimate one-way travel minutes from home when a location is given.
+- "place": { name: string, address: string } — the user tells you where something is ("my gym is at …", "I live at …"); use name "home" for where they live.
+- "task_done": { taskId: string } — they say they did one of today's scheduled tasks; use the matching id from the list above.
+- "note": { text: string } — anything worth keeping that fits no other category.
 
 Use "workout" mode "log_pr" only when the user states a specific weight and/or reps for a specific exercise (e.g. "I benched 80kg for 8"). Use "complete_today" for generic completion ("I worked out", "did my workout").
 
@@ -63,7 +89,7 @@ Output shape:
 {
   "intents": [
     {
-      "category": "drink" | "alcohol" | "meal" | "mood" | "workout" | "cycle" | "schedule" | "budget",
+      "category": "drink" | "alcohol" | "meal" | "mood" | "workout" | "cycle" | "schedule" | "budget" | "sleep" | "weight" | "food" | "appointment" | "place" | "task_done" | "note",
       "when": "today" | "yesterday",
       "summary": "short human-readable description, e.g. 'Water — 500 ml'",
       "fields": { "<fieldName>": { "value": ..., "confidence": "..." }, ... },
@@ -83,11 +109,12 @@ function stripCodeFence(text) {
   return fenced ? fenced[1] : trimmed
 }
 
-export async function parseVoiceTranscript(transcript) {
+// context: { tasks: today's tasks [{id,time,label,done}], places: [{name,address}] }
+export async function parseVoiceTranscript(transcript, context) {
   const raw = await sendToClaude({
-    system: buildSystemPrompt(),
+    system: buildSystemPrompt(context),
     messages: [{ role: 'user', content: transcript }],
-    maxTokens: 1024,
+    maxTokens: 4000,
   })
 
   let parsed
@@ -131,7 +158,7 @@ function fv(fields, name, fallback = null) {
 
 // Writes one resolved intent (all needs_confirmation fields already
 // answered) into the real data model via the same actions the manual log
-// forms use.
+// forms use. `actions` is the useApp() value (so it also carries `data`).
 export function applyVoiceIntent(actions, intent) {
   const dateKey = dateKeyFor(intent.when)
   const f = intent.fields
@@ -185,6 +212,68 @@ export function applyVoiceIntent(actions, intent) {
       if (amount > 0) {
         actions.addExpense({ amount, category: fv(f, 'category', 'other'), note: fv(f, 'note', '') }, dateKey)
       }
+      break
+    }
+    case 'sleep': {
+      const hours = Number(fv(f, 'hours', 0))
+      if (hours > 0) actions.logSleep(dateKey, hours, Number(fv(f, 'quality', 3)) || 3)
+      break
+    }
+    case 'weight': {
+      const kg = Number(fv(f, 'kg', 0))
+      if (kg > 0) actions.addWeight(kg, dateKey)
+      break
+    }
+    case 'food': {
+      const name = fv(f, 'name')
+      if (!name) break
+      actions.addMeal({
+        name,
+        calories: Number(fv(f, 'calories', 0)) || 0,
+        proteinG: Number(fv(f, 'proteinG', 0)) || 0,
+        carbsG: Number(fv(f, 'carbsG', 0)) || 0,
+        fatG: Number(fv(f, 'fatG', 0)) || 0,
+        confidence: 'medium',
+      }, dateKey)
+      const slot = fv(f, 'slot')
+      if (slot && NUTRITION_SLOTS.includes(slot)) actions.setNutritionItem(dateKey, slot, true)
+      break
+    }
+    case 'appointment': {
+      const start = fv(f, 'start')
+      if (!/^\d{2}:\d{2}$/.test(start || '')) break
+      let end = fv(f, 'end')
+      if (!/^\d{2}:\d{2}$/.test(end || '') || toMin(end) <= toMin(start)) end = toHHMM(toMin(start) + 60)
+      const travel = String(Math.max(0, Number(fv(f, 'travelMinutes', 0)) || 0))
+      const data = actions.data
+      const appointments = [
+        ...getAppointmentsForDate(data.dayOverrides, dateKey),
+        { id: `appt-voice-${Date.now().toString(36)}`, title: fv(f, 'title') || 'Afspraak', start, end, location: fv(f, 'location') || '', travelBefore: travel, travelAfter: travel },
+      ]
+      const now = new Date()
+      const { tasks } = replanDay(getTasksForDate(data.taskSchedule, dateKey), appointments, {
+        completed: data.taskCompletions[dateKey] || {},
+        nowMin: dateKey === todayKey() ? now.getHours() * 60 + now.getMinutes() : null,
+      })
+      actions.applyDayReplan(dateKey, tasks, appointments)
+      break
+    }
+    case 'place': {
+      const name = fv(f, 'name')
+      const address = fv(f, 'address')
+      if (!name || !address) break
+      actions.savePlace({ name, address })
+      if (/^(home|thuis|maison|zuhause|casa)$/i.test(name.trim())) actions.setHomeLocation(address)
+      break
+    }
+    case 'task_done': {
+      const id = fv(f, 'taskId')
+      if (id && !actions.data.taskCompletions[dateKey]?.[id]) actions.toggleTask(dateKey, id)
+      break
+    }
+    case 'note': {
+      const text = fv(f, 'text')
+      if (text) actions.addNote(text, dateKey)
       break
     }
     default:
