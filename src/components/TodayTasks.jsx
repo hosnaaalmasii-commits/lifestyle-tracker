@@ -4,6 +4,7 @@ import { todayKey } from '../utils/dates'
 import { getTasksForDate, getAppointmentsForDate } from '../utils/taskSchedule'
 import Icon from './Icon'
 import { useT } from '../i18n/useT'
+import { useContentT } from '../i18n/useContentT'
 
 const VISIBLE_ROWS = 5
 
@@ -15,6 +16,7 @@ export default function TodayTasks({ onOpenSchedule }) {
   const { data, toggleTask } = useApp()
   const [expanded, setExpanded] = useState(false)
   const { t } = useT()
+  const { tc } = useContentT()
   const today = todayKey()
   const tasks = getTasksForDate(data.taskSchedule, today, data.dayOverrides)
   const appointments = getAppointmentsForDate(data.dayOverrides, today)
@@ -55,7 +57,7 @@ export default function TodayTasks({ onOpenSchedule }) {
             <div key={task.id} className="row" style={{ gap: 12, padding: '10px 0', justifyContent: 'flex-start' }}>
               <span aria-hidden style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: '1.5px solid var(--second)' }} />
               <span className="faint" style={{ fontSize: 13, fontWeight: 500 }}>{task.start}</span>
-              <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>{task.title}{task.location ? <span className="faint" style={{ fontWeight: 400 }}> · {task.location}</span> : null}</span>
+              <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>{tc(task.title)}{task.location ? <span className="faint" style={{ fontWeight: 400 }}> · {task.location}</span> : null}</span>
             </div>
           )
         }
@@ -80,7 +82,7 @@ export default function TodayTasks({ onOpenSchedule }) {
             </span>
             <span className="faint" style={{ fontSize: 13, fontWeight: 500 }}>{task.time}</span>
             <span style={{ flex: 1, fontSize: 15, fontWeight: done ? 400 : 600, color: done ? 'var(--text-faint)' : 'var(--text)', textDecoration: done ? 'line-through' : 'none' }}>
-              {task.label}
+              {tc(task.label)}
             </span>
           </button>
         )

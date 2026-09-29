@@ -6,6 +6,7 @@ import { getTasksForDate, getMealsForDate } from '../../utils/taskSchedule'
 import ElementalCreature from '../../components/ElementalCreature'
 import CharacterOnboardingSheet from '../../components/CharacterOnboardingSheet'
 import { useT } from '../../i18n/useT'
+import { useContentT } from '../../i18n/useContentT'
 import { ARCHETYPE_NAMES, CONDITION_NAMES } from '../../i18n'
 
 // "Je figuurtje" — the companion's own page, after the Richting E Figma
@@ -14,6 +15,7 @@ import { ARCHETYPE_NAMES, CONDITION_NAMES } from '../../i18n'
 export default function Companion() {
   const { data, changeArchetype } = useApp()
   const { t, pickLang, locale } = useT()
+  const { stageName } = useContentT()
   const [changing, setChanging] = useState(false)
 
   if (!data.character?.archetype) {
@@ -65,7 +67,7 @@ export default function Companion() {
       </div>
 
       <div className="row" style={{ gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <span className="chip" style={{ padding: '5px 12px', fontSize: 12, cursor: 'default' }}>{t('comp.phase', { n: stage.stageIndex + 1, total: STAGES.length, stage: stage.name })}</span>
+        <span className="chip" style={{ padding: '5px 12px', fontSize: 12, cursor: 'default' }}>{t('comp.phase', { n: stage.stageIndex + 1, total: STAGES.length, stage: stageName(archetype.id, stage.stageIndex, stage.name) })}</span>
         <span className="chip" style={{ padding: '5px 12px', fontSize: 12, cursor: 'default' }}>{t('comp.vitality', { x: pickLang(CONDITION_NAMES[condition.key]) || condition.name })}</span>
       </div>
 
@@ -74,7 +76,7 @@ export default function Companion() {
           <div className="xp-bar-fill" style={{ width: `${Math.round(stage.progress * 100)}%`, background: 'linear-gradient(90deg, var(--accent), var(--second))', boxShadow: 'none' }} />
         </div>
         <p className="text-sm faint" style={{ textAlign: 'center', marginTop: 8 }}>
-          {stage.next ? t('comp.pointsLeft', { n: pointsLeft, next: stage.next }) : t('comp.fullyGrown')}
+          {stage.next ? t('comp.pointsLeft', { n: pointsLeft, next: stageName(archetype.id, stage.stageIndex + 1, stage.next) }) : t('comp.fullyGrown')}
         </p>
       </div>
 

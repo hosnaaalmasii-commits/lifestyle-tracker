@@ -13,6 +13,7 @@ import RestTimer from '../components/RestTimer'
 import PainCheckIn from '../components/PainCheckIn'
 import Icon from '../components/Icon'
 import { useT } from '../i18n/useT'
+import { useContentT } from '../i18n/useContentT'
 
 export default function Workouts() {
   const {
@@ -179,6 +180,7 @@ function bestPR(logs) {
 function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onOpenTimer, onOpenPR, editable = true, flaggedPainAreas }) {
   const [open, setOpen] = useState(false)
   const { t } = useT()
+  const { tc } = useContentT()
   const logs = exerciseLogs[exercise.name]
   const pr = bestPR(logs)
   const isFinisher = exercise.name === 'Full-body finisher'
@@ -198,14 +200,14 @@ function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onO
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
             {isFlagged && <span title="Raakt een plek die je vandaag aangaf" style={{ color: 'var(--warning)', display: 'inline-flex' }}><Icon name="alertTriangle" size={13} /></span>}
-            {exercise.name}
+            {tc(exercise.name)}
           </span>
           <span className="faint" style={{ display: 'block', fontSize: 12 }}>
             {exercise.sets} × {exercise.reps}{pr ? ` · ${pr.weight} kg` : ''}
           </span>
         </span>
       </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title={exercise.name}>
+      <Sheet open={open} onClose={() => setOpen(false)} title={tc(exercise.name)}>
         <p className="text-sm faint" style={{ margin: '0 0 14px' }}>
           {exercise.sets} × {exercise.reps}{exercise.rest ? ` · ${t('tr.rest', { x: exercise.rest })}` : ''}{pr ? ` · ${t('tr.best', { x: `${pr.weight} × ${pr.reps}` })}` : ''}
         </p>
@@ -307,6 +309,7 @@ function WorkoutPlan({
   const [sheetTier, setSheetTier] = useState(suggestion.tier)
   const [painOpen, setPainOpen] = useState(false)
   const { t } = useT()
+  const { tc } = useContentT()
   const today = todayKey()
   const weekKeys = currentWeekKeys()
 
@@ -331,7 +334,9 @@ function WorkoutPlan({
   const planTask = planTrainingFor(today)
   const trainingTime = planTask?.time
   // "Training: Upper Body & Core + 15min cardio" → title + extra line.
-  const [planTitle, ...planExtras] = (planTask?.label.replace(/^Training:\s*/i, '') || '').split(/\s*\+\s*/)
+  // Translate the whole label first, then drop its "Training:" style
+  // prefix (whatever language it's in).
+  const [planTitle, ...planExtras] = (tc(planTask?.label || '').replace(/^[^:]{2,20}:\s*/, '') || '').split(/\s*\+\s*/)
   // When the plan says train but the generated schedule has a rest day
   // here, borrow the generated session that best matches the plan's
   // session name (shared word like "upper"/"lower"), else the first one.
@@ -343,7 +348,7 @@ function WorkoutPlan({
   const session = todaysWorkout && !todaysWorkout.rest ? todaysWorkout : (planTask ? matchingSession() : null)
   const hasGenerated = !!session
   const isRestToday = !hasGenerated && !planTask
-  const title = planTask ? planTitle : session?.label
+  const title = planTask ? planTitle : tc(session?.label)
   const exercisesToday = hasGenerated ? deriveTiers(session.exercises)[todayTier] : []
   const setsToday = exercisesToday.reduce((s, e) => s + (Number(e.sets) || 0), 0)
   const planMinutes = [...(planTask?.label || '').matchAll(/(\d+)\s*min/gi)].reduce((s, m) => s + Number(m[1]), 45)
@@ -486,7 +491,7 @@ function WorkoutPlan({
             <SegmentedTiers value={todayTier} onChange={setTodayTier} />
           </div>
           <p className="text-sm row" style={{ margin: 0, padding: '10px 0', borderTop: '1px solid var(--border-soft)', color: 'var(--text-soft)', gap: 8, justifyContent: 'flex-start' }}>
-            <span aria-hidden style={{ display: 'inline-flex', color: 'var(--accent)' }}><Icon name="sparkle" size={14} /></span> {suggestion.reason}
+            <span aria-hidden style={{ display: 'inline-flex', color: 'var(--accent)' }}><Icon name="sparkle" size={14} /></span> {tc(suggestion.reason)}
           </p>
           <button className="row" style={{ width: '100%', background: 'none', border: 'none', borderTop: '1px solid var(--border-soft)', cursor: 'pointer', padding: '12px 0', color: 'var(--text)', justifyContent: 'flex-start', gap: 8, fontSize: 14 }} onClick={() => setPainOpen(true)}>
             {todayPain.length > 0 ? (

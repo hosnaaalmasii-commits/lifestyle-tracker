@@ -98,6 +98,9 @@ const DEFAULT_DATA = {
   // AI-estimated macros per meal-rotation dish, keyed by the dish text —
   // cached so each dish is only ever estimated once (Voeding page).
   mealEstimates: {},
+  // Cached AI translations of plan content per language:
+  // { [lang]: { [sourceText]: translation } } — see i18n/useContentT.js.
+  contentTranslations: {},
   measurements: [],
   googleCalendarEventIds: {},
   water: {},
@@ -520,6 +523,10 @@ export function AppProvider({ children }) {
       setData((d) => ({ ...d, meals: [...d.meals, { id: makeId(), date: dateKey, loggedAt: Date.now(), ...meal }].sort((a, b) => a.date.localeCompare(b.date) || a.loggedAt - b.loggedAt) }))
     },
     deleteMeal: (id) => setData((d) => ({ ...d, meals: d.meals.filter((m) => m.id !== id) })),
+    addContentTranslations: (lang, map) => setData((d) => ({
+      ...d,
+      contentTranslations: { ...d.contentTranslations, [lang]: { ...d.contentTranslations?.[lang], ...map } },
+    })),
     setMealEstimate: (text, estimate) => setData((d) => ({ ...d, mealEstimates: { ...d.mealEstimates, [text]: estimate } })),
 
     addHabitContract: (contract) => {

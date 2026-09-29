@@ -2,6 +2,7 @@ import { useApp } from '../context/AppContext'
 import { computeCharacter } from '../utils/characterEngine'
 import { ARCHETYPE_NAMES, CONDITION_NAMES } from '../i18n'
 import { useT } from '../i18n/useT'
+import { useContentT } from '../i18n/useContentT'
 import ElementalCreature from './ElementalCreature'
 import CharacterCard from './CharacterCard'
 import Icon from './Icon'
@@ -13,6 +14,7 @@ import Icon from './Icon'
 export default function CompanionTile({ onOpen }) {
   const { data } = useApp()
   const { t, pickLang } = useT()
+  const { stageName } = useContentT()
   if (!data.character?.archetype) return <CharacterCard />
 
   const { archetype, condition, stage, growth } = computeCharacter(data)
@@ -34,7 +36,7 @@ export default function CompanionTile({ onOpen }) {
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 15, fontWeight: 700 }}>{name}</span>
-        <span className="faint" style={{ display: 'block', fontSize: 12 }}>{stage.name} · {conditionName}</span>
+        <span className="faint" style={{ display: 'block', fontSize: 12 }}>{stageName(archetype.id, stage.stageIndex, stage.name)} · {conditionName}</span>
       </span>
       <span className="faint" aria-label={t('comp.tap')}><Icon name="chevronRight" size={16} /></span>
     </button>

@@ -8,6 +8,7 @@ import { analyzeMeal } from '../utils/mealAnalysis'
 import Sheet from '../components/Sheet'
 import Icon from '../components/Icon'
 import { useT } from '../i18n/useT'
+import { useContentT } from '../i18n/useContentT'
 
 // Two-tone thumbnails per slot — stand-ins for the food photos in the
 // design until real photos exist.
@@ -33,6 +34,7 @@ const cleanName = (text) => text.replace(/\s*\(~[^)]*\)\s*$/, '')
 export default function Voeding({ onNavigate }) {
   const { data, addMeal, deleteMeal, setMealEstimate } = useApp()
   const { t, locale } = useT()
+  const { tc } = useContentT()
   const nlNum = (n) => Math.round(n).toLocaleString(locale)
   const slotLabel = (slot) => t(`food.slot.${slot}`)
   const dayName = (k, style) => keyToDate(k).toLocaleDateString(locale, { weekday: style }).replace('.', '')
@@ -176,7 +178,7 @@ export default function Voeding({ onNavigate }) {
                   <span style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text-faint)' }}>
                     {slotLabel(slot).toUpperCase()}{info.swapped.includes(slot) ? ` · ${t('food.swapped')}` : ''}{done ? ` · ${t('food.eatenTag')}` : ''}
                   </span>
-                  <span style={{ display: 'block', fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{cleanName(text)}</span>
+                  <span style={{ display: 'block', fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{tc(cleanName(text))}</span>
                   <span className="faint" style={{ display: 'block', fontSize: 11.5 }}>
                     {est ? `${nlNum(est.calories)} kcal · ${Math.round(est.proteinG)} g ${t('stat.protein').toLowerCase()}` : hasApiKey() ? t('food.estimating') : ''}
                   </span>
@@ -200,7 +202,7 @@ export default function Voeding({ onNavigate }) {
       <Sheet open={!!open} onClose={() => setOpenSlot(null)} title={open ? slotLabel(open.slot) : ''}>
         {open && (
           <>
-            <p style={{ fontSize: 17, fontWeight: 700, margin: '0 0 4px' }}>{cleanName(open.text)}</p>
+            <p style={{ fontSize: 17, fontWeight: 700, margin: '0 0 4px' }}>{tc(cleanName(open.text))}</p>
             <p className="text-sm faint" style={{ margin: '0 0 14px' }}>
               {openEst
                 ? `≈ ${nlNum(openEst.calories)} kcal · ${Math.round(openEst.proteinG)} g ${t('stat.protein').toLowerCase()} · ${Math.round(openEst.carbsG || 0)} g ${t('food.carbs').toLowerCase()} · ${Math.round(openEst.fatG || 0)} g ${t('food.fat').toLowerCase()} (${t('food.estimated')})`
