@@ -16,9 +16,9 @@ user asked for early in this project (a hypothetical app called "Tessera"
 branding, just the design doc it was scoped from — the user's own Supabase
 org/project also happens to be named "Tessera," which is unrelated and not
 worth "fixing"). It also has a voice/text-logging pipeline (say or type a
-sentence, it becomes structured log entries), two selectable visual styles
-— Classic and a dark "Fintech" style with a genuinely different Overview
-layout — and a full **Character System**: a companion that grows or fades
+sentence, it becomes structured log entries), one dark visual style
+("Richting E", with a user-selectable colour theme — see Design system)
+and a full **Character System**: a companion that grows or fades
 with the user's real habits (see below).
 
 A later session added a second, parallel system on top of all this: a
@@ -224,25 +224,19 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
   overlay/modal *without* going through `Sheet.jsx`, it needs the same
   portal treatment — don't reintroduce this by rendering `position: fixed`
   inline in the component tree.
-- **UI style system** (`data.settings.uiStyle`: `'classic'` | `'fintech'`):
-  independent of light/dark theme (`themeMode`), toggled in Settings → App
-  style. Fintech sets `data-style="fintech"` on `<html>`; `fintech.css` is
-  scoped entirely under that attribute so it never leaks into Classic.
-  - A gradient picker (`fintechGradients.js`: Nebula/Ion/Wealth) drives not
-    just hero-card backgrounds but the app's actual accent CSS variables
-    when Fintech is active — set in the same `AppContext.jsx` effect that
-    already pushes Classic's user-picked colors.
-  - **Fintech's Overview is a structurally different layout**
-    (`OverviewTerminal.jsx`): a swipeable wallet-card carousel
-    (`WalletRail.jsx`), a 3-ring "flight dial" (`FlightDial.jsx`), a weekly
-    seat-map (`WeeklyManifest.jsx`), a torn boarding-pass ticket
-    (`BoardingPass.jsx`), passport-stamp badges (`PassportStamp.jsx`), and
-    a bento grid for the companion/XP/streak/badges.
+- **One visual style ("Richting E"), colour theme selectable** — see
+  Design system below. The earlier Classic/Fintech style switch, light/
+  dark theme, wallpapers, colour pickers, font and density options were
+  **all removed on 2026-09-29 at the user's explicit request** ("oude
+  design en kleur mag je allemaal volledig verwijderen"), along with
+  Fintech's alternate Overview (`OverviewTerminal`, WalletRail,
+  FlightDial, WeeklyManifest, BoardingPass, PassportStamp). Don't bring
+  any of it back; old saved settings keys are stripped on load
+  (`RETIRED_SETTINGS` in `AppContext.jsx`).
 - **The Character System** (`characterEngine.js` + `ElementalCreature.jsx`
   + `CharacterCard.jsx` + `CharacterOnboardingSheet.jsx`) replaced the
   earlier Spark mascot and Companion State daily-mood card **entirely** —
-  one companion now, chosen once at onboarding, shown on Overview in both
-  Classic (hero card) and Fintech (full-width bento tile). This went
+  one companion now, chosen once at onboarding, shown on Overview. This went
   through **six rejected visual directions** before landing (abstract blob
   creature → human "poppet" figure → botanical bloom poppet → Duolingo-
   style bold flat mascot → a minimal luxury-brand crest/emblem → **the one
@@ -321,51 +315,6 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
     below) exists as a separate, real number the user can see, but nothing
     wires it into `characterEngine.js`'s weighting yet. That's a plausible
     next step, not done.
-- **Wallpaper** (`Wallpaper.jsx` + `Wallpaper.css`, toggled in Settings →
-  Wallpaper, applies to every page — the user's explicit choice when this
-  was scoped): three real-photography backgrounds (Stars/Sea/Rain, all
-  Unsplash, license-verified "Free Photo" before downloading, resized/
-  compressed via `scripts/optimize-wallpapers.mjs`), went through many
-  rounds of "make it more realistic/darker/more cohesive" before landing.
-  Load-bearing details, not stylistic:
-  - **DOM-order stacking, not `z-index`**: `#wallpaper-root` is the first
-    child of `<body>` in `index.html`, before `#root`, so the wallpaper
-    paints behind everything by plain paint order. A negative `z-index`
-    was tried first and proved unreliable for full-page-behind-content
-    stacking in this environment — don't revert to it.
-  - **A wallpaper forces the dark palette, regardless of the user's own
-    Light/Dark/System theme choice** (`global.css`,
-    `:root[data-wallpaper]:not([data-wallpaper="none"])`, higher
-    specificity than `:root[data-theme="light"]`). Found from a real bug
-    report: Light theme's cream `--surface`/dark `--text` values, read by
-    the same translucent-card and on-wallpaper-text rules, produced pale
-    washed-out cards and invisible dark-on-dark headings over a night-sky
-    photo. Wallpapers were always meant to be a dark, moody look on
-    purpose — this makes that true unconditionally instead of only when
-    the user happens to also have Dark theme selected.
-  - **Every wallpaper shares one neutral off-white accent** (`Wallpaper.jsx`,
-    `NEUTRAL_ACCENT`), not a per-photo matched color — an earlier version
-    used saturated per-photo colors (gold/teal/amber) and every button/
-    ring/tab across the whole app read as that one color, which the user
-    flagged as "everything is orange." The neutral accent fixed that but
-    created a second problem: hardcoded `color: #fff` text (on
-    `.btn-primary`, `.chip.selected`, the Settings segmented-control
-    active state, the Coach chat bubble, tags, the voice-log mic button)
-    went illegible on a near-white background. Fixed once, centrally, via
-    a **`--accent-contrast` CSS variable** (`theme.css` default `#fff`,
-    overridden to a dark color by the same wallpaper-active block in
-    `global.css`) — every accent-background element reads this instead of
-    hardcoding a color, so a future accent-background component gets
-    correct contrast for free instead of needing its own fix.
-  - **Filled buttons/chips go translucent-dark under a wallpaper, not a
-    solid accent fill** — after the contrast fix made them legible, the
-    user still flagged them as a stark bright block against the otherwise
-    all-dark UI (screenshotted against the Oura app as the reference for
-    "how this should look" — see the Overview hierarchy note in Design
-    system below for the same reference point reused). `.btn-primary`/
-    `.chip.selected`/`.segmented-btn.active` get a `[data-wallpaper]`-scoped
-    override to the same translucent-card treatment as everything else,
-    with the accent surviving only as a subtle border/tint.
 - **Meal macro tracking** (`mealAnalysis.js`, `data.meals`, Nutrition
   page's "Log a meal" sheet): real per-meal calories/protein/carbs/fat,
   distinct from the older 5-item nutrition checklist proxy. One Claude
@@ -437,9 +386,6 @@ That file is the **seed**, not the live source of truth:
   automatically — no new tables were needed for this part (only for push
   subscriptions, see below), since it's all just more top-level fields in
   the same `data` object that already syncs.
-- Fintech's `OverviewTerminal.jsx` does **not** show `TodayTasks` yet — it
-  was only wired into the Classic Overview layout. If the user uses
-  Fintech style day-to-day, this is a gap worth closing.
 
 ## Day replanning & pantry ("smart day" assistant, no-AI layer)
 
@@ -654,19 +600,31 @@ the browser.
 
 ## Design system
 
-- Fonts: Fraunces (headings), Inter (body), IBM Plex Mono (numbers/data) —
-  loaded via Google Fonts `<link>` in `index.html`. Fintech style overrides
-  the heading font to a clean sans-serif stack rather than using Fraunces,
-  on purpose — a serif read as "warm/classic," not "fintech."
-- Colors: CSS custom properties in `theme.css` for Classic (light/dark via
-  `prefers-color-scheme` + a `data-theme` override), `fintech.css` for the
-  Fintech style. Section accent colors are pushed onto
-  `document.documentElement` at runtime from an effect in `AppContext.jsx`.
-  **Exception to the CSS-custom-property pattern**: each Character System
+- **The style ("Richting E", chosen 2026-09-29)**: designed first in the
+  user's Figma file (see memory / `reference-figma-design-file`; section
+  "Richting E") from a dark purple chat-app reference the user picked.
+  Near-black background with a soft coloured radial **glow** at the
+  bottom of every screen (`body::before` in `global.css`), dark cards
+  with a thin border, **filled pill** primary buttons in `--accent`,
+  **outlined pill** chips/secondary buttons in a *second* colour
+  (`--second`), Plus Jakarta Sans for everything (headings 800 weight).
+- **Colour themes** (`utils/colorThemes.js`, Settings → Kleur): Paars
+  (default), Warm, Neon — same style, different colours. Each theme sets
+  the full variable set (bg/surface/text/accent/second/glow/category
+  colours), pushed onto `<html>` by one effect in `AppContext.jsx`
+  (`settings.colorTheme`). `theme.css` holds the Paars values as the
+  pre-JS fallback. Adding a theme = one more entry in `COLOR_THEMES`.
+  **Exception to the CSS-variable pattern**: each Character System
   archetype's palette is hardcoded per-icon inside `ElementalCreature.jsx`
-  (real-fire colors, real-moon colors, etc.) rather than themeable CSS
-  vars — deliberate, since the whole point is each one looking like the
-  authentic thing it depicts, not a recolorable accent.
+  (real-fire colors, real-moon colors, etc.) — deliberate.
+- **Overview layout** follows the Figma mockup: greeting with avatar
+  (`settings.displayName`, optional), one hero card with the *task* day
+  score ring + streak chip, a row of quick-action pills, three stat cards
+  (water/sleep/protein), the Vandaag checklist (`TodayTasks`), the
+  companion, a coach prompt bar, then quieter secondary info. The Figma
+  file also has mockups for Voeding, Training, Coach and the companion
+  page in this style — those page *layouts* aren't built yet (the pages
+  only inherit the new colours/components so far).
 - **Icons: `src/components/Icon.jsx`, a hand-drawn line-icon set
   (~55 icons, including `mic`), replacing emoji throughout the app.**
   Consistent stroke weight (1.7), 24×24 viewBox, `currentColor`. When
@@ -675,9 +633,6 @@ the browser.
   (`data.mood[].emoji`) are still raw emoji strings for backward
   compatibility — only the *display* layer maps them to icons; don't "fix"
   the stored format.
-- Color presets: `colorPresets.js` — grouped into named families rather
-  than one flat list. `ColorPicker.jsx` shows a compact "quick pick" row
-  by default with a "More shades" expand toggle.
 - **"Wall of same-weight cards" is a recurring visual complaint — the fix
   pattern, not just a one-off Overview change.** The user sent screenshots
   of the Oura app as a concrete reference (per the Character System note
@@ -871,6 +826,15 @@ rather than a bare `git` command. Also true in this harness:
 
 ## Current status (as of this note)
 
+**Latest (2026-09-29 session)**: day replanning + pantry (rule-based and
+AI layers), the Google Calendar Client-ID and `freeBusy` fixes, and a
+full redesign to the single "Richting E" style with Paars/Warm/Neon
+colour themes (Classic/Fintech/wallpapers removed). **Next up**: build
+the Voeding, Training, Coach and companion page layouts from the Figma
+mockups; redeploy the two Edge Functions so push/auto-sync honour
+`dayOverrides`. Older notes below describe earlier sessions — where they
+mention Fintech, wallpapers or colour pickers, that's history.
+
 Everything is **committed, pushed, and deployed** to `main`. This note's
 session shipped, in order: the wallpaper feature (real-photography
 backgrounds, dark-palette-forced-under-wallpaper fix, the
@@ -935,8 +899,8 @@ progress rollup).
    System's growth weighting as a second nutrition signal alongside the
    existing 5-item checklist proxy — or extending the voice pipeline to
    also cover weight/sleep intents.
-4. If asked to deepen the Character System's visuals further, or touch
-   Fintech visuals: get a concrete reference (named app/brand/image)
+4. If asked to deepen the Character System's visuals further, or change
+   the app's look: get a concrete reference (named app/brand/image)
    before building — abstract adjectives alone have repeatedly taken
    many rounds to converge (six rounds for the original Character System
    direction; the Oura screenshots this session are the model for how a

@@ -43,11 +43,11 @@ const ICONS = {
 }
 
 const TABS = [
-  { id: 'overview', label: 'Overview' },
+  { id: 'overview', label: 'Vandaag' },
   { id: 'water', label: 'Water' },
-  { id: 'sleep', label: 'Sleep' },
-  { id: 'workouts', label: 'Workouts' },
-  { id: 'progress', label: 'Progress' },
+  { id: 'sleep', label: 'Slaap' },
+  { id: 'workouts', label: 'Training' },
+  { id: 'progress', label: 'Voortgang' },
 ]
 
 export default function TabBar({ active, onChange }) {

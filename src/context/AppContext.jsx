@@ -3,13 +3,11 @@ import { todayKey } from '../utils/dates'
 import transformatieplan from '../data/transformatieplan-data.json'
 import { WEEKDAY_KEYS } from '../utils/taskSchedule'
 import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } from '../utils/workoutGenerator'
-import { DEFAULT_COLORS } from '../utils/colorPresets'
-import { DEFAULT_FINTECH_GRADIENT, getFintechGradient } from '../utils/fintechGradients'
+import { DEFAULT_COLOR_THEME, getColorTheme } from '../utils/colorThemes'
 import { requestGoogleToken, requestGoogleAuthCode, fetchTodayBusyMinutes, syncTasksToCalendar, fetchEventsForDate, DEFAULT_GOOGLE_CLIENT_ID, resolveGoogleClientId } from '../utils/googleCalendar'
 import { hasOuraApiKey, getOuraApiKey, fetchOuraToday } from '../utils/ouraApi'
 import { isCloudSyncConfigured, getSupabaseClient } from '../utils/supabaseClient'
 import { subscribeToPush, unsubscribeFromPush } from '../utils/push'
-import { WALLPAPER_OPTIONS } from '../components/Wallpaper'
 import {
   signUp as cloudSignUpApi, signIn as cloudSignInApi, signOut as cloudSignOutApi,
   getSession, onAuthStateChange, reconcile, pushToCloud, markLocalModified,
@@ -58,17 +56,15 @@ function seedTaskSchedule() {
 const DEFAULT_DATA = {
   version: 2,
   settings: {
-    themeMode: 'system',
-    uiStyle: 'classic',
-    fintechGradient: DEFAULT_FINTECH_GRADIENT,
-    colors: { ...DEFAULT_COLORS },
+    // One visual style for the whole app; only its colour theme is a
+    // choice (utils/colorThemes.js — Paars / Warm / Neon).
+    colorTheme: DEFAULT_COLOR_THEME,
+    // Shown in the Overview greeting ("Goedemorgen, <name>"). Optional.
+    displayName: '',
     waterGoalMl: 2000,
     sleepGoalHours: 8,
     macroGoals: { calories: 2000, proteinG: 100, carbsG: 250, fatG: 65 },
     weightUnit: 'kg',
-    headingFont: 'fraunces',
-    density: 'comfortable',
-    useGradientAccents: false,
     gentleMode: false,
     googleClientId: DEFAULT_GOOGLE_CLIENT_ID,
     googleCalendarConnected: false,
@@ -84,14 +80,6 @@ const DEFAULT_DATA = {
     // address). Not sent anywhere except inside that one Claude request.
     homeLocation: '',
     pushEnabled: false,
-    wallpaper: 'none',
-    // A user-uploaded wallpaper photo, resized client-side to a data URL
-    // (utils/image.js — same approach already used for Progress photos
-    // and meal photos) rather than a file path under public/wallpapers,
-    // since there's nowhere to upload an actual file to on a static
-    // GitHub Pages site. Rides the existing whole-blob Cloud Sync and
-    // Export/Import automatically, same as any other settings field.
-    customWallpaper: null, // { dataUrl } | null
   },
   taskSchedule: seedTaskSchedule(),
   mealRotation: structuredClone(transformatieplan.meal_rotation || null),
@@ -136,14 +124,20 @@ const DEFAULT_DATA = {
 // Shallow-merge so new fields added in later app versions get defaults —
 // shared by loadData, importData, and applying a pulled cloud sync blob so
 // all three stay in sync with each other.
+// Settings from the retired Classic/Fintech/wallpaper styling system —
+// dropped on load so they stop riding along in every sync (a custom
+// wallpaper was a full-size image data URL).
+const RETIRED_SETTINGS = ['themeMode', 'uiStyle', 'fintechGradient', 'colors', 'headingFont', 'density', 'useGradientAccents', 'wallpaper', 'customWallpaper']
+
 function mergeWithDefaults(parsed) {
+  const savedSettings = { ...parsed.settings }
+  for (const key of RETIRED_SETTINGS) delete savedSettings[key]
   return {
     ...structuredClone(DEFAULT_DATA),
     ...parsed,
     settings: {
       ...DEFAULT_DATA.settings,
-      ...parsed.settings,
-      colors: { ...DEFAULT_COLORS, ...parsed.settings?.colors },
+      ...savedSettings,
       // Empty or not-a-client-ID (e.g. a pasted calendar URL) → built-in ID.
       googleClientId: resolveGoogleClientId(parsed.settings?.googleClientId),
     },
@@ -294,74 +288,20 @@ export function AppProvider({ children }) {
     return () => { cancelled = true }
   }, [])
 
-  // Apply theme + accent colors + personalization to the document root as CSS variables.
+  // Push the chosen colour theme onto the document root as CSS variables
+  // — every component reads var(--accent), var(--second), etc.
   useEffect(() => {
     const root = document.documentElement
-    const { themeMode, colors, headingFont, density, useGradientAccents, uiStyle, fintechGradient, wallpaper } = data.settings
-    if (themeMode === 'system') {
-      root.removeAttribute('data-theme')
-    } else {
-      root.setAttribute('data-theme', themeMode)
+    const t = getColorTheme(data.settings.colorTheme)
+    const vars = {
+      '--bg': t.bg, '--bg-soft': t.bg, '--surface': t.surface, '--surface-soft': t.surfaceSoft, '--surface-raised': t.surfaceRaised,
+      '--text': t.text, '--text-soft': t.textSoft, '--text-faint': t.textFaint,
+      '--accent': t.accent, '--second': t.second, '--accent-contrast': t.onAccent, '--glow': t.glow,
+      '--accent-water': t.water, '--accent-sleep': t.sleep, '--accent-workout': t.workout,
     }
-    if (uiStyle === 'fintech') {
-      root.setAttribute('data-style', 'fintech')
-    } else {
-      root.removeAttribute('data-style')
-    }
-    const grad = getFintechGradient(fintechGradient)
-    root.style.setProperty('--fintech-grad-from', grad.from)
-    root.style.setProperty('--fintech-grad-to', grad.to)
-    root.style.setProperty('--fintech-accent', grad.accent)
-
-    const fintechOn = uiStyle === 'fintech'
-    // A wallpaper (Wallpaper.jsx) carries its own matching accent/ring/
-    // gradientEnd so the rest of the UI doesn't clash with whatever photo
-    // is behind it — same idea as the Fintech override below, just for a
-    // different setting. Fintech's own gradient wins if both are somehow
-    // active, since Fintech already has a complete color identity of its
-    // own; the wallpaper override only applies to Classic.
-    const wallpaperOpt = !fintechOn ? WALLPAPER_OPTIONS.find((w) => w.key === wallpaper && w.accent) : null
-    const wp = wallpaperOpt?.palette
-    // Under Fintech, every accent throughout the app (rings, streak flame,
-    // mini-card icons, section dots) switches to the chosen gradient family
-    // instead of the user's Classic accent — otherwise only card chrome
-    // changes and the app barely reads as redesigned.
-    // Solid-fill chrome (buttons/chips/tags — the `accent` var) still
-    // collapses to one neutral tone under a wallpaper, same reasoning as
-    // ever: a full-width solid button in the photo's own saturated color
-    // read as "everything is orange." Ring/water/sleep/workout are a
-    // different case — small-area color (a ring stroke, a thin bar fill,
-    // a streak icon) doesn't reproduce that problem, and collapsing all
-    // four to one flat tone flattened the whole app into one monochrome
-    // look, which read as "boring." They now draw from the wallpaper's own
-    // warm palette (see WARM_PALETTE in Wallpaper.jsx) instead.
-    const accent = fintechOn ? grad.from : wallpaperOpt?.accent || colors.accent
-    const ring = fintechOn ? grad.from : wp?.ring || colors.ring
-    const water = fintechOn ? grad.from : wp?.water || colors.accent
-    const sleep = fintechOn ? grad.accent : wp?.sleep || colors.accent
-    const workout = fintechOn ? grad.to : wp?.workout || colors.accent
-    const gradientEnd = fintechOn ? grad.to : wp?.ringEnd || colors.gradientEnd
-    // Deliberately NOT forcing gradient fills on for wallpapers the way
-    // Fintech does — Fintech is a complete alternate visual language built
-    // around two-tone gradients throughout, but Classic's pill buttons
-    // etc. are flat/solid everywhere else, so a gradient CTA button next
-    // to flat pill buttons read as two different color systems clashing
-    // rather than one cohesive tint. Flat wins unless the user has
-    // separately opted into gradient accents themselves.
-    const useGradient = fintechOn ? true : useGradientAccents
-
-    root.style.setProperty('--accent', accent)
-    root.style.setProperty('--accent-ring', ring)
-    root.style.setProperty('--accent-water', water)
-    root.style.setProperty('--accent-sleep', sleep)
-    root.style.setProperty('--accent-workout', workout)
-    root.style.setProperty('--accent-gradient-end', gradientEnd)
-    root.style.setProperty('--accent-fill', useGradient ? `linear-gradient(135deg, ${accent}, ${gradientEnd})` : accent)
-    root.style.setProperty('--ring-fill', useGradient ? `linear-gradient(135deg, ${ring}, ${gradientEnd})` : ring)
-    root.setAttribute('data-density', density)
-    root.setAttribute('data-font', headingFont)
-    root.setAttribute('data-wallpaper', wallpaper || 'none')
-  }, [data.settings])
+    for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v)
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.bg)
+  }, [data.settings.colorTheme])
 
   // Best-effort mirror to the normalized Supabase tables — fires only when
   // signed into Cloud Sync (needs a user to attribute the row to) with
@@ -746,29 +686,9 @@ export function AppProvider({ children }) {
       setData((d) => ({ ...d, motivationFlags: { ...d.motivationFlags, [dateKey]: on } }))
     },
 
-    setThemeMode: (mode) => setData((d) => ({ ...d, settings: { ...d.settings, themeMode: mode } })),
-    setUiStyle: (style) => setData((d) => ({ ...d, settings: { ...d.settings, uiStyle: style } })),
-    setFintechGradient: (key) => setData((d) => ({ ...d, settings: { ...d.settings, fintechGradient: key } })),
-    setColor: (key, hex) => setData((d) => ({ ...d, settings: { ...d.settings, colors: { ...d.settings.colors, [key]: hex } } })),
-    resetColors: () => setData((d) => ({ ...d, settings: { ...d.settings, colors: { ...DEFAULT_COLORS } } })),
-    applyThemePreset: (colors) => setData((d) => ({ ...d, settings: { ...d.settings, colors: { ...colors } } })),
-    setHeadingFont: (font) => setData((d) => ({ ...d, settings: { ...d.settings, headingFont: font } })),
-    setDensity: (density) => setData((d) => ({ ...d, settings: { ...d.settings, density } })),
-    setUseGradientAccents: (on) => setData((d) => ({ ...d, settings: { ...d.settings, useGradientAccents: on } })),
+    setColorTheme: (key) => setData((d) => ({ ...d, settings: { ...d.settings, colorTheme: key } })),
+    setDisplayName: (name) => setData((d) => ({ ...d, settings: { ...d.settings, displayName: name } })),
     setGentleMode: (on) => setData((d) => ({ ...d, settings: { ...d.settings, gentleMode: on } })),
-    setWallpaper: (key) => setData((d) => ({ ...d, settings: { ...d.settings, wallpaper: key } })),
-    setCustomWallpaper: (dataUrl) => setData((d) => ({
-      ...d,
-      settings: { ...d.settings, customWallpaper: { dataUrl }, wallpaper: 'custom' },
-    })),
-    removeCustomWallpaper: () => setData((d) => ({
-      ...d,
-      settings: {
-        ...d.settings,
-        customWallpaper: null,
-        wallpaper: d.settings.wallpaper === 'custom' ? 'none' : d.settings.wallpaper,
-      },
-    })),
 
     connectGoogleCalendar: async (rawClientId) => {
       const clientId = resolveGoogleClientId(rawClientId)

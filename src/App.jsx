@@ -4,7 +4,6 @@ import { getComebackStatus } from './utils/comeback'
 import TabBar from './components/TabBar'
 import Sidebar from './components/Sidebar'
 import Icon from './components/Icon'
-import Wallpaper from './components/Wallpaper'
 import ComebackScreen from './components/ComebackScreen'
 import Overview from './pages/Overview'
 import Water from './pages/Water'
@@ -48,7 +47,6 @@ function Shell() {
   if (comeback.isComeback && !comebackDismissed) {
     return (
       <div className="app-shell">
-        <Wallpaper type={data.settings.wallpaper} customUrl={data.settings.customWallpaper?.dataUrl} />
         <ComebackScreen
           gapDays={comeback.gapDays}
           onContinue={() => setComebackDismissed(true)}
@@ -60,7 +58,6 @@ function Shell() {
 
   return (
     <div className="app-shell">
-      <Wallpaper type={data.settings.wallpaper} customUrl={data.settings.customWallpaper?.dataUrl} />
       <div className="menu-fab-wrap">
         <div className="menu-fab-inner">
           <button className="menu-fab" onClick={() => setSidebarOpen(true)} aria-label="Open menu">

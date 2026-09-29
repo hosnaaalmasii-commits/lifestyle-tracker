@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import './styles/theme.css'
 import './styles/global.css'
-import './styles/fintech.css'
 import App from './App.jsx'
 
 // registerType: 'autoUpdate' alone isn't enough with the injectManifest

@@ -1,51 +1,18 @@
 import { useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
-import { THEME_PRESETS } from '../../utils/colorPresets'
-import { FINTECH_GRADIENTS } from '../../utils/fintechGradients'
+import { COLOR_THEMES } from '../../utils/colorThemes'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
 import { getOuraApiKey, setOuraApiKey } from '../../utils/ouraApi'
 import { isValidGoogleClientId } from '../../utils/googleCalendar'
-import { WALLPAPER_OPTIONS } from '../../components/Wallpaper'
-import { resizeImageToDataUrl } from '../../utils/image'
 import { PERSONALITIES } from '../../utils/coachContext'
 import { isCloudSyncConfigured } from '../../utils/supabaseClient'
 import BackHeader from '../../components/BackHeader'
 import SegmentedControl from '../../components/SegmentedControl'
-import ColorPicker from '../../components/ColorPicker'
 import ConfirmDialog from '../../components/ConfirmDialog'
-
-const THEME_OPTIONS = [
-  { value: 'system', label: 'System' },
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-]
-
-const FONT_OPTIONS = [
-  { value: 'fraunces', label: 'Fraunces' },
-  { value: 'playfair', label: 'Playfair' },
-  { value: 'space', label: 'Modern' },
-]
-
-const DENSITY_OPTIONS = [
-  { value: 'comfortable', label: 'Comfortable' },
-  { value: 'compact', label: 'Compact' },
-]
-
-const UI_STYLE_OPTIONS = [
-  { value: 'classic', label: 'Classic' },
-  { value: 'fintech', label: 'Fintech' },
-]
-
-const COLOR_FIELDS = [
-  { key: 'accent', label: 'Main accent' },
-  { key: 'ring', label: 'Progress ring' },
-]
 
 export default function Settings({ onBack }) {
   const {
-    data, sync, setThemeMode, setUiStyle, setFintechGradient, setColor, resetColors, applyThemePreset,
-    setHeadingFont, setDensity, setUseGradientAccents, setGentleMode, setWallpaper,
-    setCustomWallpaper, removeCustomWallpaper,
+    data, sync, setColorTheme, setDisplayName, setGentleMode,
     setWeightUnit, exportData, importData, clearAll,
     connectGoogleCalendar, disconnectGoogleCalendar, syncTasksToGoogleCalendar,
     enableCalendarAutoSync, disableCalendarAutoSync,
@@ -58,9 +25,7 @@ export default function Settings({ onBack }) {
   const [importError, setImportError] = useState('')
   const [importedOk, setImportedOk] = useState(false)
 
-  const wallpaperFileRef = useRef(null)
-  const [wallpaperBusy, setWallpaperBusy] = useState(false)
-  const [wallpaperError, setWallpaperError] = useState('')
+  const [nameInput, setNameInput] = useState(data.settings.displayName || '')
 
   const [backfillBusy, setBackfillBusy] = useState(false)
   const [backfillStage, setBackfillStage] = useState('')
@@ -79,26 +44,6 @@ export default function Settings({ onBack }) {
     } finally {
       setBackfillBusy(false)
       setBackfillStage('')
-    }
-  }
-
-  const handleWallpaperFile = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setWallpaperBusy(true)
-    setWallpaperError('')
-    try {
-      // 1600px matches the built-in wallpapers' own resize target
-      // (scripts/optimize-wallpapers.mjs) — big enough to cover a full
-      // screen without visible softness, small enough to stay reasonable
-      // in localStorage/Cloud Sync as a base64 data URL.
-      const { dataUrl } = await resizeImageToDataUrl(file, 1600, 0.82)
-      setCustomWallpaper(dataUrl)
-    } catch {
-      setWallpaperError('Could not read that image — try a different file.')
-    } finally {
-      setWallpaperBusy(false)
-      e.target.value = ''
     }
   }
 
@@ -256,112 +201,42 @@ export default function Settings({ onBack }) {
     <div className="page">
       <BackHeader eyebrow="More" title="Settings" onBack={onBack} />
 
-      <div className="section-title">App style</div>
-      <div className="card stack">
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Style</label>
-          <SegmentedControl options={UI_STYLE_OPTIONS} value={data.settings.uiStyle} onChange={setUiStyle} />
-        </div>
-        {data.settings.uiStyle === 'fintech' && (
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Gradient</label>
-            <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
-              {FINTECH_GRADIENTS.map((g) => {
-                const selected = data.settings.fintechGradient === g.key
-                return (
-                  <button
-                    key={g.key}
-                    onClick={() => setFintechGradient(g.key)}
-                    aria-label={g.name}
-                    style={{
-                      width: 52, height: 52, borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
-                      background: `linear-gradient(135deg, ${g.from}, ${g.to})`,
-                      border: selected ? '2px solid var(--text)' : '2px solid transparent',
-                      boxShadow: selected ? '0 0 0 2px var(--surface)' : 'none',
-                      padding: 0,
-                    }}
-                    title={g.name}
-                  />
-                )
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="section-title">Appearance</div>
-      <div className="card stack">
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Theme</label>
-          <SegmentedControl options={THEME_OPTIONS} value={data.settings.themeMode} onChange={setThemeMode} />
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Heading font</label>
-          <SegmentedControl options={FONT_OPTIONS} value={data.settings.headingFont} onChange={setHeadingFont} />
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Layout density</label>
-          <SegmentedControl options={DENSITY_OPTIONS} value={data.settings.density} onChange={setDensity} />
-        </div>
-        <div className="row">
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Gradient accents</div>
-            <div className="text-sm faint">Blend the ring &amp; primary buttons into a second color</div>
-          </div>
-          <button
-            className={`switch${data.settings.useGradientAccents ? ' on' : ''}`}
-            onClick={() => setUseGradientAccents(!data.settings.useGradientAccents)}
-            aria-label="Gradient accents"
-          />
-        </div>
-      </div>
-
-      <div className="section-title">Wallpaper</div>
+      <div className="section-title">Kleur</div>
       <div className="card">
-        <p className="text-sm muted" style={{ margin: '0 0 12px' }}>
-          An animated background behind every page. Cards go translucent so it reads through.
-        </p>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-          {WALLPAPER_OPTIONS.filter((w) => w.key !== 'custom').map((w) => (
-            <button
-              key={w.key}
-              className={`btn btn-sm ${data.settings.wallpaper === w.key ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setWallpaper(w.key)}
-            >
-              {w.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-soft)' }}>
-          {data.settings.customWallpaper ? (
-            <div className="row" style={{ gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <img
-                src={data.settings.customWallpaper.dataUrl}
-                alt="Your uploaded wallpaper"
-                style={{ width: 52, height: 52, borderRadius: 'var(--radius-sm)', objectFit: 'cover', flexShrink: 0 }}
-              />
+        <div className="row" style={{ gap: 10 }}>
+          {COLOR_THEMES.map((t) => {
+            const selected = data.settings.colorTheme === t.key
+            return (
               <button
-                className={`btn btn-sm ${data.settings.wallpaper === 'custom' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setWallpaper('custom')}
+                key={t.key}
+                onClick={() => setColorTheme(t.key)}
+                aria-pressed={selected}
+                style={{
+                  flex: 1, cursor: 'pointer', padding: 0, borderRadius: 'var(--radius-md)', overflow: 'hidden',
+                  border: selected ? `2px solid ${t.accent}` : '2px solid var(--border-soft)',
+                  background: t.bg, color: t.text, textAlign: 'left',
+                }}
               >
-                {data.settings.wallpaper === 'custom' ? 'Using your photo' : 'Use your photo'}
+                <div style={{ height: 62, position: 'relative', background: `radial-gradient(ellipse at 50% 120%, ${t.glow}88 0%, transparent 70%)` }}>
+                  <span style={{ position: 'absolute', left: 10, bottom: 10, width: 34, height: 16, borderRadius: 99, background: t.accent }} />
+                  <span style={{ position: 'absolute', left: 50, bottom: 10, width: 34, height: 16, borderRadius: 99, border: `1.5px solid ${t.second}` }} />
+                </div>
+                <div style={{ padding: '8px 10px', fontSize: 13, fontWeight: 700 }}>{t.label}</div>
               </button>
-              <button className="btn btn-ghost btn-sm" disabled={wallpaperBusy} onClick={() => wallpaperFileRef.current?.click()}>
-                Replace
-              </button>
-              <button className="btn btn-ghost btn-sm" onClick={removeCustomWallpaper}>
-                Remove
-              </button>
-            </div>
-          ) : (
-            <button className="btn btn-secondary btn-sm" disabled={wallpaperBusy} onClick={() => wallpaperFileRef.current?.click()}>
-              {wallpaperBusy ? 'Processing…' : '+ Upload your own photo'}
-            </button>
-          )}
-          {wallpaperError && <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 8 }}>{wallpaperError}</div>}
-          <input ref={wallpaperFileRef} type="file" accept="image/*" hidden onChange={handleWallpaperFile} />
+            )
+          })}
         </div>
+      </div>
+
+      <div className="section-title">Je naam</div>
+      <div className="card">
+        <input
+          className="input"
+          placeholder="Voor de begroeting op Vandaag"
+          value={nameInput}
+          onChange={(e) => setNameInput(e.target.value)}
+          onBlur={() => setDisplayName(nameInput.trim())}
+        />
       </div>
 
       <div className="section-title">Wellbeing</div>
@@ -379,44 +254,6 @@ export default function Settings({ onBack }) {
             aria-label="Gentle mode"
           />
         </div>
-      </div>
-
-      <div className="section-title">Theme presets</div>
-      <div className="scroll-x">
-        {THEME_PRESETS.map((preset) => (
-          <button
-            key={preset.name}
-            onClick={() => applyThemePreset(preset.colors)}
-            style={{
-              flexShrink: 0, width: 92, background: 'var(--surface)', border: '1px solid var(--border-soft)',
-              borderRadius: 'var(--radius-md)', padding: '12px 8px', cursor: 'pointer', textAlign: 'center',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'center', gap: -6 }}>
-              {[preset.colors.accent, preset.colors.ring].map((c, i) => (
-                <span
-                  key={i}
-                  style={{
-                    width: 22, height: 22, borderRadius: '50%', background: c,
-                    border: '2px solid var(--surface)', marginLeft: i === 0 ? 0 : -8,
-                  }}
-                />
-              ))}
-            </div>
-            <div className="text-sm" style={{ marginTop: 8, fontWeight: 600, lineHeight: 1.2 }}>{preset.name}</div>
-          </button>
-        ))}
-      </div>
-
-      <div className="section-title">Colors</div>
-      <div className="card">
-        {COLOR_FIELDS.map((f) => (
-          <ColorPicker key={f.key} label={f.label} value={data.settings.colors[f.key]} onChange={(hex) => setColor(f.key, hex)} />
-        ))}
-        {data.settings.useGradientAccents && (
-          <ColorPicker label="Gradient end" value={data.settings.colors.gradientEnd} onChange={(hex) => setColor('gradientEnd', hex)} />
-        )}
-        <button className="btn btn-ghost btn-sm" onClick={resetColors}>Reset to defaults</button>
       </div>
 
       <div className="section-title">Units</div>

@@ -1,4 +1,5 @@
 import { keyToDate, addDaysToKey, diffDays } from './dates'
+import { streakFromDateSet } from './streaks'
 
 // Monday-first order, matching the shape of daily_schedules_by_weekday /
 // meal_rotation.meals_by_week in data/transformatieplan-data.json.
@@ -63,3 +64,16 @@ export function dayMeetsThreshold(taskSchedule, taskCompletions, dateKey, thresh
 }
 
 export const TASK_CATEGORIES = ['eten', 'training', 'supplement', 'herstel', 'werk', 'zelfzorg']
+
+// Current streak of days clearing the threshold, over the last year —
+// bounded lookback so a fresh install (no history yet) doesn't walk back
+// to year 1 checking increasingly-empty days.
+export function taskStreak(taskSchedule, taskCompletions, thresholdPct, dayOverrides, todayKeyStr) {
+  const dates = new Set()
+  let key = todayKeyStr
+  for (let i = 0; i < 365; i++) {
+    if (dayMeetsThreshold(taskSchedule, taskCompletions, key, thresholdPct, dayOverrides)) dates.add(key)
+    key = addDaysToKey(key, -1)
+  }
+  return streakFromDateSet(dates)
+}

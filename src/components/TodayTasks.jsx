@@ -1,13 +1,8 @@
-import { useState } from 'react'
 import { useApp } from '../context/AppContext'
-import { todayKey, addDaysToKey } from '../utils/dates'
-import { streakFromDateSet } from '../utils/streaks'
-import { getTasksForDate, getMealsForDate, getAppointmentsForDate, computeDayScore, dayMeetsThreshold } from '../utils/taskSchedule'
+import { todayKey } from '../utils/dates'
+import { getTasksForDate, getMealsForDate, getAppointmentsForDate } from '../utils/taskSchedule'
 import { MEAL_SLOTS, MEAL_SLOT_LABELS } from '../utils/pantry'
-import Ring from './Ring'
-import StreakBadge from './StreakBadge'
 import Icon from './Icon'
-import DayReplanSheet from './DayReplanSheet'
 
 const CATEGORY_ICON = {
   eten: 'utensils',
@@ -19,32 +14,17 @@ const CATEGORY_ICON = {
   zelfzorg: 'heart',
 }
 
-// Streak over the last year of local calendar days that clear the
-// threshold — bounded lookback so a fresh install (no history yet) doesn't
-// walk back to year 1 checking increasingly-empty days.
-function computeTaskStreak(taskSchedule, taskCompletions, thresholdPct, dayOverrides) {
-  const dateSet = new Set()
-  let key = todayKey()
-  for (let i = 0; i < 365; i++) {
-    if (dayMeetsThreshold(taskSchedule, taskCompletions, key, thresholdPct, dayOverrides)) dateSet.add(key)
-    key = addDaysToKey(key, -1)
-  }
-  return streakFromDateSet(dateSet)
-}
-
-const linkButtonStyle = { background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: 13.5, fontWeight: 600 }
-
-export default function TodayTasks({ onOpenSchedule, onOpenPantry }) {
+// Today's checklist (tasks + appointments interleaved) and menu. The day
+// score ring and streak live in Overview's hero card above this; the
+// replan sheet is owned by Overview too, so its "+ Afspraak" chip and the
+// link here open the same sheet.
+export default function TodayTasks({ onOpenSchedule, onOpenPantry, onOpenReplan }) {
   const { data, toggleTask } = useApp()
-  const [replanOpen, setReplanOpen] = useState(false)
   const today = todayKey()
   const tasks = getTasksForDate(data.taskSchedule, today, data.dayOverrides)
   const appointments = getAppointmentsForDate(data.dayOverrides, today)
   const isReplanned = !!data.dayOverrides?.[today]?.tasks
   const completionsToday = data.taskCompletions[today] || {}
-  const score = computeDayScore(tasks, completionsToday)
-  const threshold = data.settings.streakThresholdPct
-  const streak = computeTaskStreak(data.taskSchedule, data.taskCompletions, threshold, data.dayOverrides)
   const mealInfo = getMealsForDate(data.mealRotation, today, data.dayOverrides)
 
   const { sleepScore, readinessScore, activeCalories } = data.ouraStatus || {}
@@ -54,92 +34,58 @@ export default function TodayTasks({ onOpenSchedule, onOpenPantry }) {
 
   if (!tasks.length) {
     return (
-      <div className="card" style={{ marginBottom: 16 }}>
+      <div className="card">
         <div className="row">
           <div>
-            <div className="section-title" style={{ marginTop: 0 }}>Vandaag</div>
+            <div className="section-title" style={{ marginTop: 0, marginBottom: 4 }}>Vandaag</div>
             <p className="text-sm faint">Nog geen taken ingesteld voor vandaag.</p>
           </div>
-          {onOpenSchedule && (
-            <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer' }} onClick={onOpenSchedule}>
-              Schema instellen
-            </button>
-          )}
+          {onOpenSchedule && <button className="btn btn-secondary btn-sm" onClick={onOpenSchedule}>Schema instellen</button>}
         </div>
       </div>
     )
   }
 
+  const rows = [
+    ...tasks.map((t) => ({ kind: 'task', time: t.time, item: t })),
+    ...appointments.map((a) => ({ kind: 'appt', time: a.start, item: a })),
+  ].sort((a, b) => a.time.localeCompare(b.time) || (a.kind === 'appt' ? -1 : 1))
+
   return (
-    <div className="card" style={{ marginBottom: 16 }}>
-      <div className="row" style={{ alignItems: 'flex-start' }}>
-        <div>
-          <div className="section-title" style={{ marginTop: 0 }}>Vandaag</div>
-          <StreakBadge days={streak} label={`dagen boven ${threshold}%`} />
-        </div>
-        <Ring value={score / 100} size={64} stroke={7}>
-          <span style={{ fontWeight: 700, fontSize: 15 }}>{score}%</span>
-        </Ring>
+    <div className="card">
+      <div className="row" style={{ marginBottom: 4 }}>
+        <div className="section-title" style={{ margin: 0 }}>Vandaag</div>
+        {onOpenReplan && (
+          <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13.5, fontWeight: 700 }} onClick={onOpenReplan}>
+            {isReplanned ? 'Aangepast · bewerk' : '+ Afspraak'}
+          </button>
+        )}
       </div>
-
-      {mealInfo?.meals && (
-        <div className="text-sm faint" style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 8, rowGap: 2 }}>
-          {MEAL_SLOTS.filter((slot) => mealInfo.meals[slot]).map((slot) => (
-            <span key={slot} style={{ display: 'contents' }}>
-              <span>{MEAL_SLOT_LABELS[slot]}</span>
-              <span style={{ color: mealInfo.swapped.includes(slot) ? 'var(--text)' : undefined }}>
-                {mealInfo.meals[slot]}{mealInfo.swapped.includes(slot) ? ' (gewisseld)' : ''}
-              </span>
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div className="row" style={{ gap: 16, marginTop: 10, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-        <button style={linkButtonStyle} onClick={() => setReplanOpen(true)}>
-          {isReplanned ? 'Aangepaste dag bewerken' : '+ Afspraak / dag aanpassen'}
-        </button>
-        {onOpenPantry && <button style={linkButtonStyle} onClick={onOpenPantry}>Niet naar de winkel? Menu aanpassen</button>}
-      </div>
-      <DayReplanSheet open={replanOpen} onClose={() => setReplanOpen(false)} />
 
       {hasOuraData && (
-        <div className="row" style={{ gap: 14, marginTop: 10, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+        <div className="row" style={{ gap: 14, marginTop: 6, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
           {sleepScore != null && <span className="text-sm faint">Slaap {sleepScore}</span>}
           {readinessScore != null && <span className="text-sm faint">Readiness {readinessScore}</span>}
           {activeCalories != null && <span className="text-sm faint">{activeCalories} kcal actief</span>}
         </div>
       )}
       {lowReadinessWarning && (
-        <div className="text-sm" style={{ marginTop: 8, padding: '8px 10px', borderRadius: 10, background: 'color-mix(in srgb, var(--danger) 12%, transparent)', color: 'var(--danger)' }}>
+        <div className="text-sm" style={{ marginTop: 8, padding: '8px 12px', borderRadius: 12, background: 'color-mix(in srgb, var(--danger) 14%, transparent)', color: 'var(--danger)' }}>
           Lage readiness ({readinessScore}) + training gepland vandaag — overweeg lichter te trainen.
         </div>
       )}
 
-      {/* A divided list, not a stack of individually-boxed pills — the
-          same "wall of same-weight boxes" fix already used on Overview's
-          hero card and the More page, applied here too since a daily
-          checklist repeats this pattern the most (8+ rows, every day). A
-          thin gold left-accent marks a completed row instead of filling
-          the whole row with color, which reads calmer/more considered
-          than a solid-block "done" state. */}
-      <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column' }}>
-        {[...tasks.map((t) => ({ kind: 'task', time: t.time, item: t })), ...appointments.map((a) => ({ kind: 'appt', time: a.start, item: a }))]
-          .sort((a, b) => a.time.localeCompare(b.time) || (a.kind === 'appt' ? -1 : 1))
-          .map(({ kind, item: t }, i) => {
+      <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column' }}>
+        {rows.map(({ kind, item: t }, i) => {
+          const divider = i > 0 ? '1px solid var(--border-soft)' : 'none'
           if (kind === 'appt') {
             return (
-              <div
-                key={t.id}
-                className="row"
-                style={{ gap: 10, padding: '12px 4px 12px 11px', borderTop: i > 0 ? '1px solid var(--border-soft)' : 'none', borderLeft: '2px solid transparent', justifyContent: 'flex-start' }}
-              >
-                <span aria-hidden className="faint" style={{ width: 18, flexShrink: 0 }} />
-                <span aria-hidden className="faint" style={{ flexShrink: 0 }}><Icon name="calendar" size={16} /></span>
-                <span className="mono faint" style={{ fontSize: 12.5 }}>{t.start}–{t.end}</span>
-                <span style={{ flex: 1, fontStyle: 'italic' }}>
-                  {t.title}{t.location ? ` · ${t.location}` : ''}
-                  {(Number(t.travelBefore) > 0 || Number(t.travelAfter) > 0) && <span className="faint text-sm"> (reistijd {t.travelBefore || 0}/{t.travelAfter || 0} min)</span>}
+              <div key={t.id} className="row" style={{ gap: 12, padding: '12px 0', borderTop: divider, justifyContent: 'flex-start' }}>
+                <span aria-hidden style={{ width: 22, display: 'flex', justifyContent: 'center', color: 'var(--second)', flexShrink: 0 }}><Icon name="calendar" size={16} /></span>
+                <span className="text-sm faint" style={{ minWidth: 44 }}>{t.start}</span>
+                <span style={{ flex: 1 }}>
+                  <span style={{ fontWeight: 600 }}>{t.title}</span>
+                  <span className="text-sm faint"> · tot {t.end}{t.location ? ` · ${t.location}` : ''}</span>
                 </span>
               </div>
             )
@@ -149,28 +95,46 @@ export default function TodayTasks({ onOpenSchedule, onOpenPantry }) {
             <label
               key={t.id}
               className={`row${done ? ' task-row-done' : ''}`}
-              style={{
-                gap: 10, padding: '12px 4px 12px 11px', cursor: 'pointer',
-                borderTop: i > 0 ? '1px solid var(--border-soft)' : 'none',
-                borderLeft: `2px solid ${done ? 'var(--accent-ring)' : 'transparent'}`,
-                justifyContent: 'flex-start',
-              }}
+              style={{ gap: 12, padding: '12px 0', cursor: 'pointer', borderTop: divider, justifyContent: 'flex-start' }}
             >
-              <input
-                type="checkbox"
-                checked={done}
-                onChange={() => toggleTask(today, t.id)}
-                style={{ width: 18, height: 18, accentColor: 'var(--accent-ring)', flexShrink: 0 }}
-              />
-              <span aria-hidden className="faint" style={{ flexShrink: 0 }}>
-                <Icon name={CATEGORY_ICON[t.category] || 'check'} size={16} />
+              <input type="checkbox" checked={done} onChange={() => toggleTask(today, t.id)} style={{ display: 'none' }} />
+              <span
+                aria-hidden
+                style={{
+                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: done ? 'var(--accent)' : 'transparent',
+                  border: done ? 'none' : '1.5px solid color-mix(in srgb, var(--text) 30%, transparent)',
+                  color: 'var(--accent-contrast)',
+                }}
+              >
+                {done && <Icon name="check" size={13} />}
               </span>
-              <span className="mono faint" style={{ fontSize: 12.5 }}>{t.time}</span>
-              <span style={{ textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.55 : 1, flex: 1, fontWeight: done ? 500 : 600 }}>{t.label}</span>
+              <span className="text-sm faint" style={{ minWidth: 44 }}>{t.time}</span>
+              <span style={{ flex: 1, textDecoration: done ? 'line-through' : 'none', color: done ? 'var(--text-faint)' : 'var(--text)', fontWeight: done ? 500 : 600 }}>{t.label}</span>
+              <span aria-hidden className="faint" style={{ flexShrink: 0 }}><Icon name={CATEGORY_ICON[t.category] || 'check'} size={15} /></span>
             </label>
           )
         })}
       </div>
+
+      {mealInfo?.meals && (
+        <div style={{ marginTop: 10, paddingTop: 12, borderTop: '1px solid var(--border-soft)' }}>
+          <div className="row" style={{ marginBottom: 6 }}>
+            <span className="text-sm faint" style={{ fontWeight: 600 }}>Menu week {mealInfo.letter}</span>
+            {onOpenPantry && <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13, fontWeight: 700 }} onClick={onOpenPantry}>Aanpassen</button>}
+          </div>
+          <div className="text-sm" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 10, rowGap: 3 }}>
+            {MEAL_SLOTS.filter((slot) => mealInfo.meals[slot]).map((slot) => (
+              <span key={slot} style={{ display: 'contents' }}>
+                <span className="faint">{MEAL_SLOT_LABELS[slot]}</span>
+                <span style={{ color: mealInfo.swapped.includes(slot) ? 'var(--second)' : 'var(--text-soft)' }}>
+                  {mealInfo.meals[slot]}{mealInfo.swapped.includes(slot) ? ' (gewisseld)' : ''}
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

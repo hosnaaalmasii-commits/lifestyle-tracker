@@ -34,7 +34,7 @@ export default function Ring({
         <circle
           cx={size / 2} cy={size / 2} r={r}
           fill="none" stroke={strokeValue} strokeWidth={stroke}
-          strokeLinecap="round"
+          strokeLinecap={clamped > 0 ? 'round' : 'butt'}
           strokeDasharray={`${dash} ${c}`}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
           style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(.4,0,.2,1)' }}

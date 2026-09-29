@@ -13,8 +13,26 @@ body {
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.5;
-  transition: background-color 0.25s ease, color 0.25s ease;
 }
+
+/* The soft coloured light at the bottom of every screen — the signature
+   of this style. Fixed to the viewport so it stays put while content
+   scrolls over it; its colour follows the chosen colour theme (--glow). */
+body::before {
+  content: '';
+  position: fixed;
+  left: 50%;
+  bottom: -18vh;
+  width: 140vw;
+  max-width: 900px;
+  height: 60vh;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--glow) 34%, transparent) 0%, transparent 68%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root { position: relative; z-index: 1; }
 
 #root {
   min-height: 100vh;
@@ -23,9 +41,9 @@ body {
 
 h1, h2, h3, h4 {
   font-family: var(--font-heading);
-  font-weight: 600;
+  font-weight: 800;
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 p { margin: 0; }
@@ -54,7 +72,6 @@ a { color: inherit; }
   min-height: 100dvh;
   position: relative;
   padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom) + 20px);
-  zoom: var(--density-zoom);
 }
 
 .page {
@@ -72,8 +89,8 @@ a { color: inherit; }
 }
 
 .page-header .eyebrow {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 11.5px;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
@@ -86,8 +103,8 @@ a { color: inherit; }
 
 .section-title {
   font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   margin: 28px 0 12px;
 }
 
@@ -99,21 +116,19 @@ a { color: inherit; }
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   padding: 18px;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.card + .card { margin-top: 20px; }
+.card + .card { margin-top: 14px; }
 
 .hero-card {
   --hero-tint: var(--accent);
-  --hero-glow: var(--accent-gradient-end);
+  --hero-glow: var(--accent);
   position: relative;
   overflow: hidden;
-  background: linear-gradient(165deg, color-mix(in srgb, var(--hero-tint) 9%, var(--surface)) 0%, var(--surface) 60%);
-  border-color: color-mix(in srgb, var(--hero-tint) 20%, var(--border-soft));
-  box-shadow: var(--shadow-md);
+  background: linear-gradient(165deg, color-mix(in srgb, var(--hero-tint) 12%, var(--surface)) 0%, var(--surface) 65%);
+  border-color: color-mix(in srgb, var(--hero-tint) 22%, var(--border-soft));
 }
 
 .hero-card::before {
@@ -134,83 +149,7 @@ a { color: inherit; }
 }
 
 .card-row > .card { flex: 1; }
-
-/* A wallpaper forces the dark palette, regardless of the user's own
-   light/dark theme choice. Found the hard way: with Light theme selected,
-   --surface/--text below are the cream/near-white light-mode values, so
-   the translucent card tint two rules down washes out to pale white
-   cards over the photo, and text sitting directly on the wallpaper
-   (headings, tab bar labels) renders dark-on-dark against the night/sea/
-   rain photo — nearly invisible. Wallpapers were built as an inherently
-   dark, moody look (the user's explicit ask), so once one is on, every
-   component reading these variables should just get the dark palette for
-   free rather than trying to make a light theme work over a dark photo.
-   Higher specificity than :root[data-theme="light"] so it wins regardless
-   of which theme the user has picked or load order. */
-:root[data-wallpaper]:not([data-wallpaper="none"]) {
-  color-scheme: dark;
-  --bg: #14180f;
-  --bg-soft: #191e12;
-  --surface: #1d2317;
-  --surface-soft: #242b1b;
-  --surface-raised: #262e1d;
-  --border: #333c24;
-  --border-soft: #2a331f;
-  --text: #ede9da;
-  --text-soft: #b3ad98;
-  --text-faint: #837e69;
-  --moss: #8ba377;
-  --moss-soft: #263020;
-  /* Every hand-picked Classic accent is mid-to-dark, so white text/icons
-     on top of it (buttons, selected chips, tags, the mic button) always
-     worked — but a wallpaper's accent is a neutral off-white, where white
-     text disappears. This flips every one of those call sites at once via
-     var(--accent-contrast) instead of patching each usage. */
-  --accent-contrast: #221f18;
-}
-
-/* When a Wallpaper (Wallpaper.jsx) is active, cards go translucent with a
-   blur so the background actually reads through instead of every card
-   fully hiding it — off by default (data-wallpaper="none" or unset), same
-   opt-in pattern as every other personalization setting in this app.
-   Opacity/border/shadow are all boosted relative to the plain dark
-   palette above: at the original 72% opacity with a low-contrast
-   green-tinted border and the light-theme-tuned --shadow-sm, cards read
-   as barely-there against a busy photo — the whole screen blended into
-   one dark mass instead of legible panels sitting above the wallpaper. */
-[data-wallpaper]:not([data-wallpaper="none"]) .card {
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  border-color: rgba(255, 255, 255, 0.09);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(14px) saturate(1.3);
-  -webkit-backdrop-filter: blur(14px) saturate(1.3);
-}
-[data-wallpaper]:not([data-wallpaper="none"]) .hero-card {
-  background: linear-gradient(165deg, color-mix(in srgb, var(--hero-tint) 20%, var(--surface) 88%), color-mix(in srgb, var(--surface) 88%, transparent) 60%);
-  border-color: color-mix(in srgb, var(--hero-tint) 30%, rgba(255, 255, 255, 0.09));
-}
-[data-wallpaper]:not([data-wallpaper="none"]) .page {
-  background: transparent;
-}
-
-/* Filled "primary" elements (CTA buttons, selected chips/toggles)
-   normally fill solidly with --accent-fill — under a wallpaper that's
-   the neutral off-white accent, so next to the dark translucent cards
-   everywhere else, a "+ Add photo" or "Generate my schedule" button
-   read as a stark bright-white block, breaking the same dark, moody
-   look every card already has. Give these the same translucent dark
-   treatment instead, with the accent kept only as a border/tint so a
-   selected state still reads clearly rather than disappearing into a
-   plain card. */
-[data-wallpaper]:not([data-wallpaper="none"]) .btn-primary,
-[data-wallpaper]:not([data-wallpaper="none"]) .chip.selected,
-[data-wallpaper]:not([data-wallpaper="none"]) .segmented-btn.active {
-  background: color-mix(in srgb, var(--accent) 20%, var(--surface) 68%);
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
-  color: var(--text);
-  backdrop-filter: blur(14px) saturate(1.3);
-  -webkit-backdrop-filter: blur(14px) saturate(1.3);
-}
+.card-row > .card + .card { margin-top: 0; }
 
 /* ---------- Menu button (opens Sidebar.jsx) ---------- */
 /* Same fixed-full-width-wrapper + centered-max-width-inner trick as
@@ -276,15 +215,17 @@ a { color: inherit; }
 .btn:active { transform: scale(0.96); }
 
 .btn-primary {
-  background: var(--accent-fill);
+  background: var(--accent);
   color: var(--accent-contrast);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
+/* Outlined in the theme's second colour — the "Sounds good" / "Perfect"
+   pills of the reference design. */
 .btn-secondary {
-  background: var(--surface-soft);
-  color: var(--text);
-  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--second);
+  border: 1.2px solid color-mix(in srgb, var(--second) 85%, transparent);
 }
 
 .btn-ghost {
@@ -307,12 +248,14 @@ a { color: inherit; }
   align-items: center;
   gap: 6px;
   border-radius: var(--radius-pill);
-  padding: 9px 16px;
-  font-size: 14px;
+  padding: 8px 15px;
+  font-size: 13.5px;
   font-weight: 600;
-  background: var(--surface-soft);
-  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--second);
+  border: 1.2px solid color-mix(in srgb, var(--second) 85%, transparent);
   cursor: pointer;
+  white-space: nowrap;
   transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
@@ -367,7 +310,7 @@ a { color: inherit; }
   width: 100%;
   background: var(--surface-soft);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   padding: 11px 13px;
   font-size: 15px;
   color: var(--text);
@@ -545,12 +488,7 @@ a { color: inherit; }
 }
 
 .xp-bar-track {
-  /* --border-soft sits too close to --surface in both dark theme and
-     under a wallpaper (same #1d2317/#2a331f pairing in each) to read as
-     a visible track — a progress bar that's supposed to show "how full"
-     shouldn't need the fill itself to prove the track exists. Deriving
-     from --text instead scales with whatever palette is active, since
-     text-on-surface contrast is guaranteed by definition. */
+  /* Derived from --text so the track stays visible on any colour theme. */
   height: 10px;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--text) 13%, transparent);

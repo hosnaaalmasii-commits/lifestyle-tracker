@@ -1,124 +1,59 @@
+/* The one visual style. Colours below are the "Paars" defaults so the
+   first paint (before React runs) already looks right; AppContext.jsx
+   overwrites the colour variables at runtime from the user's chosen
+   colour theme (utils/colorThemes.js). */
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
-  /* Ivory / moss base palette (light) */
-  --bg: #fbf7ef;
-  --bg-soft: #f5efe0;
-  --surface: #fffdf9;
-  --surface-soft: #f3ede0;
-  --surface-raised: #ffffff;
-  --border: #e6dfcc;
-  --border-soft: #eee8d9;
-  --text: #2a2820;
-  --text-soft: #6e6858;
-  --text-faint: #9c9686;
-  --moss: #5f7052;
-  --moss-soft: #e7ecdd;
-  --success: #5f8a5a;
-  --warning: #c08a3e;
-  --danger: #b5573f;
+  --bg: #141218;
+  --bg-soft: #18161D;
+  --surface: #1E1B24;
+  --surface-soft: #26222E;
+  --surface-raised: #2C2835;
+  --text: #F4F2F8;
+  --text-soft: #B5B0BF;
+  --text-faint: #8C8797;
+  --border: color-mix(in srgb, var(--text) 12%, transparent);
+  --border-soft: color-mix(in srgb, var(--text) 7%, transparent);
+  --success: #7EE0A8;
+  --warning: #F2B35A;
+  --danger: #FF7A85;
 
-  /* Accent colors — overridden at runtime from Settings, these are fallbacks */
-  --accent: #8a5cb8;
-  --accent-ring: #8a5cb8;
-  --accent-water: #4e8fb0;
-  --accent-sleep: #6c6ea0;
-  --accent-workout: #b0704a;
-  --accent-gradient-end: #c9a6f2;
+  --accent: #9B5CFF;
+  --second: #7EE0A8;
+  --accent-contrast: #FFFFFF;
+  --glow: #7B3FF2;
+  --accent-ring: var(--accent);
+  --accent-gradient-end: var(--second);
   --accent-fill: var(--accent);
   --ring-fill: var(--accent-ring);
-  /* Text/icon color for anything sitting on an accent-colored background
-     (buttons, selected chips, tags, the mic button). White works for
-     every hand-picked accent color, which is always mid-to-dark — but
-     a wallpaper's accent is a neutral off-white (see global.css), where
-     white text/icons disappear. Flipped to a dark color there instead of
-     hardcoding #fff at each call site. */
-  --accent-contrast: #fff;
+  --accent-water: #6FB7FF;
+  --accent-sleep: #B79CFF;
+  --accent-workout: #FF8A5B;
 
-  /* Fintech style gradient — overridden at runtime from the chosen preset */
-  --fintech-grad-from: #7C3AED;
-  --fintech-grad-to: #EC4899;
-  --fintech-accent: #F5C542;
+  /* Older names still read by a few components — kept as aliases so they
+     follow the theme instead of carrying their own colours. */
+  --moss: var(--second);
+  --moss-soft: color-mix(in srgb, var(--second) 14%, var(--surface));
+  --state-energized: var(--accent-workout);
+  --state-balanced: var(--second);
+  --state-tired: var(--accent-sleep);
+  --state-dehydrated: var(--accent-water);
+  --state-recovering: var(--second);
 
-  --font-heading: 'Fraunces', Georgia, serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  --radius-sm: 10px;
+  --radius-sm: 12px;
   --radius-md: 16px;
-  /* 24px read as soft/bubbly — a "friendly consumer app" tell rather than
-     a structured, precise one. Tightened once here (the single source
-     every .card border-radius reads from) rather than per-component. */
-  --radius-lg: 18px;
+  --radius-lg: 22px;
   --radius-pill: 999px;
 
-  --shadow-sm: 0 1px 2px rgba(42, 36, 20, 0.07), 0 1px 1px rgba(42, 36, 20, 0.04);
-  --shadow-md: 0 10px 28px rgba(42, 36, 20, 0.10), 0 2px 8px rgba(42, 36, 20, 0.06);
-  --shadow-lg: 0 20px 45px rgba(42, 36, 20, 0.16), 0 4px 12px rgba(42, 36, 20, 0.08);
-
-  --density-zoom: 1;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 20px 45px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
 
   --tabbar-height: 64px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-:root[data-theme='dark'] {
-  color-scheme: dark;
-  --bg: #14180f;
-  --bg-soft: #191e12;
-  --surface: #1d2317;
-  --surface-soft: #242b1b;
-  --surface-raised: #262e1d;
-  --border: #333c24;
-  --border-soft: #2a331f;
-  --text: #ede9da;
-  --text-soft: #b3ad98;
-  --text-faint: #837e69;
-  --moss: #8ba377;
-  --moss-soft: #263020;
-  --success: #7fae78;
-  --warning: #d7a355;
-  --danger: #d3806a;
-
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 20px 45px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    color-scheme: dark;
-    --bg: #14180f;
-    --bg-soft: #191e12;
-    --surface: #1d2317;
-    --surface-soft: #242b1b;
-    --surface-raised: #262e1d;
-    --border: #333c24;
-    --border-soft: #2a331f;
-    --text: #ede9da;
-    --text-soft: #b3ad98;
-    --text-faint: #837e69;
-    --moss: #8ba377;
-    --moss-soft: #263020;
-    --success: #7fae78;
-    --warning: #d7a355;
-    --danger: #d3806a;
-
-    --state-energized: #e3a55b;
-    --state-balanced: #5fb3a1;
-    --state-tired: #9498d1;
-    --state-dehydrated: #d99a72;
-    --state-recovering: #8fc49b;
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
-    --shadow-lg: 0 20px 45px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-}
-
-:root[data-font='playfair'] { --font-heading: 'Playfair Display', Georgia, serif; }
-:root[data-font='space'] { --font-heading: 'Space Grotesk', -apple-system, sans-serif; }
-
-:root[data-density='compact'] {
-  --density-zoom: 0.88;
 }
