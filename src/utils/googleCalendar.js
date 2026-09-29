@@ -129,6 +129,38 @@ export async function fetchTodayBusyMinutes(accessToken) {
   return Math.round(minutes)
 }
 
+// Reads one day's real agenda items (with location) so a day replan
+// (dayReplan.js) can plan around them. Events this app pushed in itself
+// via syncTasksToCalendar are filtered out by their description marker,
+// otherwise the plan would end up "planning around" its own tasks. All-day
+// events carry no clock time and don't block anything, so they're skipped.
+export async function fetchEventsForDate(accessToken, dateKey) {
+  const start = new Date(`${dateKey}T00:00:00`)
+  const end = new Date(`${dateKey}T23:59:59`)
+  const params = new URLSearchParams({
+    timeMin: start.toISOString(),
+    timeMax: end.toISOString(),
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    maxResults: '50',
+  })
+  const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
+    headers: { authorization: `Bearer ${accessToken}` },
+  })
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('Google session expired — reconnect in Settings.')
+    throw new Error(`Calendar request failed (${response.status}).`)
+  }
+  const body = await response.json()
+  const hhmm = (iso) => {
+    const d = new Date(iso)
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  }
+  return (body.items || [])
+    .filter((e) => e.start?.dateTime && e.status !== 'cancelled' && !(e.description || '').startsWith('Lifestyle Tracker —'))
+    .map((e) => ({ calendarEventId: e.id, title: e.summary || 'Afspraak', start: hhmm(e.start.dateTime), end: hhmm(e.end.dateTime), location: e.location || '' }))
+}
+
 // A 30-minute default duration for tasks — the schedule only carries a
 // start time, not a duration, so this just needs to be long enough for the
 // event to be visible/clickable in a normal calendar day view.
@@ -175,13 +207,13 @@ export async function upsertCalendarEvent(accessToken, task, dateKey, existingEv
 // event per task. `existingIds` is the { [dateKey]: { [taskId]: eventId } }
 // map from a previous sync (persisted in app data) so repeat syncs update
 // in place instead of piling up duplicate events.
-export async function syncTasksToCalendar(accessToken, taskSchedule, existingIds = {}, days = 7) {
+export async function syncTasksToCalendar(accessToken, taskSchedule, existingIds = {}, days = 7, dayOverrides = {}) {
   const nextIds = {}
   const errors = []
 
   for (let i = 0; i < days; i++) {
     const dateKey = addDaysToKey(todayKey(), i)
-    const tasks = getTasksForDate(taskSchedule, dateKey)
+    const tasks = getTasksForDate(taskSchedule, dateKey, dayOverrides)
     if (!tasks.length) continue
     nextIds[dateKey] = {}
     for (const task of tasks) {

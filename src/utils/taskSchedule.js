@@ -21,16 +21,31 @@ export function mealCycleLetterForDate(dateKey, mealRotation) {
   return mealRotation.cycle[idx]
 }
 
-export function getTasksForDate(taskSchedule, dateKey) {
+// dayOverrides (data.dayOverrides) is a per-date replacement for the weekly
+// template: { [dateKey]: { tasks?, appointments?, meals? } }. A replanned
+// day (dayReplan.js) stores its full adjusted task list under `tasks` —
+// moved tasks keep their original ids, so completions and Calendar event
+// ids carry over. The weekly template itself is never touched by a replan.
+export function getTasksForDate(taskSchedule, dateKey, dayOverrides) {
+  const override = dayOverrides?.[dateKey]?.tasks
   const day = weekdayKeyForDate(dateKey)
-  return [...(taskSchedule?.[day] || [])].sort((a, b) => a.time.localeCompare(b.time))
+  return [...(override || taskSchedule?.[day] || [])].sort((a, b) => a.time.localeCompare(b.time))
 }
 
-export function getMealsForDate(mealRotation, dateKey) {
+export function getAppointmentsForDate(dayOverrides, dateKey) {
+  return [...(dayOverrides?.[dateKey]?.appointments || [])].sort((a, b) => a.start.localeCompare(b.start))
+}
+
+// `swapped` lists which meal slots were replaced for this date (e.g. by
+// the pantry "cook with what you have" flow) so the UI can mark them.
+export function getMealsForDate(mealRotation, dateKey, dayOverrides) {
   if (!mealRotation) return null
   const day = weekdayKeyForDate(dateKey)
   const letter = mealCycleLetterForDate(dateKey, mealRotation)
-  return { letter, meals: (letter && mealRotation.meals_by_week?.[letter]?.[day]) || null }
+  const planned = (letter && mealRotation.meals_by_week?.[letter]?.[day]) || null
+  const swaps = dayOverrides?.[dateKey]?.meals || {}
+  const meals = planned || Object.keys(swaps).length ? { ...planned, ...swaps } : null
+  return { letter, meals, planned, swapped: Object.keys(swaps) }
 }
 
 export function computeDayScore(tasks, completionsForDay) {
@@ -41,8 +56,8 @@ export function computeDayScore(tasks, completionsForDay) {
 
 // A day "counts" toward the streak once its score clears the threshold —
 // mirrors the isSuccess-predicate shape computeStreak() (streaks.js) expects.
-export function dayMeetsThreshold(taskSchedule, taskCompletions, dateKey, thresholdPct) {
-  const tasks = getTasksForDate(taskSchedule, dateKey)
+export function dayMeetsThreshold(taskSchedule, taskCompletions, dateKey, thresholdPct, dayOverrides) {
+  const tasks = getTasksForDate(taskSchedule, dateKey, dayOverrides)
   if (!tasks.length) return false
   return computeDayScore(tasks, taskCompletions[dateKey]) >= thresholdPct
 }

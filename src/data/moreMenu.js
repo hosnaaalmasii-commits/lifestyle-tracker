@@ -15,6 +15,7 @@ export const MORE_SECTIONS = [
     title: 'Transformation plan',
     items: [
       { id: 'dailyschedule', label: 'Dagschema & Menu', desc: 'Taken per dag en menurotatie', icon: 'repeat' },
+      { id: 'pantry', label: 'Voorraad & Menu', desc: 'Wat je in huis hebt, menu wisselen, boodschappen', icon: 'carrot' },
       { id: 'weeklyprogress', label: 'Voortgang', desc: 'Week/maand score, streak, omtrekmaten', icon: 'trendUp' },
     ],
   },

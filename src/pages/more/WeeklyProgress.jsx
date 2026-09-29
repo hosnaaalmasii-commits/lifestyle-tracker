@@ -10,8 +10,8 @@ import Ring from '../../components/Ring'
 
 const CALORIE_REVIEW_DAYS = 28 // "elke 4 weken" from the transformatieplan spec
 
-function scoreForDay(taskSchedule, taskCompletions, dateKey) {
-  const tasks = getTasksForDate(taskSchedule, dateKey)
+function scoreForDay(taskSchedule, taskCompletions, dateKey, dayOverrides) {
+  const tasks = getTasksForDate(taskSchedule, dateKey, dayOverrides)
   if (!tasks.length) return null
   return computeDayScore(tasks, taskCompletions[dateKey])
 }
@@ -19,11 +19,11 @@ function scoreForDay(taskSchedule, taskCompletions, dateKey) {
 // Builds the set of days (within `lookbackDays`) that clear the streak
 // threshold, for both the current-streak and longest-streak calculations —
 // same bounded-lookback reasoning as TodayTasks' computeTaskStreak.
-function daysMeetingThreshold(taskSchedule, taskCompletions, thresholdPct, lookbackDays) {
+function daysMeetingThreshold(taskSchedule, taskCompletions, thresholdPct, lookbackDays, dayOverrides) {
   const dateSet = new Set()
   let key = todayKey()
   for (let i = 0; i < lookbackDays; i++) {
-    if (dayMeetsThreshold(taskSchedule, taskCompletions, key, thresholdPct)) dateSet.add(key)
+    if (dayMeetsThreshold(taskSchedule, taskCompletions, key, thresholdPct, dayOverrides)) dateSet.add(key)
     key = addDaysToKey(key, -1)
   }
   return dateSet
@@ -55,19 +55,19 @@ export default function WeeklyProgress({ onBack }) {
 
   const today = todayKey()
   const weekDays = currentWeekKeys(today)
-  const weekScores = weekDays.map((d) => ({ date: d, score: scoreForDay(data.taskSchedule, data.taskCompletions, d) }))
+  const weekScores = weekDays.map((d) => ({ date: d, score: scoreForDay(data.taskSchedule, data.taskCompletions, d, data.dayOverrides) }))
   const loggedWeekScores = weekScores.filter((d) => d.score != null)
   const weekAvg = loggedWeekScores.length
     ? Math.round(loggedWeekScores.reduce((sum, d) => sum + d.score, 0) / loggedWeekScores.length)
     : null
 
   const monthKeys = Array.from({ length: 30 }, (_, i) => addDaysToKey(today, -i))
-  const monthScores = monthKeys.map((d) => scoreForDay(data.taskSchedule, data.taskCompletions, d)).filter((s) => s != null)
+  const monthScores = monthKeys.map((d) => scoreForDay(data.taskSchedule, data.taskCompletions, d, data.dayOverrides)).filter((s) => s != null)
   const monthAvg = monthScores.length ? Math.round(monthScores.reduce((a, b) => a + b, 0) / monthScores.length) : null
   const threshold = data.settings.streakThresholdPct
   const monthDaysAboveThreshold = monthScores.filter((s) => s >= threshold).length
 
-  const thresholdSet = daysMeetingThreshold(data.taskSchedule, data.taskCompletions, threshold, 365)
+  const thresholdSet = daysMeetingThreshold(data.taskSchedule, data.taskCompletions, threshold, 365, data.dayOverrides)
   const currentStreak = streakFromDateSet(thresholdSet)
   const longestStreak = longestStreakFromDateSet(thresholdSet)
 

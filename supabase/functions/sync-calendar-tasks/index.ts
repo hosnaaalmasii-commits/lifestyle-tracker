@@ -52,9 +52,13 @@ function weekdayKeyForDate(dateKey) {
   return WEEKDAY_KEYS[(jsDay + 6) % 7]
 }
 
-function getTasksForDate(taskSchedule, dateKey) {
+// Mirrors src/utils/taskSchedule.js: a replanned day (dayOverrides[date].tasks,
+// set by the in-app "Afspraak / dag aanpassen" flow) replaces the weekly
+// template for that one date.
+function getTasksForDate(taskSchedule, dateKey, dayOverrides) {
   const day = weekdayKeyForDate(dateKey)
-  return [...(taskSchedule?.[day] || [])].sort((a, b) => a.time.localeCompare(b.time))
+  const tasks = dayOverrides?.[dateKey]?.tasks || taskSchedule?.[day] || []
+  return [...tasks].sort((a, b) => a.time.localeCompare(b.time))
 }
 
 async function refreshAccessToken(refreshToken, clientId, clientSecret) {
@@ -129,7 +133,7 @@ Deno.serve(async () => {
 
       for (let i = 0; i < SYNC_DAYS; i++) {
         const dateKey = addDaysToKey(today, i)
-        const tasks = getTasksForDate(appData?.taskSchedule, dateKey)
+        const tasks = getTasksForDate(appData?.taskSchedule, dateKey, appData?.dayOverrides)
         if (!tasks.length) continue
         nextIds[dateKey] = { ...nextIds[dateKey] }
         for (const task of tasks) {

@@ -441,6 +441,49 @@ That file is the **seed**, not the live source of truth:
   was only wired into the Classic Overview layout. If the user uses
   Fintech style day-to-day, this is a gap worth closing.
 
+## Day replanning & pantry ("smart day" assistant, no-AI layer)
+
+The user asked (2026-09-29) for an assistant that replans the fixed day
+around last-minute appointments (agenda + travel time) and swaps meals
+to what's at home when a shopping trip falls through. Scoped in three
+phases; **this session built everything that doesn't need an API key**,
+fully rule-based:
+
+- **`data.dayOverrides`** (`{ [date]: { tasks?, appointments?, meals? } }`)
+  — a per-date deviation from the weekly template. `getTasksForDate` /
+  `getMealsForDate` / `dayMeetsThreshold` take it as an optional last
+  arg; every caller passes `data.dayOverrides`. The weekly template is
+  never modified by a replan. Moved tasks keep their ids so completions,
+  push dedup and Calendar event ids carry over.
+- **`utils/dayReplan.js`**: `replanDay()` moves colliding tasks to the
+  nearest free slot (training first, then meals with a 60-min gap and a
+  max 150-min shift, else "meenemen"; training falls back to a 30-min
+  version before being dropped), always recomputed from the *template*.
+  `parseAppointmentText()` regex-parses Dutch phrasing ("van 17:30 tot
+  19:00 etentje in Amsterdam, 30 minuten rijden").
+- **`DayReplanSheet.jsx`** (from TodayTasks "+ Afspraak / dag
+  aanpassen"): dictate/type → form → optional import of today's Google
+  Calendar events (`fetchEventsForDate`, filters out the app's own
+  synced tasks) → editable preview → apply. Travel time is **manual** for
+  now — the Maps/routing phase is not built.
+- **`utils/pantry.js` + More → Voorraad & Menu (`Pantry.jsx`)**:
+  `data.pantry`, keyword matching of the free-text rotation meals
+  against it (synonyms, generic "groenten"/"fruit", dish-name bases like
+  kipwrap → wrap), swap suggestions from the *same slot of the user's
+  own rotation* (keeps calories roughly on target without macro math),
+  and a 7-day shopping list. Heuristic by design — the UI always shows
+  have/missing so the user can judge.
+- `DictateButton.jsx`: Dutch (`nl-NL`) SpeechRecognition mic; hidden on
+  Safari/iOS, where the keyboard's dictation mic is the fallback.
+- **Edge Functions `send-due-notifications` and `sync-calendar-tasks`
+  were updated in source to honor `dayOverrides`, but must be redeployed
+  via the Supabase Dashboard** (no CLI auth) — until then push fires at
+  template times on replanned days.
+- **Still to build once an Anthropic key exists**: free-form voice →
+  replan via Claude, AI meal ideas from the pantry beyond the rotation;
+  plus travel-time lookup (OpenRouteService recommended over Google Maps
+  to avoid a billing account).
+
 ## Push notifications
 
 The one deliberate exception to "no custom backend" (see Explicitly out of

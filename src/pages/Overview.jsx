@@ -252,7 +252,7 @@ export default function Overview({ onNavigate }) {
             <h1>Today</h1>
           </div>
 
-          <TodayTasks onOpenSchedule={() => onNavigate('more', 'dailyschedule')} />
+          <TodayTasks onOpenSchedule={() => onNavigate('more', 'dailyschedule')} onOpenPantry={() => onNavigate('more', 'pantry')} />
 
           {/* The hero card is the one thing on this page meant to read as
               THE number, Oura-dial style — everything else on Overview is

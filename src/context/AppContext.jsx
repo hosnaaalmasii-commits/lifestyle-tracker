@@ -5,7 +5,7 @@ import { WEEKDAY_KEYS } from '../utils/taskSchedule'
 import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } from '../utils/workoutGenerator'
 import { DEFAULT_COLORS } from '../utils/colorPresets'
 import { DEFAULT_FINTECH_GRADIENT, getFintechGradient } from '../utils/fintechGradients'
-import { requestGoogleToken, requestGoogleAuthCode, fetchTodayBusyMinutes, syncTasksToCalendar } from '../utils/googleCalendar'
+import { requestGoogleToken, requestGoogleAuthCode, fetchTodayBusyMinutes, syncTasksToCalendar, fetchEventsForDate } from '../utils/googleCalendar'
 import { hasOuraApiKey, getOuraApiKey, fetchOuraToday } from '../utils/ouraApi'
 import { isCloudSyncConfigured, getSupabaseClient } from '../utils/supabaseClient'
 import { subscribeToPush, unsubscribeFromPush } from '../utils/push'
@@ -92,6 +92,12 @@ const DEFAULT_DATA = {
   taskSchedule: seedTaskSchedule(),
   mealRotation: structuredClone(transformatieplan.meal_rotation || null),
   taskCompletions: {},
+  // Per-date deviations from the weekly template — see getTasksForDate in
+  // utils/taskSchedule.js: { [dateKey]: { tasks?, appointments?, meals? } }.
+  dayOverrides: {},
+  // What's in the fridge/freezer/cupboard — [{ id, name, location, addedAt }].
+  // Drives the "cook with what you have" meal swap (utils/pantry.js).
+  pantry: [],
   measurements: [],
   googleCalendarEventIds: {},
   water: {},
@@ -622,6 +628,34 @@ export function AppProvider({ children }) {
         },
       }))
     },
+    addPantryItems: (items) => {
+      setData((d) => ({ ...d, pantry: [...d.pantry, ...items.map((it) => ({ id: makeId(), addedAt: todayKey(), ...it }))] }))
+    },
+    removePantryItem: (id) => setData((d) => ({ ...d, pantry: d.pantry.filter((p) => p.id !== id) })),
+    clearPantry: () => setData((d) => ({ ...d, pantry: [] })),
+
+    // text = null restores the planned meal for that slot.
+    setDayMealSwap: (dateKey, slot, text) => {
+      setData((d) => {
+        const current = d.dayOverrides[dateKey] || {}
+        const meals = { ...current.meals }
+        if (text == null) delete meals[slot]
+        else meals[slot] = text
+        return { ...d, dayOverrides: { ...d.dayOverrides, [dateKey]: { ...current, meals } } }
+      })
+    },
+    applyDayReplan: (dateKey, tasks, appointments) => {
+      setData((d) => ({ ...d, dayOverrides: { ...d.dayOverrides, [dateKey]: { ...d.dayOverrides[dateKey], tasks, appointments } } }))
+    },
+    // Back to the weekly template for this date (meal swaps are kept —
+    // they're a separate decision from the schedule replan).
+    resetDayPlan: (dateKey) => {
+      setData((d) => {
+        const { tasks: _t, appointments: _a, ...rest } = d.dayOverrides[dateKey] || {}
+        return { ...d, dayOverrides: { ...d.dayOverrides, [dateKey]: rest } }
+      })
+    },
+
     setMealCycle: (cycle) => setData((d) => ({ ...d, mealRotation: { ...d.mealRotation, cycle } })),
     setMealRotationReference: (mondayKey) => setData((d) => ({ ...d, mealRotation: { ...d.mealRotation, reference_monday: mondayKey } })),
 
@@ -760,9 +794,15 @@ export function AppProvider({ children }) {
     // the whole sync on one bad event.
     syncTasksToGoogleCalendar: async () => {
       if (!accessTokenRef.current) throw new Error('Connect Google Calendar first (More → Settings).')
-      const { eventIds, errors } = await syncTasksToCalendar(accessTokenRef.current, data.taskSchedule, data.googleCalendarEventIds)
+      const { eventIds, errors } = await syncTasksToCalendar(accessTokenRef.current, data.taskSchedule, data.googleCalendarEventIds, 7, data.dayOverrides)
       setData((d) => ({ ...d, googleCalendarEventIds: { ...d.googleCalendarEventIds, ...eventIds } }))
       return errors
+    },
+    // Returns null (not an error) when Calendar isn't connected, so the
+    // replan sheet can simply hide its "import from agenda" option.
+    fetchCalendarEventsForDate: async (dateKey) => {
+      if (!accessTokenRef.current) return null
+      return fetchEventsForDate(accessTokenRef.current, dateKey)
     },
     // One-time setup for the daily cron-driven sync (supabase/functions/
     // sync-calendar-tasks) — separate from the manual button above, which

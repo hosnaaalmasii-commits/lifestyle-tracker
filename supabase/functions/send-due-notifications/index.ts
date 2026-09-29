@@ -75,7 +75,10 @@ Deno.serve(async () => {
     const nowHHMM = hhmmInTz(timeZone)
     const today = dateKeyInTz(timeZone)
 
-    const tasks = (appData?.taskSchedule?.[day] || []).filter((t) => t.time === nowHHMM)
+    // A replanned day (dayOverrides[today].tasks — the in-app "Afspraak /
+    // dag aanpassen" flow) replaces the weekly template for that date.
+    const dayTasks = appData?.dayOverrides?.[today]?.tasks || appData?.taskSchedule?.[day] || []
+    const tasks = dayTasks.filter((t) => t.time === nowHHMM)
     if (!tasks.length) continue
 
     const completionsToday = appData?.taskCompletions?.[today] || {}

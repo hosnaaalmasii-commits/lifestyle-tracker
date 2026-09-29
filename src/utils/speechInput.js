@@ -7,10 +7,10 @@ export function isSpeechRecognitionSupported() {
   return typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition)
 }
 
-export function createSpeechRecognizer({ onResult, onEnd, onError }) {
+export function createSpeechRecognizer({ onResult, onEnd, onError, lang = 'en-US' }) {
   const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition
   const recognition = new Ctor()
-  recognition.lang = 'en-US'
+  recognition.lang = lang
   recognition.interimResults = true
   recognition.continuous = false
   recognition.maxAlternatives = 1

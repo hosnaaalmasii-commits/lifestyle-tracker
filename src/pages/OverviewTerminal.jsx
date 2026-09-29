@@ -26,7 +26,7 @@ export default function OverviewTerminal({
         </div>
       </div>
 
-      <TodayTasks onOpenSchedule={() => onNavigate('more', 'dailyschedule')} />
+      <TodayTasks onOpenSchedule={() => onNavigate('more', 'dailyschedule')} onOpenPantry={() => onNavigate('more', 'pantry')} />
 
       <WalletRail cards={wallet} />
 
