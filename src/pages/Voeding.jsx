@@ -10,7 +10,6 @@ import Icon from '../components/Icon'
 
 const DAY_SHORT = { mon: 'Ma', tue: 'Di', wed: 'Wo', thu: 'Do', fri: 'Vr', sat: 'Za', sun: 'Zo' }
 const DAY_LONG = { mon: 'MAANDAG', tue: 'DINSDAG', wed: 'WOENSDAG', thu: 'DONDERDAG', fri: 'VRIJDAG', sat: 'ZATERDAG', sun: 'ZONDAG' }
-const SLOT_ICON = { ontbijt: 'sun', lunch: 'sandwich', diner: 'utensils', snack: 'apple' }
 // Two-tone thumbnails per slot — stand-ins for the food photos in the
 // design until real photos exist.
 const SLOT_THUMB = {
@@ -172,7 +171,7 @@ export default function Voeding({ onNavigate }) {
                     background: `linear-gradient(135deg, ${c1}, ${c2})`, color: 'rgba(255,255,255,0.9)',
                   }}
                 >
-                  {done ? <Icon name="check" size={22} /> : <Icon name={SLOT_ICON[slot]} size={22} />}
+                  {done && <Icon name="check" size={22} />}
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text-faint)' }}>
@@ -197,7 +196,6 @@ export default function Voeding({ onNavigate }) {
       <div className="row" style={{ gap: 8, marginTop: 16, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
         <button className="btn btn-primary btn-sm" onClick={() => onNavigate('more', 'pantry')}>Niet naar de winkel?</button>
         <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('more', 'pantry')}>Boodschappen</button>
-        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('more', 'nutrition')}>+ Iets anders gegeten</button>
       </div>
 
       <Sheet open={!!open} onClose={() => setOpenSlot(null)} title={open ? MEAL_SLOT_LABELS[open.slot] : ''}>

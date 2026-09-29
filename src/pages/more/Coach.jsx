@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { hasApiKey, sendToClaude, getCoachSettings, ClaudeApiError } from '../../utils/claudeApi'
 import { buildSystemPrompt } from '../../utils/coachContext'
-import Icon from '../../components/Icon'
-import DictateButton from '../../components/DictateButton'
 import DayReplanSheet from '../../components/DayReplanSheet'
 
 const CHAT_STORAGE = 'lifestyle-tracker-coach-chat'
@@ -18,7 +16,7 @@ function saveChat(messages) {
 // Chat layout after the Richting E Figma mockup: glowing coach orb,
 // bubbles, quick-reply pills and a pill input pinned above the tab bar.
 // The coach's personality is picked in Settings → AI Coach.
-export default function Coach({ onBack, setView }) {
+export default function Coach({ setView }) {
   const { data } = useApp()
   const coachSettings = getCoachSettings()
   const [messages, setMessages] = useState(loadChat)
@@ -60,14 +58,9 @@ export default function Coach({ onBack, setView }) {
     }
   }
 
-  const clearChat = () => {
-    setMessages([])
-    localStorage.removeItem(CHAT_STORAGE)
-  }
 
   const header = (
     <div className="row" style={{ gap: 12, justifyContent: 'flex-start', marginBottom: 16, paddingRight: 52 }}>
-      <button onClick={onBack} aria-label="Terug" style={{ background: 'none', border: 'none', color: 'var(--text-soft)', fontSize: 22, cursor: 'pointer', padding: '0 2px' }}>‹</button>
       <span
         aria-hidden
         style={{
@@ -80,11 +73,6 @@ export default function Coach({ onBack, setView }) {
         <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>Je coach</div>
         <div className="text-sm faint">Kent je schema, voeding en slaap</div>
       </div>
-      {keyPresent && messages.length > 0 && (
-        <button onClick={clearChat} aria-label="Gesprek wissen" style={{ background: 'none', border: 'none', color: 'var(--text-faint)', cursor: 'pointer' }}>
-          <Icon name="trash" size={17} />
-        </button>
-      )}
     </div>
   )
 
@@ -137,7 +125,6 @@ export default function Coach({ onBack, setView }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') send() }}
           />
-          <DictateButton onText={setInput} compact />
           <button className="btn btn-primary btn-sm" disabled={sending || !input.trim()} onClick={send}>Stuur</button>
         </div>
       </div>

@@ -62,7 +62,22 @@ function trainingWeekLabel() {
     const [a, b] = (p.weken || '').split('-').map(Number)
     return week >= a && week <= b
   })
-  return `WEEK ${week}${phaseIndex >= 0 ? ` · FASE ${phaseIndex + 1}` : ''}`
+  const PHASE_NAMES = ['OPBOUWFASE', 'PROGRESSIEFASE', 'INTENSIVERINGSFASE']
+  return `WEEK ${week}${phaseIndex >= 0 ? ` · ${PHASE_NAMES[phaseIndex] || `FASE ${phaseIndex + 1}`}` : ''}`
+}
+
+const TIER_NL = { full: 'Volledig', short: 'Kort', survival: 'Mini' }
+
+function SegmentedTiers({ value, onChange }) {
+  return (
+    <div className="segmented-control" style={{ width: 'auto' }}>
+      {TIERS.map((t) => (
+        <button key={t.id} className={`segmented-btn${value === t.id ? ' active' : ''}`} onClick={() => onChange(t.id)} style={{ padding: '6px 12px' }}>
+          {TIER_NL[t.id] || t.label}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 function TierTabs({ value, onChange, suggestedTier }) {
@@ -157,60 +172,49 @@ function bestPR(logs) {
   return logs.reduce((best, l) => (l.weight > best.weight || (l.weight === best.weight && l.reps > best.reps)) ? l : best)
 }
 
+// One clean row per exercise, as in the design (thumbnail, name, sets).
+// The tools that used to sit on every row — swap, rest timer, PR log,
+// remove — open from a tap on the row instead.
 function ExerciseRow({ day, exercise, index, exerciseLogs, onSwap, onRemove, onOpenTimer, onOpenPR, editable = true, flaggedPainAreas }) {
+  const [open, setOpen] = useState(false)
   const logs = exerciseLogs[exercise.name]
   const pr = bestPR(logs)
   const isFinisher = exercise.name === 'Full-body finisher'
   const isFlagged = isExerciseFlagged(exercise.name, flaggedPainAreas)
+  const act = (fn) => () => { setOpen(false); fn() }
   return (
-    <div className="row" style={{ padding: '10px 0', borderTop: '1px solid var(--border-soft)', gap: 12 }}>
-      <span
-        aria-hidden
-        style={{
-          width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, #120f18), var(--accent))', color: 'rgba(255,255,255,0.85)',
-        }}
+    <>
+      <button
+        className="row"
+        onClick={() => setOpen(true)}
+        style={{ width: '100%', padding: '10px 0', gap: 12, justifyContent: 'flex-start', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--text)' }}
       >
-        <Icon name="dumbbell" size={16} />
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-          {isFlagged && <span title="Targets an area you flagged today" style={{ color: 'var(--warning)', display: 'inline-flex' }}><Icon name="alertTriangle" size={13} /></span>}
-          {exercise.name}
+        <span
+          aria-hidden
+          style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, #120f18), var(--accent))' }}
+        />
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+            {isFlagged && <span title="Raakt een plek die je vandaag aangaf" style={{ color: 'var(--warning)', display: 'inline-flex' }}><Icon name="alertTriangle" size={13} /></span>}
+            {exercise.name}
+          </span>
+          <span className="faint" style={{ display: 'block', fontSize: 12 }}>
+            {exercise.sets} × {exercise.reps}{pr ? ` · ${pr.weight} kg` : ''}
+          </span>
+        </span>
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} title={exercise.name}>
+        <p className="text-sm faint" style={{ margin: '0 0 14px' }}>
+          {exercise.sets} × {exercise.reps}{exercise.rest ? ` · rust ${exercise.rest}` : ''}{pr ? ` · beste ${pr.weight} × ${pr.reps}` : ''}
+        </p>
+        <div className="stack">
+          <button className="btn btn-primary btn-block" onClick={act(() => onOpenTimer(exercise))}>Rusttimer starten</button>
+          {!isFinisher && <button className="btn btn-secondary btn-block" onClick={act(() => onOpenPR(exercise))}>Gewicht loggen</button>}
+          {editable && !exercise.custom && <button className="btn btn-secondary btn-block" onClick={act(() => onSwap(day, index))}>Andere oefening</button>}
+          {editable && exercise.custom && <button className="btn btn-danger btn-block" onClick={act(() => onRemove(day, index))}>Verwijderen</button>}
         </div>
-        <div className="faint" style={{ fontSize: 12 }}>
-          {exercise.sets} × {exercise.reps}{pr ? ` · PR ${pr.weight} × ${pr.reps}` : exercise.rest ? ` · rust ${exercise.rest}` : ''}
-        </div>
-      </div>
-      <div>
-        <div className="row" style={{ gap: 4, justifyContent: 'flex-end' }}>
-          {editable && !exercise.custom && (
-            <IconButton label="Swap exercise" onClick={() => onSwap(day, index)}><Icon name="repeat" size={14} /></IconButton>
-          )}
-          <IconButton label="Rest timer" onClick={() => onOpenTimer(exercise)}><Icon name="timer" size={14} /></IconButton>
-          {!isFinisher && <IconButton label="Log PR" onClick={() => onOpenPR(exercise)}><Icon name="dumbbell" size={14} /></IconButton>}
-          {editable && exercise.custom && (
-            <IconButton label="Remove exercise" onClick={() => onRemove(day, index)}><Icon name="trash" size={14} /></IconButton>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function IconButton({ children, label, onClick }) {
-  return (
-    <button
-      aria-label={label}
-      onClick={(e) => { e.stopPropagation(); onClick() }}
-      style={{
-        background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '50%',
-        width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 13, cursor: 'pointer',
-      }}
-    >
-      {children}
-    </button>
+      </Sheet>
+    </>
   )
 }
 
@@ -313,7 +317,6 @@ function WorkoutPlan({
 
   const todaysWorkout = dayFor(today)
   const openDay = dayOpen ? dayFor(dayOpen) : null
-  const todayWeekday = weekdayShort(today)
 
   if (editing) {
     return <Questionnaire initial={profile} onSubmit={(p) => { setWorkoutProfile(p); setEditing(false) }} />
@@ -324,12 +327,21 @@ function WorkoutPlan({
   // one) supplies the exercise list.
   const planTask = planTrainingFor(today)
   const trainingTime = planTask?.time
-  const hasGenerated = !!todaysWorkout && !todaysWorkout.rest
-  const isRestToday = !hasGenerated && !planTask
   // "Training: Upper Body & Core + 15min cardio" → title + extra line.
   const [planTitle, ...planExtras] = (planTask?.label.replace(/^Training:\s*/i, '') || '').split(/\s*\+\s*/)
-  const title = hasGenerated ? todaysWorkout.label : planTitle
-  const exercisesToday = hasGenerated ? deriveTiers(todaysWorkout.exercises)[todayTier] : []
+  // When the plan says train but the generated schedule has a rest day
+  // here, borrow the generated session that best matches the plan's
+  // session name (shared word like "upper"/"lower"), else the first one.
+  const matchingSession = () => {
+    const words = planTitle.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 3)
+    const sessions = schedule.filter((s) => !s.rest && s.exercises?.length)
+    return sessions.find((s) => words.some((w) => s.label.toLowerCase().includes(w))) || sessions[0] || null
+  }
+  const session = todaysWorkout && !todaysWorkout.rest ? todaysWorkout : (planTask ? matchingSession() : null)
+  const hasGenerated = !!session
+  const isRestToday = !hasGenerated && !planTask
+  const title = planTask ? planTitle : session?.label
+  const exercisesToday = hasGenerated ? deriveTiers(session.exercises)[todayTier] : []
   const setsToday = exercisesToday.reduce((s, e) => s + (Number(e.sets) || 0), 0)
   const planMinutes = [...(planTask?.label || '').matchAll(/(\d+)\s*min/gi)].reduce((s, m) => s + Number(m[1]), 45)
   const minutesToday = hasGenerated ? Math.round(setsToday * 2.5) : planMinutes // ~2.5 min per set incl. rest
@@ -431,18 +443,14 @@ function WorkoutPlan({
         </div>
       </div>
 
-      {!todaysWorkout?.rest && todaysWorkout && (
-        <div className="card" ref={(el) => { exercisesRef.current = el }} style={{ marginTop: 14, padding: 16, scrollMarginTop: 20 }}>
-          <div className="row" style={{ marginBottom: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 700 }}>Oefeningen</span>
-            <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13, fontWeight: 700 }} onClick={() => setEditing(true)}>Plan aanpassen</button>
-          </div>
-          <TierTabs value={todayTier} onChange={setTodayTier} suggestedTier={suggestion.tier} />
+      {hasGenerated && (
+        <div className="card" ref={(el) => { exercisesRef.current = el }} style={{ marginTop: 14, padding: '16px 16px 10px', scrollMarginTop: 20 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Oefeningen</div>
           <div>
             {exercisesToday.map((ex, i) => (
               <ExerciseRow
                 key={`${ex.name}-${i}`}
-                day={todayWeekday}
+                day={session.day}
                 exercise={ex}
                 index={i}
                 exerciseLogs={exerciseLogs}
@@ -456,11 +464,11 @@ function WorkoutPlan({
             ))}
           </div>
           {todayTier === 'full' && (
-            <button className="btn btn-ghost btn-sm" style={{ marginTop: 6 }} onClick={() => setAddingTo(todayWeekday)}>+ Oefening toevoegen</button>
+            <button className="btn btn-ghost btn-sm" style={{ marginTop: 2 }} onClick={() => setAddingTo(session.day)}>+ Oefening toevoegen</button>
           )}
           <button
             className={`btn btn-block ${completions[today] ? 'btn-secondary' : 'btn-primary'}`}
-            style={{ marginTop: 12 }}
+            style={{ marginTop: 8, marginBottom: 6 }}
             onClick={() => onToggle(today)}
           >
             {completions[today] ? <span className="row" style={{ gap: 6, justifyContent: 'center' }}><Icon name="check" size={14} />Afgerond</span> : 'Training afronden'}
@@ -470,7 +478,11 @@ function WorkoutPlan({
 
       {!isRestToday && (
         <div className="card" style={{ marginTop: 14, padding: '6px 16px' }}>
-          <p className="text-sm row" style={{ margin: 0, padding: '10px 0', color: 'var(--text-soft)', gap: 8, justifyContent: 'flex-start' }}>
+          <div className="row" style={{ padding: '12px 0 10px' }}>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>Versie</span>
+            <SegmentedTiers value={todayTier} onChange={setTodayTier} />
+          </div>
+          <p className="text-sm row" style={{ margin: 0, padding: '10px 0', borderTop: '1px solid var(--border-soft)', color: 'var(--text-soft)', gap: 8, justifyContent: 'flex-start' }}>
             <span aria-hidden style={{ display: 'inline-flex', color: 'var(--accent)' }}><Icon name="sparkle" size={14} /></span> {suggestion.reason}
           </p>
           <button className="row" style={{ width: '100%', background: 'none', border: 'none', borderTop: '1px solid var(--border-soft)', cursor: 'pointer', padding: '12px 0', color: 'var(--text)', justifyContent: 'flex-start', gap: 8, fontSize: 14 }} onClick={() => setPainOpen(true)}>

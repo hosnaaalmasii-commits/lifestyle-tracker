@@ -20,7 +20,7 @@ const ARCHETYPE_NL = {
 // "Je figuurtje" — the companion's own page, after the Richting E Figma
 // mockup: the creature large and centred in its own glow, stage/vitality
 // pills, progress to the next stage, and what feeds it today.
-export default function Companion({ onBack }) {
+export default function Companion() {
   const { data, changeArchetype } = useApp()
   const [changing, setChanging] = useState(false)
 
@@ -56,14 +56,7 @@ export default function Companion({ onBack }) {
 
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <button
-        onClick={onBack}
-        style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--text-soft)', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: '4px 0 8px' }}
-      >
-        ‹ Terug
-      </button>
-
-      <div className="faint" style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em' }}>JE METGEZEL</div>
+      <div className="faint" style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.04em', marginTop: 8 }}>JE METGEZEL</div>
       <h1 style={{ fontSize: 30, marginTop: 2 }}>{name}</h1>
 
       <div style={{ position: 'relative', width: 260, height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0 4px' }}>
@@ -102,12 +95,7 @@ export default function Companion({ onBack }) {
         ))}
       </div>
 
-      <div className="card" style={{ width: '100%', marginTop: 14 }}>
-        <p style={{ margin: 0, fontWeight: 600 }}>{condition.headline}</p>
-        <p className="text-sm faint" style={{ margin: '4px 0 0' }}>{condition.nextAction}</p>
-      </div>
-
-      <button className="btn btn-ghost btn-sm" style={{ marginTop: 12 }} onClick={() => setChanging(true)}>Ander figuurtje kiezen</button>
+      <button className="btn btn-ghost btn-sm" style={{ marginTop: 16 }} onClick={() => setChanging(true)}>Ander figuurtje kiezen</button>
 
       <CharacterOnboardingSheet
         open={changing}
