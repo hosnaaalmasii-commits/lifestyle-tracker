@@ -5,6 +5,8 @@ import { parseVoiceTranscript, applyVoiceIntent, CATEGORY_META } from '../utils/
 import { isSpeechRecognitionSupported, createSpeechRecognizer } from '../utils/speechInput'
 import Sheet from './Sheet'
 import Icon from './Icon'
+import { tx } from '../i18n/tx'
+import { useT } from '../i18n/useT'
 
 const SPEECH_SUPPORTED = isSpeechRecognitionSupported()
 
@@ -38,6 +40,7 @@ export default function VoiceLogSheet({ open, onClose }) {
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [listening, setListening] = useState(false)
+  const { locale } = useT()
   const savingRef = useRef(false)
   const recognizerRef = useRef(null)
   const transcriptRef = useRef('')
@@ -100,6 +103,7 @@ export default function VoiceLogSheet({ open, onClose }) {
     }
 
     const recognizer = createSpeechRecognizer({
+      lang: locale,
       onResult: ({ text, isFinal }) => {
         setTranscript(text)
         transcriptRef.current = text
@@ -169,11 +173,11 @@ export default function VoiceLogSheet({ open, onClose }) {
   }
 
   return (
-    <Sheet open={open} onClose={handleClose} title="Log by voice">
+    <Sheet open={open} onClose={handleClose} title={tx("Log by voice")}>
       {saved ? (
         <div className="empty-state">
           <div className="icon"><Icon name="check" size={26} /></div>
-          <p>Logged.</p>
+          <p>{tx("Logged.")}</p>
         </div>
       ) : (
         <>
@@ -183,7 +187,7 @@ export default function VoiceLogSheet({ open, onClose }) {
                 className="btn-ghost"
                 onClick={toggleListening}
                 disabled={loading}
-                aria-label={listening ? 'Stop listening' : 'Tap to speak'}
+                aria-label={listening ? tx("Stop listening") : tx("Tap to speak")}
                 style={{
                   width: 72, height: 72, borderRadius: '50%', border: 'none', cursor: 'pointer',
                   background: listening ? 'var(--danger)' : 'var(--accent-fill)',
@@ -195,24 +199,24 @@ export default function VoiceLogSheet({ open, onClose }) {
                 <Icon name="mic" size={28} />
               </button>
               <div className="text-sm muted" style={{ marginTop: 10 }}>
-                {listening ? 'Listening… tap to stop' : 'Tap to speak'}
+                {listening ? tx("Listening… tap to stop") : tx("Tap to speak")}
               </div>
             </div>
           )}
 
           <div className="field">
-            <label>{SPEECH_SUPPORTED ? 'Or type it' : 'Say what happened — type it, or use your keyboard\'s dictation mic'}</label>
+            <label>{SPEECH_SUPPORTED ? tx("Or type it") : tx("Say what happened — type it, or use your keyboard's dictation mic")}</label>
             <textarea
               className="input"
               style={{ minHeight: 84, resize: 'vertical' }}
-              placeholder="e.g. I drank a bottle of water and had a salad for lunch"
+              placeholder={tx("e.g. I drank a bottle of water and had a salad for lunch")}
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               disabled={loading || listening}
             />
             {!SPEECH_SUPPORTED && (
               <p className="text-sm faint" style={{ marginTop: 6 }}>
-                This browser doesn't support in-app voice capture — tap the box above and use your keyboard's microphone/dictation button to speak instead.
+                {tx("This browser doesn't support in-app voice capture — tap the box above and use your keyboard's microphone/dictation button to speak instead.")}
               </p>
             )}
           </div>
@@ -221,15 +225,15 @@ export default function VoiceLogSheet({ open, onClose }) {
             <div className="stack" style={{ gap: 8 }}>
               {hasApiKey() && (
                 <button className="btn btn-primary btn-block" disabled={!transcript.trim() || loading} onClick={() => parse()}>
-                  {loading ? 'Thinking…' : 'Parse with AI'}
+                  {loading ? tx("Thinking…") : tx("Parse with AI")}
                 </button>
               )}
               <button className="btn btn-secondary btn-block" disabled={!transcript.trim() || loading} onClick={saveAsNote}>
-                Save as note
+                {tx("Save as note")}
               </button>
               {!hasApiKey() && (
                 <p className="text-sm faint" style={{ margin: '2px 4px 0' }}>
-                  Add a Claude API key in More → Settings → AI Coach to auto-categorize this into water, meals, workouts, and more instead of a plain note.
+                  {tx("Add a Claude API key in More → Settings → AI Coach to auto-categorize this into water, meals, workouts, and more instead of a plain note.")}
                 </p>
               )}
             </div>
@@ -248,10 +252,10 @@ export default function VoiceLogSheet({ open, onClose }) {
                         <span style={{ color: meta.color }}><Icon name={meta.icon} size={18} /></span>
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>{intent.summary}</div>
-                          <div className="text-sm faint">{meta.label} · {intent.when === 'yesterday' ? 'Yesterday' : 'Today'}</div>
+                          <div className="text-sm faint">{tx(meta.label)} · {intent.when === 'yesterday' ? tx("Yesterday") : tx("Today")}</div>
                         </div>
                       </div>
-                      <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 12 }} onClick={() => removeIntent(intent.id)}>Remove</button>
+                      <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 12 }} onClick={() => removeIntent(intent.id)}>{tx("Remove")}</button>
                     </div>
 
                     <div className="stack" style={{ marginTop: 10, gap: 6 }}>
@@ -276,7 +280,7 @@ export default function VoiceLogSheet({ open, onClose }) {
                         {intent.followUp.choices ? (
                           <div className="row" style={{ gap: 6, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
                             {intent.followUp.choices.map((c) => (
-                              <button key={c.label} className="chip" onClick={() => resolveFollowUp(intent.id, c.value)}>{c.label}</button>
+                              <button key={c.label} className="chip" onClick={() => resolveFollowUp(intent.id, c.value)}>{tx(c.label)}</button>
                             ))}
                           </div>
                         ) : (
@@ -291,7 +295,7 @@ export default function VoiceLogSheet({ open, onClose }) {
               <button className="btn btn-primary btn-block" disabled={pendingCount > 0} onClick={saveAll}>
                 {pendingCount > 0 ? `Answer ${pendingCount} question${pendingCount > 1 ? 's' : ''} to save` : `Save ${intents.length} ${intents.length === 1 ? 'entry' : 'entries'}`}
               </button>
-              <button className="btn btn-ghost btn-block" onClick={reset}>Start over</button>
+              <button className="btn btn-ghost btn-block" onClick={reset}>{tx("Start over")}</button>
             </div>
           )}
         </>
@@ -308,12 +312,12 @@ function FollowUpNumberInput({ onSubmit }) {
         className="input"
         style={{ flex: 1 }}
         type="number"
-        placeholder="Enter a number"
+        placeholder={tx("Enter a number")}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         autoFocus
       />
-      <button className="btn btn-secondary btn-sm" disabled={!value} onClick={() => onSubmit(Number(value))}>Confirm</button>
+      <button className="btn btn-secondary btn-sm" disabled={!value} onClick={() => onSubmit(Number(value))}>{tx("Confirm")}</button>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { PAIN_AREAS } from '../utils/painAreas'
 import Sheet from './Sheet'
+import { tx } from '../i18n/tx'
 
 export default function PainCheckIn({ open, onClose, current, onSave }) {
   const [selected, setSelected] = useState(current || [])
@@ -12,9 +13,9 @@ export default function PainCheckIn({ open, onClose, current, onSave }) {
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="How's your body feeling?">
+    <Sheet open={open} onClose={onClose} title={tx("How's your body feeling?")}>
       <p className="muted text-sm" style={{ marginBottom: 16 }}>
-        Flag anything sore or tender today — we'll point out exercises that target those areas.
+        {tx("Flag anything sore or tender today — we'll point out exercises that target those areas.")}
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
         {PAIN_AREAS.map((a) => (
@@ -23,12 +24,12 @@ export default function PainCheckIn({ open, onClose, current, onSave }) {
             className={`chip${selected.includes(a.id) ? ' selected' : ''}`}
             onClick={() => toggle(a.id)}
           >
-            {a.label}
+            {tx(a.label)}
           </button>
         ))}
       </div>
       <button className="btn btn-primary btn-block" onClick={() => { onSave(selected); onClose() }}>
-        {selected.length === 0 ? 'Save — nothing flagged' : 'Save'}
+        {selected.length === 0 ? tx("Save — nothing flagged") : tx("Save")}
       </button>
     </Sheet>
   )

@@ -6,6 +6,7 @@ import BackHeader from '../../components/BackHeader'
 import Sheet from '../../components/Sheet'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Icon from '../../components/Icon'
+import { tx } from '../../i18n/tx'
 
 export default function Budget({ onBack }) {
   const { data, addExpense, deleteExpense } = useApp()
@@ -29,20 +30,20 @@ export default function Budget({ onBack }) {
   return (
     <div className="page">
       <BackHeader
-        eyebrow="More"
-        title="Budget"
+        eyebrow={tx("More")}
+        title={tx("Budget")}
         onBack={onBack}
-        action={<button className="btn btn-primary btn-sm" onClick={openLog}>+ Log</button>}
+        action={<button className="btn btn-primary btn-sm" onClick={openLog}>{tx("+ Log")}</button>}
       />
 
       <div className="card">
         <div className="mono" style={{ fontSize: 28, fontWeight: 700 }}>{spentThisWeek.toFixed(2)}</div>
-        <div className="text-sm faint">spent this week</div>
+        <div className="text-sm faint">{tx("spent this week")}</div>
       </div>
 
-      <div className="section-title">History</div>
+      <div className="section-title">{tx("History")}</div>
       {entries.length === 0 ? (
-        <div className="empty-state"><div className="icon"><Icon name="scale" size={26} /></div><p>No expenses logged yet.</p></div>
+        <div className="empty-state"><div className="icon"><Icon name="scale" size={26} /></div><p>{tx("No expenses logged yet.")}</p></div>
       ) : (
         <div className="stack">
           {entries.map((b) => (
@@ -53,16 +54,16 @@ export default function Budget({ onBack }) {
               </div>
               <div className="row" style={{ gap: 12, justifyContent: 'flex-end' }}>
                 <span className="mono">{b.amount.toFixed(2)}</span>
-                <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => setToDelete(b)}>Delete</button>
+                <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => setToDelete(b)}>{tx("Delete")}</button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <Sheet open={logOpen} onClose={() => setLogOpen(false)} title="Log expense">
+      <Sheet open={logOpen} onClose={() => setLogOpen(false)} title={tx("Log expense")}>
         <div className="field">
-          <label>Amount</label>
+          <label>{tx("Amount")}</label>
           <div className="stepper">
             <button onClick={() => setAmount((v) => Math.max(0, +(v - 1).toFixed(2)))}>−</button>
             <span className="value">{amount}</span>
@@ -70,7 +71,7 @@ export default function Budget({ onBack }) {
           </div>
         </div>
         <div className="field">
-          <label>Category</label>
+          <label>{tx("Category")}</label>
           <div className="row" style={{ gap: 8, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
             {BUDGET_CATEGORIES.map((c) => (
               <button key={c} className={`chip${category === c ? ' selected' : ''}`} style={{ textTransform: 'capitalize' }} onClick={() => setCategory(c)}>{c}</button>
@@ -78,22 +79,22 @@ export default function Budget({ onBack }) {
           </div>
         </div>
         <div className="field">
-          <label>Note (optional)</label>
+          <label>{tx("Note (optional)")}</label>
           <input className="input" type="text" value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
         <button
           className="btn btn-primary btn-block"
           onClick={() => { addExpense({ amount, category, note }, todayKey()); setLogOpen(false) }}
         >
-          Save
+          {tx("Save")}
         </button>
       </Sheet>
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Delete entry?"
-        message="This expense will be removed."
-        confirmLabel="Delete"
+        title={tx("Delete entry?")}
+        message={tx("This expense will be removed.")}
+        confirmLabel={tx("Delete")}
         danger
         onCancel={() => setToDelete(null)}
         onConfirm={() => { deleteExpense(toDelete.id); setToDelete(null) }}

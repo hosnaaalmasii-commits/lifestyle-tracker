@@ -7,6 +7,7 @@ import { hasApiKey } from '../utils/claudeApi'
 import { aiReplanDay } from '../utils/smartDay'
 import Sheet from './Sheet'
 import DictateButton, { DICTATION_SUPPORTED } from './DictateButton'
+import { tx } from '../i18n/tx'
 
 function emptyForm() {
   return { title: '', start: '', end: '', location: '', travelBefore: '', travelAfter: '' }
@@ -16,34 +17,34 @@ function ManualForm({ form, setField, formValid, onAdd }) {
   return (
     <>
       <div className="field">
-        <label>Wat</label>
-        <input className="input" value={form.title} onChange={setField('title')} placeholder="Afspraak" />
+        <label>{tx("Wat")}</label>
+        <input className="input" value={form.title} onChange={setField('title')} placeholder={tx("Afspraak")} />
       </div>
       <div className="row" style={{ gap: 8 }}>
         <div className="field" style={{ flex: 1 }}>
-          <label>Van</label>
+          <label>{tx("Van")}</label>
           <input className="input" type="time" value={form.start} onChange={setField('start')} />
         </div>
         <div className="field" style={{ flex: 1 }}>
-          <label>Tot</label>
+          <label>{tx("Tot")}</label>
           <input className="input" type="time" value={form.end} onChange={setField('end')} />
         </div>
       </div>
       <div className="field">
-        <label>Waar</label>
-        <input className="input" value={form.location} onChange={setField('location')} placeholder="optioneel" />
+        <label>{tx("Waar")}</label>
+        <input className="input" value={form.location} onChange={setField('location')} placeholder={tx("optioneel")} />
       </div>
       <div className="row" style={{ gap: 8 }}>
         <div className="field" style={{ flex: 1 }}>
-          <label>Reistijd heen (min)</label>
+          <label>{tx("Reistijd heen (min)")}</label>
           <input className="input" type="number" min={0} inputMode="numeric" value={form.travelBefore} onChange={setField('travelBefore')} />
         </div>
         <div className="field" style={{ flex: 1 }}>
-          <label>Terug (min)</label>
+          <label>{tx("Terug (min)")}</label>
           <input className="input" type="number" min={0} inputMode="numeric" value={form.travelAfter} onChange={setField('travelAfter')} />
         </div>
       </div>
-      <button className="btn btn-secondary btn-block" disabled={!formValid} onClick={onAdd}>+ Afspraak toevoegen</button>
+      <button className="btn btn-secondary btn-block" disabled={!formValid} onClick={onAdd}>{tx("+ Afspraak toevoegen")}</button>
     </>
   )
 }
@@ -223,27 +224,27 @@ export default function DayReplanSheet({ open, onClose }) {
 
   if (applied) {
     return (
-      <Sheet open={open} onClose={onClose} title="Dag aangepast">
-        <p className="text-sm">Je planning voor vandaag is bijgewerkt. Je vaste weekschema blijft ongewijzigd.</p>
+      <Sheet open={open} onClose={onClose} title={tx("Dag aangepast")}>
+        <p className="text-sm">{tx("Je planning voor vandaag is bijgewerkt. Je vaste weekschema blijft ongewijzigd.")}</p>
         {calendarStatus.connected && (
           <div style={{ marginTop: 12 }}>
-            <button className="btn btn-secondary btn-block" onClick={syncCalendar}>Ook in Google Agenda bijwerken</button>
+            <button className="btn btn-secondary btn-block" onClick={syncCalendar}>{tx("Ook in Google Agenda bijwerken")}</button>
             {calSyncStatus && <p className="text-sm faint" style={{ marginTop: 8 }}>{calSyncStatus}</p>}
           </div>
         )}
-        <button className="btn btn-primary btn-block" style={{ marginTop: 12 }} onClick={onClose}>Klaar</button>
+        <button className="btn btn-primary btn-block" style={{ marginTop: 12 }} onClick={onClose}>{tx("Klaar")}</button>
       </Sheet>
     )
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="Afspraak & dag aanpassen">
+    <Sheet open={open} onClose={onClose} title={tx("Afspraak & dag aanpassen")}>
       <div className="field">
-        <label>Vertel je afspraak</label>
+        <label>{tx("Vertel je afspraak")}</label>
         <div className="row" style={{ gap: 8 }}>
           <input
             className="input"
-            placeholder="bv. om 14:00 tandarts in Utrecht tot 15:00, 20 min fietsen"
+            placeholder={tx("bv. om 14:00 tandarts in Utrecht tot 15:00, 20 min fietsen")}
             value={spoken}
             onChange={(e) => setSpoken(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') fillFromText(spoken) }}
@@ -253,21 +254,21 @@ export default function DayReplanSheet({ open, onClose }) {
         {aiAvailable ? (
           <>
             <button className="btn btn-primary btn-block" style={{ marginTop: 8 }} disabled={aiBusy || (!spoken.trim() && !appointments.length)} onClick={() => runAi(spoken)}>
-              {aiBusy ? 'Dag wordt gepland…' : 'Plan mijn dag met AI'}
+              {aiBusy ? tx("Dag wordt gepland…") : tx("Plan mijn dag met AI")}
             </button>
             <p className="text-sm faint" style={{ marginTop: 6 }}>
-              Vertel het gewoon, bv. "ik moet om 3 uur naar de tandarts in Utrecht en vanavond eet ik bij mijn moeder". Reistijd wordt geschat als je die niet noemt.
-              {!DICTATION_SUPPORTED && ' Inspreken kan via de microfoon van je toetsenbord.'}
+              {tx("Vertel het gewoon, bv. \"ik moet om 3 uur naar de tandarts in Utrecht en vanavond eet ik bij mijn moeder\". Reistijd wordt geschat als je die niet noemt.")}
+              {!DICTATION_SUPPORTED && tx(" Inspreken kan via de microfoon van je toetsenbord.")}
             </p>
             <div className="field" style={{ marginTop: 8 }}>
-              <label>Vertrekpunt (voor reistijd)</label>
-              <input className="input" placeholder="bv. je woonplaats of adres" value={home} onChange={(e) => setHome(e.target.value)} onBlur={() => setHomeLocation(home.trim())} />
+              <label>{tx("Vertrekpunt (voor reistijd)")}</label>
+              <input className="input" placeholder={tx("bv. je woonplaats of adres")} value={home} onChange={(e) => setHome(e.target.value)} onBlur={() => setHomeLocation(home.trim())} />
             </div>
             {aiError && <p className="text-sm" style={{ color: 'var(--danger)' }}>{aiError}</p>}
             <details style={{ marginTop: 4 }}>
-              <summary className="text-sm faint" style={{ cursor: 'pointer' }}>Of vul een afspraak zelf in</summary>
+              <summary className="text-sm faint" style={{ cursor: 'pointer' }}>{tx("Of vul een afspraak zelf in")}</summary>
               <div className="row" style={{ marginTop: 8, gap: 8, justifyContent: 'flex-end' }}>
-                <button className="btn btn-secondary btn-sm" disabled={!spoken.trim()} onClick={() => fillFromText(spoken)}>Tekst invullen in formulier</button>
+                <button className="btn btn-secondary btn-sm" disabled={!spoken.trim()} onClick={() => fillFromText(spoken)}>{tx("Tekst invullen in formulier")}</button>
               </div>
               <ManualForm form={form} setField={setField} formValid={formValid} onAdd={addAppointment} />
             </details>
@@ -276,9 +277,9 @@ export default function DayReplanSheet({ open, onClose }) {
           <>
             <div className="row" style={{ marginTop: 6, gap: 8 }}>
               <span className="text-sm faint" style={{ flex: 1 }}>
-                {DICTATION_SUPPORTED ? 'Spreek of typ, daarna "Invullen".' : 'Typ, of gebruik de microfoon van je toetsenbord.'}
+                {DICTATION_SUPPORTED ? tx("Spreek of typ, daarna \"Invullen\".") : tx("Typ, of gebruik de microfoon van je toetsenbord.")}
               </span>
-              <button className="btn btn-secondary btn-sm" disabled={!spoken.trim()} onClick={() => fillFromText(spoken)}>Invullen</button>
+              <button className="btn btn-secondary btn-sm" disabled={!spoken.trim()} onClick={() => fillFromText(spoken)}>{tx("Invullen")}</button>
             </div>
             <ManualForm form={form} setField={setField} formValid={formValid} onAdd={addAppointment} />
           </>
@@ -287,15 +288,15 @@ export default function DayReplanSheet({ open, onClose }) {
 
       {calendarStatus.connected && (
         <div style={{ marginTop: 10 }}>
-          <button className="btn btn-ghost btn-block" onClick={importAgenda}>Afspraken van vandaag uit Google Agenda halen</button>
+          <button className="btn btn-ghost btn-block" onClick={importAgenda}>{tx("Afspraken van vandaag uit Google Agenda halen")}</button>
           {agendaStatus && <p className="text-sm faint" style={{ marginTop: 6 }}>{agendaStatus}</p>}
         </div>
       )}
 
       {(appointments.length > 0 || aiResult) && (
         <>
-          <div className="section-title">Afspraken vandaag</div>
-          {appointments.length === 0 && <p className="text-sm faint">Geen afspraken.</p>}
+          <div className="section-title">{tx("Afspraken vandaag")}</div>
+          {appointments.length === 0 && <p className="text-sm faint">{tx("Geen afspraken.")}</p>}
           <div className="card" style={{ padding: '4px 14px' }}>
             {appointments.map((a, i) => (
               <div key={a.id} style={{ padding: '10px 0', borderTop: i > 0 ? '1px solid var(--border-soft)' : 'none' }}>
@@ -304,40 +305,40 @@ export default function DayReplanSheet({ open, onClose }) {
                     <div style={{ fontWeight: 600 }}>{a.title}</div>
                     <div className="text-sm faint">
                       <span className="mono">{a.start}–{a.end}</span>{a.location ? ` · ${a.location}` : ''}
-                      {a.travelEstimated && <span> · reistijd geschat</span>}
+                      {a.travelEstimated && <span> {tx("· reistijd geschat")}</span>}
                     </div>
                   </div>
-                  <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => removeAppointment(a.id)}>Verwijder</button>
+                  <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => removeAppointment(a.id)}>{tx("Verwijder")}</button>
                 </div>
                 <div className="row" style={{ gap: 8, marginTop: 6, justifyContent: 'flex-start' }}>
-                  <span className="text-sm faint">Reistijd</span>
-                  <input className="input" style={{ width: 64, padding: '4px 8px' }} type="number" min={0} inputMode="numeric" aria-label="Reistijd heen" value={a.travelBefore} onChange={(e) => updateTravel(a.id, 'travelBefore', e.target.value)} />
-                  <span className="text-sm faint">heen /</span>
-                  <input className="input" style={{ width: 64, padding: '4px 8px' }} type="number" min={0} inputMode="numeric" aria-label="Reistijd terug" value={a.travelAfter} onChange={(e) => updateTravel(a.id, 'travelAfter', e.target.value)} />
-                  <span className="text-sm faint">terug (min)</span>
+                  <span className="text-sm faint">{tx("Reistijd")}</span>
+                  <input className="input" style={{ width: 64, padding: '4px 8px' }} type="number" min={0} inputMode="numeric" aria-label={tx("Reistijd heen")} value={a.travelBefore} onChange={(e) => updateTravel(a.id, 'travelBefore', e.target.value)} />
+                  <span className="text-sm faint">{tx("heen /")}</span>
+                  <input className="input" style={{ width: 64, padding: '4px 8px' }} type="number" min={0} inputMode="numeric" aria-label={tx("Reistijd terug")} value={a.travelAfter} onChange={(e) => updateTravel(a.id, 'travelAfter', e.target.value)} />
+                  <span className="text-sm faint">{tx("terug (min)")}</span>
                 </div>
               </div>
             ))}
           </div>
 
           <div className="row" style={{ alignItems: 'baseline' }}>
-            <div className="section-title">{aiResult ? 'Voorstel (AI)' : 'Voorstel'}</div>
+            <div className="section-title">{aiResult ? tx("Voorstel (AI)") : tx("Voorstel")}</div>
             {aiResult && (
               <button className="btn-ghost text-sm" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer' }} onClick={() => { setAiResult(null); setTimeEdits({}) }}>
-                Standaardplanner gebruiken
+                {tx("Standaardplanner gebruiken")}
               </button>
             )}
           </div>
           {aiResult?.summary && <p className="text-sm" style={{ marginBottom: 10 }}>{aiResult.summary}</p>}
           {proposal.changes.length === 0 ? (
-            <p className="text-sm faint">Niets hoeft te verschuiven — je schema past om je afspraken heen.</p>
+            <p className="text-sm faint">{tx("Niets hoeft te verschuiven — je schema past om je afspraken heen.")}</p>
           ) : (
             <div className="card" style={{ padding: '4px 14px' }}>
               {proposal.changes.map((c, i) => (
                 <div key={c.id} style={{ padding: '10px 0', borderTop: i > 0 ? '1px solid var(--border-soft)' : 'none' }}>
                   <div className="row" style={{ gap: 8 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600 }}>{c.label}</div>
+                      <div style={{ fontWeight: 600 }}>{tx(c.label)}</div>
                       <div className="text-sm faint">
                         <span className="mono">{c.from}</span> → {c.to ? <span className="mono">{timeEdits[c.id] || c.to}</span> : '—'} · {KIND_TEXT[c.kind]}
                       </div>
@@ -358,12 +359,12 @@ export default function DayReplanSheet({ open, onClose }) {
               ))}
             </div>
           )}
-          <button className="btn btn-primary btn-block" style={{ marginTop: 12 }} onClick={apply}>Toepassen op vandaag</button>
+          <button className="btn btn-primary btn-block" style={{ marginTop: 12 }} onClick={apply}>{tx("Toepassen op vandaag")}</button>
         </>
       )}
 
       {hasOverride && (
-        <button className="btn btn-ghost btn-block" style={{ marginTop: 10 }} onClick={reset}>Terug naar mijn standaardschema</button>
+        <button className="btn btn-ghost btn-block" style={{ marginTop: 10 }} onClick={reset}>{tx("Terug naar mijn standaardschema")}</button>
       )}
     </Sheet>
   )

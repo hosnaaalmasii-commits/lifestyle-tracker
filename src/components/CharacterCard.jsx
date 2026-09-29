@@ -6,6 +6,7 @@ import { computeCharacter } from '../utils/characterEngine'
 import ElementalCreature from './ElementalCreature'
 import CharacterOnboardingSheet from './CharacterOnboardingSheet'
 import Sheet from './Sheet'
+import { tx } from '../i18n/tx'
 
 const TIER_COLOR = {
   special: 'var(--text-soft)',
@@ -74,7 +75,7 @@ export default function CharacterCard({ variant = 'hero', onOpen }) {
         <div style={{ minWidth: 0 }}>
           <div className="text-sm muted">{archetype.name} · {stage.name}</div>
           <div style={{ fontWeight: 700, fontSize: 20, fontFamily: 'var(--font-heading)' }}>{condition.name}</div>
-          <div className="text-sm faint" style={{ marginTop: 2 }}>{condition.headline}</div>
+          <div className="text-sm faint" style={{ marginTop: 2 }}>{tx(condition.headline)}</div>
         </div>
       </div>
     </button>
@@ -87,18 +88,18 @@ export default function CharacterCard({ variant = 'hero', onOpen }) {
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
           <ElementalCreature {...creatureProps} size={130} />
         </div>
-        <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 16, textAlign: 'center' }}>{condition.headline}</p>
+        <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 16, textAlign: 'center' }}>{tx(condition.headline)}</p>
         <p className="text-sm muted" style={{ margin: '0 0 4px', textAlign: 'center' }}>
           <span style={{ color: TIER_COLOR[condition.tier] }}>{condition.name}</span>
         </p>
         <p className="text-sm faint" style={{ margin: '0 0 20px', textAlign: 'center' }}>
-          {stage.name}{stage.next ? ` · ${Math.round(stage.progress * 100)}% to ${stage.next}` : ' · fully grown'} · {character.weeklyFeedPoints} feed points this week
+          {stage.name}{stage.next ? ` · ${Math.round(stage.progress * 100)}% to ${stage.next}` : tx(" · fully grown")} · {character.weeklyFeedPoints} {tx("feed points this week")}
         </p>
 
         <div className="stack" style={{ gap: 10, marginBottom: 18 }}>
           {condition.drivers.map((d) => (
             <div key={d.key} className="row" style={{ fontSize: 13.5, gap: 10 }}>
-              <span className="muted" style={{ width: 84, flexShrink: 0 }}>{d.label}</span>
+              <span className="muted" style={{ width: 84, flexShrink: 0 }}>{tx(d.label)}</span>
               <span className="xp-bar-track" style={{ flex: 1 }}>
                 <span className="xp-bar-fill" style={{ width: `${Math.round(d.ratio * 100)}%`, background: archetype.color }} />
               </span>
@@ -108,8 +109,8 @@ export default function CharacterCard({ variant = 'hero', onOpen }) {
         </div>
 
         <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 14 }}>
-          <div className="text-sm faint" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11, marginBottom: 4 }}>Next</div>
-          <p style={{ margin: 0, fontSize: 14 }}>{condition.nextAction}</p>
+          <div className="text-sm faint" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11, marginBottom: 4 }}>{tx("Next")}</div>
+          <p style={{ margin: 0, fontSize: 14 }}>{tx(condition.nextAction)}</p>
         </div>
 
         <button
@@ -117,7 +118,7 @@ export default function CharacterCard({ variant = 'hero', onOpen }) {
           style={{ marginTop: 16 }}
           onClick={() => { setOpen(false); setChanging(true) }}
         >
-          Change companion
+          {tx("Change companion")}
         </button>
       </Sheet>
 

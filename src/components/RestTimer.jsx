@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Sheet from './Sheet'
 import { formatSeconds } from '../utils/time'
+import { tx } from '../i18n/tx'
 
 export default function RestTimer({ open, onClose, seconds, exerciseName }) {
   const [remaining, setRemaining] = useState(seconds)
@@ -35,7 +36,7 @@ export default function RestTimer({ open, onClose, seconds, exerciseName }) {
   const done = remaining === 0
 
   return (
-    <Sheet open={open} onClose={onClose} title={exerciseName ? `Rest — ${exerciseName}` : 'Rest'}>
+    <Sheet open={open} onClose={onClose} title={exerciseName ? `Rest — ${exerciseName}` : tx("Rest")}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0 4px' }}>
         <div style={{ position: 'relative', width: 160, height: 160 }}>
           <svg width={160} height={160} viewBox="0 0 160 160">
@@ -53,11 +54,11 @@ export default function RestTimer({ open, onClose, seconds, exerciseName }) {
             <span className="mono" style={{ fontSize: 34, fontWeight: 700 }}>{formatSeconds(remaining)}</span>
           </div>
         </div>
-        {done && <p className="text-sm" style={{ marginTop: 14, color: 'var(--success)', fontWeight: 600 }}>Rest complete — back to it!</p>}
+        {done && <p className="text-sm" style={{ marginTop: 14, color: 'var(--success)', fontWeight: 600 }}>{tx("Rest complete — back to it!")}</p>}
         <div className="row" style={{ marginTop: 20, gap: 10, width: '100%' }}>
-          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => { setRemaining(seconds); setRunning(true) }}>Reset</button>
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => { setRemaining(seconds); setRunning(true) }}>{tx("Reset")}</button>
           <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => setRunning((r) => !r)} disabled={done}>
-            {running ? 'Pause' : 'Resume'}
+            {running ? tx("Pause") : tx("Resume")}
           </button>
         </div>
       </div>

@@ -9,6 +9,7 @@ import LevelBar from '../../components/LevelBar'
 import ChallengeCard from '../../components/ChallengeCard'
 import Confetti from '../../components/Confetti'
 import Icon from '../../components/Icon'
+import { tx } from '../../i18n/tx'
 
 const SEEN_BADGES_KEY = 'lifestyle-tracker-seen-badges'
 
@@ -46,22 +47,22 @@ export default function Badges({ onBack }) {
   return (
     <div className="page">
       <Confetti trigger={confettiTick} />
-      <BackHeader eyebrow="More" title="Badges & Level" onBack={onBack} />
+      <BackHeader eyebrow={tx("More")} title={tx("Badges & Level")} onBack={onBack} />
 
       <div className="card">
         <LevelBar xp={xp} />
         <button className="btn btn-secondary btn-block" style={{ marginTop: 16, gap: 8 }} disabled={sharing} onClick={handleShare}>
           <Icon name="share" size={16} />
-          {sharing ? 'Preparing…' : 'Share my week'}
+          {sharing ? tx("Preparing…") : tx("Share my week")}
         </button>
       </div>
 
-      <div className="section-title">This week's challenge</div>
+      <div className="section-title">{tx("This week's challenge")}</div>
       <ChallengeCard challenge={challenge} />
 
-      <div className="section-title">Badges</div>
+      <div className="section-title">{tx("Badges")}</div>
       <p className="muted text-sm" style={{ marginBottom: 14 }}>
-        {unlockedCount} of {badges.length} unlocked — these fill in automatically as you build habits.
+        {unlockedCount} {tx("of")} {badges.length} {tx("unlocked — these fill in automatically as you build habits.")}
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {badges.map((b) => (
@@ -83,8 +84,8 @@ export default function Badges({ onBack }) {
             >
               <Icon name={b.unlocked ? b.icon : 'lock'} size={22} />
             </div>
-            <div style={{ fontWeight: 600, fontSize: 13, marginTop: 8 }}>{b.name}</div>
-            <div className="text-sm faint" style={{ marginTop: 4, lineHeight: 1.3 }}>{b.description}</div>
+            <div style={{ fontWeight: 600, fontSize: 13, marginTop: 8 }}>{tx(b.name)}</div>
+            <div className="text-sm faint" style={{ marginTop: 4, lineHeight: 1.3 }}>{tx(b.description)}</div>
           </div>
         ))}
       </div>

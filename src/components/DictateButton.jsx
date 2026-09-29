@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { isSpeechRecognitionSupported, createSpeechRecognizer } from '../utils/speechInput'
 import Icon from './Icon'
+import { tx } from '../i18n/tx'
+import { useT } from '../i18n/useT'
 
 export const DICTATION_SUPPORTED = isSpeechRecognitionSupported()
 
@@ -9,8 +11,10 @@ export const DICTATION_SUPPORTED = isSpeechRecognitionSupported()
 // SpeechRecognition (Safari/iOS); callers show a hint pointing at the
 // keyboard's own dictation mic instead.
 // compact: a round icon-only mic, for inside a pill input bar.
-export default function DictateButton({ onText, onDone, lang = 'nl-NL', compact = false }) {
+export default function DictateButton({ onText, onDone, lang: langProp, compact = false }) {
   const [listening, setListening] = useState(false)
+  const { locale } = useT()
+  const lang = langProp || locale // listen in the app language
   const recognizerRef = useRef(null)
 
   useEffect(() => () => recognizerRef.current?.abort(), [])
@@ -39,7 +43,7 @@ export default function DictateButton({ onText, onDone, lang = 'nl-NL', compact 
       <button
         type="button"
         onClick={toggle}
-        aria-label={listening ? 'Stop met luisteren' : 'Inspreken'}
+        aria-label={listening ? tx("Stop met luisteren") : tx("Inspreken")}
         style={{
           width: 36, height: 36, borderRadius: '50%', flexShrink: 0, cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -58,12 +62,12 @@ export default function DictateButton({ onText, onDone, lang = 'nl-NL', compact 
     <button
       type="button"
       onClick={toggle}
-      aria-label={listening ? 'Stop met luisteren' : 'Inspreken'}
+      aria-label={listening ? tx("Stop met luisteren") : tx("Inspreken")}
       className={listening ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
       style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, animation: listening ? 'mic-pulse 1.2s ease-in-out infinite' : 'none' }}
     >
       <Icon name="mic" size={16} />
-      {listening ? 'Luistert…' : 'Inspreken'}
+      {listening ? tx("Luistert…") : tx("Inspreken")}
     </button>
   )
 }

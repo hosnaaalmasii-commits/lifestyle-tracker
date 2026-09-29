@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext'
 import { MOOD_STATES, MOOD_ACTIONS } from '../utils/moodActions'
 import Sheet from './Sheet'
 import Icon from './Icon'
+import { tx } from '../i18n/tx'
 
 export default function MoodCheckIn({ open, onClose }) {
   const { addMood } = useApp()
@@ -18,7 +19,7 @@ export default function MoodCheckIn({ open, onClose }) {
   const actions = picked && MOOD_ACTIONS[picked]
 
   return (
-    <Sheet open={open} onClose={close} title="How are you feeling?">
+    <Sheet open={open} onClose={close} title={tx("How are you feeling?")}>
       {!picked ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10 }}>
           {MOOD_STATES.map((m) => (
@@ -31,7 +32,7 @@ export default function MoodCheckIn({ open, onClose }) {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'center' }}><Icon name={m.icon} size={24} /></div>
-              <div className="text-sm" style={{ marginTop: 6, fontWeight: 600 }}>{m.label}</div>
+              <div className="text-sm" style={{ marginTop: 6, fontWeight: 600 }}>{tx(m.label)}</div>
             </button>
           ))}
         </div>
@@ -40,9 +41,9 @@ export default function MoodCheckIn({ open, onClose }) {
           <div className="row" style={{ marginBottom: 16 }}>
             <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
               <span style={{ color: 'var(--accent)' }}><Icon name={state.icon} size={28} /></span>
-              <span style={{ fontWeight: 600 }}>{state.label}</span>
+              <span style={{ fontWeight: 600 }}>{tx(state.label)}</span>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={() => setPicked(null)}>Change</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setPicked(null)}>{tx("Change")}</button>
           </div>
           <div className="stack">
             {actions.map((a, i) => (
@@ -58,8 +59,8 @@ export default function MoodCheckIn({ open, onClose }) {
             onClick={() => { addMood(state.logAs, `Felt ${state.label.toLowerCase()}`); setLogged(true) }}
           >
             {logged ? (
-              <span className="row" style={{ gap: 6, justifyContent: 'center' }}><Icon name="check" size={14} /> Logged to today's mood</span>
-            ) : 'Also log this as today\'s mood'}
+              <span className="row" style={{ gap: 6, justifyContent: 'center' }}><Icon name="check" size={14} /> {tx("Logged to today's mood")}</span>
+            ) : tx("Also log this as today's mood")}
           </button>
         </div>
       )}

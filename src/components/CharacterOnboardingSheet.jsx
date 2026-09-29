@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ARCHETYPES } from '../utils/characterEngine'
 import ElementalCreature from './ElementalCreature'
 import Sheet from './Sheet'
+import { tx } from '../i18n/tx'
 
 // Doubles as both the forced first-time picker (no onClose — Skip is the
 // only way through) and the later "change companion" picker (closable,
@@ -12,9 +13,9 @@ export default function CharacterOnboardingSheet({ open, onChoose, onClose, curr
   const canCancel = !!onClose
 
   return (
-    <Sheet open={open} onClose={onClose || (() => {})} title={canCancel ? 'Change your companion' : 'Choose your companion'}>
+    <Sheet open={open} onClose={onClose || (() => {})} title={canCancel ? tx("Change your companion") : tx("Choose your companion")}>
       <p className="text-sm muted" style={{ marginTop: -4, marginBottom: 12 }}>
-        Each one is its own real phenomenon — it grows with good habits and fades without them.
+        {tx("Each one is its own real phenomenon — it grows with good habits and fades without them.")}
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 10 }}>
@@ -34,14 +35,14 @@ export default function CharacterOnboardingSheet({ open, onChoose, onClose, curr
               <div style={{ flexShrink: 0 }}>
                 <ElementalCreature archetypeId={a.id} growth={0.6} vitality={0.75} size={28} />
               </div>
-              <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.2 }}>{a.name}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.2 }}>{tx(a.name)}</span>
             </button>
           )
         })}
       </div>
 
       <p className="text-sm faint" style={{ minHeight: 18, margin: '0 0 12px' }}>
-        {selected ? selected.tagline : 'Pick one to see what it does.'}
+        {selected ? selected.tagline : tx("Pick one to see what it does.")}
       </p>
 
       <button
@@ -49,15 +50,15 @@ export default function CharacterOnboardingSheet({ open, onChoose, onClose, curr
         disabled={!archetype || archetype === current}
         onClick={() => onChoose(archetype)}
       >
-        {canCancel ? 'Switch' : 'Begin'}
+        {canCancel ? tx("Switch") : tx("Begin")}
       </button>
       {canCancel ? (
         <button className="btn btn-ghost btn-block" style={{ marginTop: 8 }} onClick={onClose}>
-          Cancel
+          {tx("Cancel")}
         </button>
       ) : (
         <button className="btn btn-ghost btn-block" style={{ marginTop: 8 }} onClick={() => onChoose('fire')}>
-          Skip — pick for me
+          {tx("Skip — pick for me")}
         </button>
       )}
     </Sheet>

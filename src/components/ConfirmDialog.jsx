@@ -1,3 +1,4 @@
+import { tx } from '../i18n/tx'
 export default function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', danger, onConfirm, onCancel }) {
   if (!open) return null
   return (
@@ -16,7 +17,7 @@ export default function ConfirmDialog({ open, title, message, confirmLabel = 'Co
         <h3 style={{ fontSize: 18, marginBottom: 8 }}>{title}</h3>
         <p className="muted text-sm" style={{ marginBottom: 20, lineHeight: 1.5 }}>{message}</p>
         <div className="row" style={{ gap: 10 }}>
-          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onCancel}>Cancel</button>
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onCancel}>{tx("Cancel")}</button>
           <button
             className={danger ? 'btn btn-danger' : 'btn btn-primary'}
             style={{ flex: 1, border: danger ? '1px solid var(--danger)' : 'none', background: danger ? 'var(--danger)' : undefined, color: danger ? '#fff' : undefined }}

@@ -641,14 +641,24 @@ the browser.
   nl (default) / en / fr / de / es. Every string is one key with five
   versions in that fixed order; dates use `Intl` with the language's
   locale. `claudeApi.setAiLanguage()` (set from an AppContext effect)
-  makes every Claude reply come back in the chosen language. **Covered so
-  far**: tab bar, side menu, Vandaag, Voeding, Training, Water, Slaap,
-  Coach, companion page/tile, Settings' top sections, BackHeader. **Not
-  yet**: the menu sub-pages (Weight, Mood, Cycle, Budget, Pantry, Daily
-  schedule, Progress, Recipes, …), DayReplanSheet, and most of Settings'
-  longer sections — they still show their original English/Dutch text.
-  User-entered content (task names, the meal rotation) is never
-  translated.
+  makes every Claude reply come back in the chosen language. Three layers:
+  1. **Hand-written dictionary** (`t()`): tab bar, menu, Vandaag, Voeding,
+     Training, Water, Slaap, Coach, companion, Settings' top.
+  2. **Plan content** (`i18n/content.js` + `useContentT().tc()`): fixed
+     tables for the seeded task labels and all 50 companion stage names;
+     meals/exercises/workout hints are AI-translated once and cached.
+  3. **Everything else** (`i18n/tx.js`, `tx("…")`): all menu sub-pages,
+     sheets and Settings' long text were wrapped by the codemod
+     `scripts/wrap-tx.cjs` (JSX text, text-ish attributes, ?:/&& string
+     results, `.label`/`.desc`/`.headline`-style members with
+     `WRAP_MEMBERS=1`). Strings are batch-translated by Claude and cached
+     in `data.contentTranslations[lang]` (shared with layer 2). Needs an
+     API key; without one the original text shows. **For new UI**: use
+     `t()` for main screens, or run the codemod on the file.
+  User-typed content (notes, pantry items, recipe names) is deliberately
+  left untranslated. The dev server here repeatedly served stale module
+  transforms after edits — restart it (preview_stop/start) before
+  concluding an edit didn't take.
 - **Icons: `src/components/Icon.jsx`, a hand-drawn line-icon set
   (~55 icons, including `mic`), replacing emoji throughout the app.**
   Consistent stroke weight (1.7), 24×24 viewBox, `currentColor`. When

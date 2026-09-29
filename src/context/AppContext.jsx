@@ -6,6 +6,7 @@ import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } 
 import { DEFAULT_COLOR_THEME, getColorTheme } from '../utils/colorThemes'
 import { DEFAULT_LANGUAGE, languageInfo } from '../i18n'
 import { setAiLanguage } from '../utils/claudeApi'
+import { setTxState, flushTx } from '../i18n/tx'
 import { requestGoogleToken, requestGoogleAuthCode, fetchTodayBusyMinutes, syncTasksToCalendar, fetchEventsForDate, DEFAULT_GOOGLE_CLIENT_ID, resolveGoogleClientId } from '../utils/googleCalendar'
 import { hasOuraApiKey, getOuraApiKey, fetchOuraToday } from '../utils/ouraApi'
 import { isCloudSyncConfigured, getSupabaseClient } from '../utils/supabaseClient'
@@ -851,6 +852,12 @@ export function AppProvider({ children }) {
     () => ({ data: { ...data, calendarStatus, ouraStatus }, calendarStatus, ouraStatus, sync, ...actions }),
     [data, calendarStatus, ouraStatus, sync, actions]
   )
+
+  // tx(): keep its language/cache current before children render, and send
+  // whatever they queued after they have (see i18n/tx.js).
+  const txLang = data.settings.language || 'nl'
+  setTxState(txLang, data.contentTranslations?.[txLang])
+  useEffect(() => { flushTx(actions.addContentTranslations) })
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

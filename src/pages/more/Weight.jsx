@@ -8,6 +8,7 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import Icon from '../../components/Icon'
 import Sparkline from '../../components/Sparkline'
 import ChangeIndicator from '../../components/ChangeIndicator'
+import { tx } from '../../i18n/tx'
 
 export default function Weight({ onBack }) {
   const { data, addWeight, deleteWeight } = useApp()
@@ -28,10 +29,10 @@ export default function Weight({ onBack }) {
   return (
     <div className="page">
       <BackHeader
-        eyebrow="More"
-        title="Weight"
+        eyebrow={tx("More")}
+        title={tx("Weight")}
         onBack={onBack}
-        action={<button className="btn btn-primary btn-sm" onClick={() => { setValue(latest?.kg ?? 70); setDate(todayKey()); setLogOpen(true) }}>+ Log</button>}
+        action={<button className="btn btn-primary btn-sm" onClick={() => { setValue(latest?.kg ?? 70); setDate(todayKey()); setLogOpen(true) }}>{tx("+ Log")}</button>}
       />
 
       <div className="card">
@@ -40,7 +41,7 @@ export default function Weight({ onBack }) {
             <div className="mono" style={{ fontSize: 28, fontWeight: 700 }}>
               {gentle ? (trendWord || '—') : (latest ? `${latest.kg} ${unit}` : '—')}
             </div>
-            <div className="text-sm faint">{latest ? humanDate(latest.date) : 'No entries yet'}</div>
+            <div className="text-sm faint">{latest ? humanDate(latest.date) : tx("No entries yet")}</div>
           </div>
           {!gentle && delta != null && <ChangeIndicator value={delta} suffix={` ${unit}`} goodDirection="down" />}
         </div>
@@ -49,14 +50,14 @@ export default function Weight({ onBack }) {
             <LineChart values={chartValues} color="var(--accent)" />
           </div>
         )}
-        {gentle && <p className="text-sm faint" style={{ marginTop: 10 }}>Gentle mode is on — exact numbers are hidden. Turn it off in Settings to see them.</p>}
+        {gentle && <p className="text-sm faint" style={{ marginTop: 10 }}>{tx("Gentle mode is on — exact numbers are hidden. Turn it off in Settings to see them.")}</p>}
       </div>
 
-      <div className="section-title">History</div>
+      <div className="section-title">{tx("History")}</div>
       {entries.length === 0 ? (
-        <div className="empty-state"><div className="icon"><Icon name="scale" size={26} /></div><p>No weight logged yet.</p></div>
+        <div className="empty-state"><div className="icon"><Icon name="scale" size={26} /></div><p>{tx("No weight logged yet.")}</p></div>
       ) : gentle ? (
-        <p className="muted text-sm">History is hidden while Gentle mode is on.</p>
+        <p className="muted text-sm">{tx("History is hidden while Gentle mode is on.")}</p>
       ) : (
         <div className="stack">
           {entries.map((w, i) => (
@@ -65,16 +66,16 @@ export default function Weight({ onBack }) {
               <div className="row" style={{ gap: 12, justifyContent: 'flex-end' }}>
                 <Sparkline values={entries.slice(Math.max(0, i - 6), i + 1).map((e) => e.kg)} color="var(--accent)" />
                 <span className="mono">{w.kg} {unit}</span>
-                <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => setToDelete(w)}>Delete</button>
+                <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => setToDelete(w)}>{tx("Delete")}</button>
               </div>
             </div>
           )).reverse()}
         </div>
       )}
 
-      <Sheet open={logOpen} onClose={() => setLogOpen(false)} title="Log weight">
+      <Sheet open={logOpen} onClose={() => setLogOpen(false)} title={tx("Log weight")}>
         <div className="field">
-          <label>Weight ({unit})</label>
+          <label>{tx("Weight (")}{unit})</label>
           <div className="stepper">
             <button onClick={() => setValue((v) => +(v - (unit === 'kg' ? 0.1 : 0.2)).toFixed(1))}>−</button>
             <span className="value">{value}</span>
@@ -82,17 +83,17 @@ export default function Weight({ onBack }) {
           </div>
         </div>
         <div className="field">
-          <label>Date</label>
+          <label>{tx("Date")}</label>
           <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
-        <button className="btn btn-primary btn-block" onClick={() => { addWeight(value, date); setLogOpen(false) }}>Save</button>
+        <button className="btn btn-primary btn-block" onClick={() => { addWeight(value, date); setLogOpen(false) }}>{tx("Save")}</button>
       </Sheet>
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Delete entry?"
-        message="This weight entry will be removed."
-        confirmLabel="Delete"
+        title={tx("Delete entry?")}
+        message={tx("This weight entry will be removed.")}
+        confirmLabel={tx("Delete")}
         danger
         onCancel={() => setToDelete(null)}
         onConfirm={() => { deleteWeight(toDelete.id); setToDelete(null) }}

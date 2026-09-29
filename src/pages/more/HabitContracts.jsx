@@ -5,6 +5,7 @@ import BackHeader from '../../components/BackHeader'
 import Sheet from '../../components/Sheet'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Icon from '../../components/Icon'
+import { tx } from '../../i18n/tx'
 
 export default function HabitContracts({ onBack }) {
   const { data, addHabitContract, deleteHabitContract } = useApp()
@@ -17,19 +18,19 @@ export default function HabitContracts({ onBack }) {
   return (
     <div className="page">
       <BackHeader
-        eyebrow="More"
-        title="Habit Contracts"
+        eyebrow={tx("More")}
+        title={tx("Habit Contracts")}
         onBack={onBack}
-        action={<button className="btn btn-primary btn-sm" onClick={() => setAddOpen(true)}>+ New</button>}
+        action={<button className="btn btn-primary btn-sm" onClick={() => setAddOpen(true)}>{tx("+ New")}</button>}
       />
       <p className="muted text-sm" style={{ marginBottom: 18 }}>
-        Small if-then agreements with yourself — decided in advance, so there's nothing to decide in the moment.
+        {tx("Small if-then agreements with yourself — decided in advance, so there's nothing to decide in the moment.")}
       </p>
 
       {contracts.length === 0 ? (
         <div className="empty-state">
           <div className="icon"><Icon name="handshake" size={26} /></div>
-          <p>No contracts yet. Try "If I slept poorly, I keep today light."</p>
+          <p>{tx("No contracts yet. Try \"If I slept poorly, I keep today light.\"")}</p>
         </div>
       ) : (
         <div className="stack">
@@ -44,17 +45,17 @@ export default function HabitContracts({ onBack }) {
               >
                 <div className="row" style={{ alignItems: 'flex-start' }}>
                   <div>
-                    <div className="text-sm faint">If {type ? type.label.toLowerCase().replace(/^i /, '') : c.triggerType}{type?.hasParam ? ` (${c.param}h)` : ''}…</div>
+                    <div className="text-sm faint">{tx("If")} {type ? type.label.toLowerCase().replace(/^i /, '') : c.triggerType}{type?.hasParam ? ` (${c.param}h)` : ''}…</div>
                     <div style={{ fontWeight: 600, marginTop: 4 }}>{c.response}</div>
                   </div>
-                  {active && <span className="tag" style={{ background: 'var(--accent)', color: 'var(--accent-contrast)', whiteSpace: 'nowrap' }}>Active today</span>}
+                  {active && <span className="tag" style={{ background: 'var(--accent)', color: 'var(--accent-contrast)', whiteSpace: 'nowrap' }}>{tx("Active today")}</span>}
                 </div>
                 <button
                   className="btn-ghost"
                   style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13, marginTop: 10, padding: 0 }}
                   onClick={() => setToDelete(c)}
                 >
-                  Delete
+                  {tx("Delete")}
                 </button>
               </div>
             )
@@ -66,9 +67,9 @@ export default function HabitContracts({ onBack }) {
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Delete this contract?"
-        message="This can't be undone."
-        confirmLabel="Delete"
+        title={tx("Delete this contract?")}
+        message={tx("This can't be undone.")}
+        confirmLabel={tx("Delete")}
         danger
         onCancel={() => setToDelete(null)}
         onConfirm={() => { deleteHabitContract(toDelete.id); setToDelete(null) }}
@@ -98,9 +99,9 @@ function AddContractSheet({ open, onClose, onSubmit }) {
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="New habit contract">
+    <Sheet open={open} onClose={onClose} title={tx("New habit contract")}>
       <div className="field">
-        <label>If…</label>
+        <label>{tx("If…")}</label>
         <div className="stack">
           {TRIGGER_TYPES.map((t) => (
             <button
@@ -109,7 +110,7 @@ function AddContractSheet({ open, onClose, onSubmit }) {
               style={{ textAlign: 'left', justifyContent: 'flex-start' }}
               onClick={() => selectType(t.id)}
             >
-              {t.label}
+              {tx(t.label)}
             </button>
           ))}
         </div>
@@ -127,7 +128,7 @@ function AddContractSheet({ open, onClose, onSubmit }) {
       )}
 
       <div className="field">
-        <label>…then</label>
+        <label>{tx("…then")}</label>
         <input
           className="input"
           type="text"
@@ -137,7 +138,7 @@ function AddContractSheet({ open, onClose, onSubmit }) {
         />
       </div>
 
-      <button className="btn btn-primary btn-block" onClick={submit}>Save contract</button>
+      <button className="btn btn-primary btn-block" onClick={submit}>{tx("Save contract")}</button>
     </Sheet>
   )
 }

@@ -7,6 +7,7 @@ import BackHeader from '../../components/BackHeader'
 import Sheet from '../../components/Sheet'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Ring from '../../components/Ring'
+import { tx } from '../../i18n/tx'
 
 const CALORIE_REVIEW_DAYS = 28 // "elke 4 weken" from the transformatieplan spec
 
@@ -96,9 +97,9 @@ export default function WeeklyProgress({ onBack }) {
 
   return (
     <div className="page">
-      <BackHeader eyebrow="More" title="Voortgang" onBack={onBack} />
+      <BackHeader eyebrow={tx("More")} title={tx("Voortgang")} onBack={onBack} />
 
-      <div className="section-title" style={{ marginTop: 0 }}>Deze week</div>
+      <div className="section-title" style={{ marginTop: 0 }}>{tx("Deze week")}</div>
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="row" style={{ alignItems: 'flex-start' }}>
           <div className="row" style={{ gap: 12, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
@@ -119,54 +120,54 @@ export default function WeeklyProgress({ onBack }) {
         </div>
         <div className="row" style={{ marginTop: 14, gap: 18, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
           <div>
-            <div className="text-sm faint">Huidige streak</div>
-            <div className="mono" style={{ fontWeight: 700 }}>{currentStreak} dagen</div>
+            <div className="text-sm faint">{tx("Huidige streak")}</div>
+            <div className="mono" style={{ fontWeight: 700 }}>{currentStreak} {tx("dagen")}</div>
           </div>
           <div>
-            <div className="text-sm faint">Langste streak</div>
-            <div className="mono" style={{ fontWeight: 700 }}>{longestStreak} dagen</div>
+            <div className="text-sm faint">{tx("Langste streak")}</div>
+            <div className="mono" style={{ fontWeight: 700 }}>{longestStreak} {tx("dagen")}</div>
           </div>
         </div>
       </div>
 
-      <div className="section-title">Deze maand</div>
+      <div className="section-title">{tx("Deze maand")}</div>
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="row">
           <div>
-            <div className="text-sm faint">Gemiddelde score (30 dagen)</div>
+            <div className="text-sm faint">{tx("Gemiddelde score (30 dagen)")}</div>
             <div className="mono" style={{ fontWeight: 700, fontSize: 20 }}>{monthAvg != null ? `${monthAvg}%` : '—'}</div>
           </div>
           <div>
-            <div className="text-sm faint">Dagen boven {threshold}%</div>
+            <div className="text-sm faint">{tx("Dagen boven")} {threshold}%</div>
             <div className="mono" style={{ fontWeight: 700, fontSize: 20, textAlign: 'right' }}>{monthDaysAboveThreshold}</div>
           </div>
         </div>
       </div>
 
-      <div className="section-title">Caloriedoelen</div>
+      <div className="section-title">{tx("Caloriedoelen")}</div>
       <div className="card" style={{ marginBottom: 16 }}>
         {needsCalorieReview && (
           <div className="text-sm" style={{ marginBottom: 10, padding: '8px 10px', borderRadius: 10, background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
-            {lastRevised ? `${daysSinceRevision} dagen geleden herzien` : 'Nog nooit herzien'} — tijd om je caloriedoelen te herzien (elke 4 weken).
+            {lastRevised ? `${daysSinceRevision} dagen geleden herzien` : tx("Nog nooit herzien")} {tx("— tijd om je caloriedoelen te herzien (elke 4 weken).")}
           </div>
         )}
-        <div className="text-sm faint">Rustdag: {data.settings.calorieTargets?.rest_day_kcal?.join('–')} kcal</div>
-        <div className="text-sm faint">Trainingsdag: {data.settings.calorieTargets?.training_day_kcal?.join('–')} kcal</div>
-        <div className="text-sm faint">Eiwit: {data.settings.calorieTargets?.protein_g?.join('–')} g</div>
-        <button className="btn btn-secondary btn-sm" style={{ marginTop: 10 }} onClick={() => setCalorieOpen(true)}>Caloriedoelen bijstellen</button>
+        <div className="text-sm faint">{tx("Rustdag:")} {data.settings.calorieTargets?.rest_day_kcal?.join('–')} {tx("kcal")}</div>
+        <div className="text-sm faint">{tx("Trainingsdag:")} {data.settings.calorieTargets?.training_day_kcal?.join('–')} {tx("kcal")}</div>
+        <div className="text-sm faint">{tx("Eiwit:")} {data.settings.calorieTargets?.protein_g?.join('–')} {tx("g")}</div>
+        <button className="btn btn-secondary btn-sm" style={{ marginTop: 10 }} onClick={() => setCalorieOpen(true)}>{tx("Caloriedoelen bijstellen")}</button>
       </div>
 
       <div className="row" style={{ marginTop: 0 }}>
-        <div className="section-title" style={{ marginTop: 0 }}>Omtrekmaten</div>
-        <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer' }} onClick={openMeasurement}>+ Toevoegen</button>
+        <div className="section-title" style={{ marginTop: 0 }}>{tx("Omtrekmaten")}</div>
+        <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer' }} onClick={openMeasurement}>{tx("+ Toevoegen")}</button>
       </div>
       {latestWeight && (
         <p className="text-sm faint" style={{ marginTop: -8, marginBottom: 10 }}>
-          Laatste gewicht: {latestWeight.kg} {data.settings.weightUnit} ({humanDate(latestWeight.date)})
+          {tx("Laatste gewicht:")} {latestWeight.kg} {data.settings.weightUnit} ({humanDate(latestWeight.date)})
         </p>
       )}
       {measurements.length === 0 ? (
-        <div className="empty-state"><p>Nog geen omtrekmaten gelogd.</p></div>
+        <div className="empty-state"><p>{tx("Nog geen omtrekmaten gelogd.")}</p></div>
       ) : (
         <div className="stack" style={{ gap: 6, marginBottom: 16 }}>
           {measurements.map((m) => (
@@ -177,56 +178,56 @@ export default function WeeklyProgress({ onBack }) {
                   {MEASUREMENT_FIELDS.filter((f) => m[f.key] != null).map((f) => `${f.label.split(' ')[0]} ${m[f.key]}cm`).join(' · ')}
                 </div>
               </div>
-              <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => setToDelete(m)}>Verwijder</button>
+              <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => setToDelete(m)}>{tx("Verwijder")}</button>
             </div>
           ))}
         </div>
       )}
 
-      <Sheet open={measurementOpen} onClose={() => setMeasurementOpen(false)} title="Omtrekmaten toevoegen">
+      <Sheet open={measurementOpen} onClose={() => setMeasurementOpen(false)} title={tx("Omtrekmaten toevoegen")}>
         {MEASUREMENT_FIELDS.map((f) => (
           <div className="field" key={f.key}>
-            <label>{f.label}</label>
+            <label>{tx(f.label)}</label>
             <input
-              className="input" type="number" inputMode="decimal" placeholder="optioneel"
+              className="input" type="number" inputMode="decimal" placeholder={tx("optioneel")}
               value={form[f.key]}
               onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
             />
           </div>
         ))}
-        <button className="btn btn-primary btn-block" onClick={saveMeasurement}>Opslaan</button>
+        <button className="btn btn-primary btn-block" onClick={saveMeasurement}>{tx("Opslaan")}</button>
       </Sheet>
 
-      <Sheet open={calorieOpen} onClose={() => setCalorieOpen(false)} title="Caloriedoelen bijstellen">
+      <Sheet open={calorieOpen} onClose={() => setCalorieOpen(false)} title={tx("Caloriedoelen bijstellen")}>
         <div className="field">
-          <label>Rustdag kcal (min–max)</label>
+          <label>{tx("Rustdag kcal (min–max)")}</label>
           <div className="row" style={{ gap: 8 }}>
             <input className="input" type="number" value={calorieForm.rest_day_kcal[0]} onChange={(e) => setCalorieForm((f) => ({ ...f, rest_day_kcal: [Number(e.target.value), f.rest_day_kcal[1]] }))} />
             <input className="input" type="number" value={calorieForm.rest_day_kcal[1]} onChange={(e) => setCalorieForm((f) => ({ ...f, rest_day_kcal: [f.rest_day_kcal[0], Number(e.target.value)] }))} />
           </div>
         </div>
         <div className="field">
-          <label>Trainingsdag kcal (min–max)</label>
+          <label>{tx("Trainingsdag kcal (min–max)")}</label>
           <div className="row" style={{ gap: 8 }}>
             <input className="input" type="number" value={calorieForm.training_day_kcal[0]} onChange={(e) => setCalorieForm((f) => ({ ...f, training_day_kcal: [Number(e.target.value), f.training_day_kcal[1]] }))} />
             <input className="input" type="number" value={calorieForm.training_day_kcal[1]} onChange={(e) => setCalorieForm((f) => ({ ...f, training_day_kcal: [f.training_day_kcal[0], Number(e.target.value)] }))} />
           </div>
         </div>
         <div className="field">
-          <label>Eiwit g (min–max)</label>
+          <label>{tx("Eiwit g (min–max)")}</label>
           <div className="row" style={{ gap: 8 }}>
             <input className="input" type="number" value={calorieForm.protein_g[0]} onChange={(e) => setCalorieForm((f) => ({ ...f, protein_g: [Number(e.target.value), f.protein_g[1]] }))} />
             <input className="input" type="number" value={calorieForm.protein_g[1]} onChange={(e) => setCalorieForm((f) => ({ ...f, protein_g: [f.protein_g[0], Number(e.target.value)] }))} />
           </div>
         </div>
-        <button className="btn btn-primary btn-block" onClick={saveCalorieTargets}>Opslaan</button>
+        <button className="btn btn-primary btn-block" onClick={saveCalorieTargets}>{tx("Opslaan")}</button>
       </Sheet>
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Meting verwijderen?"
-        message="Deze meting wordt permanent verwijderd."
-        confirmLabel="Verwijder"
+        title={tx("Meting verwijderen?")}
+        message={tx("Deze meting wordt permanent verwijderd.")}
+        confirmLabel={tx("Verwijder")}
         danger
         onCancel={() => setToDelete(null)}
         onConfirm={() => { deleteMeasurement(toDelete.id); setToDelete(null) }}

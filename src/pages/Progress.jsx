@@ -5,6 +5,7 @@ import { resizeImageToDataUrl } from '../utils/image'
 import Sheet from '../components/Sheet'
 import ConfirmDialog from '../components/ConfirmDialog'
 import Icon from '../components/Icon'
+import { tx } from '../i18n/tx'
 
 export default function Progress() {
   const { data, addPhoto, deletePhoto } = useApp()
@@ -59,21 +60,21 @@ export default function Progress() {
     <div className="page">
       <div className="page-header row" style={{ alignItems: 'flex-end' }}>
         <div>
-          <div className="eyebrow">Progress</div>
-          <h1>Photo timeline</h1>
+          <div className="eyebrow">{tx("Progress")}</div>
+          <h1>{tx("Photo timeline")}</h1>
         </div>
         {photos.length >= 2 && (
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => { setCompareMode((c) => !c); setSelected([]) }}
           >
-            {compareMode ? 'Cancel' : 'Compare'}
+            {compareMode ? tx("Cancel") : tx("Compare")}
           </button>
         )}
       </div>
 
       <p className="muted text-sm" style={{ marginBottom: 16 }}>
-        A private timeline just for you — photos never leave this device and nothing here judges how you look, it's simply for comparing two moments side by side.
+        {tx("A private timeline just for you — photos never leave this device and nothing here judges how you look, it's simply for comparing two moments side by side.")}
       </p>
 
       {compareMode && (
@@ -91,21 +92,21 @@ export default function Progress() {
             </div>
           ) : (
             <p className="text-sm muted" style={{ textAlign: 'center', padding: '10px 0' }}>
-              Select {2 - compared.length} more photo{2 - compared.length === 1 ? '' : 's'} to compare.
+              {tx("Select")} {2 - compared.length} {tx("more photo")}{2 - compared.length === 1 ? '' : tx("s")} {tx("to compare.")}
             </p>
           )}
         </div>
       )}
 
       <button className="btn btn-primary btn-block" disabled={busy} onClick={() => fileRef.current?.click()}>
-        {busy ? 'Processing…' : '+ Add photo'}
+        {busy ? tx("Processing…") : tx("+ Add photo")}
       </button>
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFile} />
 
       {photos.length === 0 ? (
         <div className="empty-state">
           <div className="icon"><Icon name="camera" size={26} /></div>
-          <p>No photos yet. Add your first to start your timeline.</p>
+          <p>{tx("No photos yet. Add your first to start your timeline.")}</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 18 }}>
@@ -137,19 +138,19 @@ export default function Progress() {
         </div>
       )}
 
-      <Sheet open={addOpen} onClose={() => { setAddOpen(false); setPending(null) }} title="Add photo">
+      <Sheet open={addOpen} onClose={() => { setAddOpen(false); setPending(null) }} title={tx("Add photo")}>
         {pending && (
           <>
             <img src={pending.dataUrl} alt="" style={{ width: '100%', borderRadius: 'var(--radius-md)', marginBottom: 16, maxHeight: 320, objectFit: 'cover' }} />
             <div className="field">
-              <label>Date</label>
+              <label>{tx("Date")}</label>
               <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div className="field">
-              <label>Note (optional)</label>
-              <input className="input" type="text" placeholder="e.g. week 4" value={note} onChange={(e) => setNote(e.target.value)} />
+              <label>{tx("Note (optional)")}</label>
+              <input className="input" type="text" placeholder={tx("e.g. week 4")} value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
-            <button className="btn btn-primary btn-block" onClick={save}>Save to timeline</button>
+            <button className="btn btn-primary btn-block" onClick={save}>{tx("Save to timeline")}</button>
           </>
         )}
       </Sheet>
@@ -159,16 +160,16 @@ export default function Progress() {
           <>
             <img src={viewing.dataUrl} alt="" style={{ width: '100%', borderRadius: 'var(--radius-md)', marginBottom: 14 }} />
             {viewing.note && <p className="text-sm muted" style={{ marginBottom: 14 }}>{viewing.note}</p>}
-            <button className="btn btn-danger btn-block" onClick={() => setConfirmDelete(viewing)}>Delete photo</button>
+            <button className="btn btn-danger btn-block" onClick={() => setConfirmDelete(viewing)}>{tx("Delete photo")}</button>
           </>
         )}
       </Sheet>
 
       <ConfirmDialog
         open={!!confirmDelete}
-        title="Delete photo?"
-        message="This can't be undone."
-        confirmLabel="Delete"
+        title={tx("Delete photo?")}
+        message={tx("This can't be undone.")}
+        confirmLabel={tx("Delete")}
         danger
         onCancel={() => setConfirmDelete(null)}
         onConfirm={() => { deletePhoto(confirmDelete.id); setConfirmDelete(null); setViewing(null) }}

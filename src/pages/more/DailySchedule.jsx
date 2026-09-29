@@ -6,6 +6,7 @@ import BackHeader from '../../components/BackHeader'
 import Sheet from '../../components/Sheet'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Icon from '../../components/Icon'
+import { tx } from '../../i18n/tx'
 
 const DAY_LABELS = { mon: 'Maandag', tue: 'Dinsdag', wed: 'Woensdag', thu: 'Donderdag', fri: 'Vrijdag', sat: 'Zaterdag', sun: 'Zondag' }
 const MEAL_KEYS = ['ontbijt', 'lunch', 'diner', 'snack']
@@ -66,12 +67,12 @@ export default function DailySchedule({ onBack }) {
 
   return (
     <div className="page">
-      <BackHeader eyebrow="More" title="Dagschema & Menu" onBack={onBack} />
+      <BackHeader eyebrow={tx("More")} title={tx("Dagschema & Menu")} onBack={onBack} />
 
-      <div className="section-title" style={{ marginTop: 0 }}>Streak & meldingen</div>
+      <div className="section-title" style={{ marginTop: 0 }}>{tx("Streak & meldingen")}</div>
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="field">
-          <label>Streak-drempel (% van taken afgevinkt om te tellen)</label>
+          <label>{tx("Streak-drempel (% van taken afgevinkt om te tellen)")}</label>
           <input
             className="input" type="number" min={0} max={100}
             value={data.settings.streakThresholdPct}
@@ -79,22 +80,22 @@ export default function DailySchedule({ onBack }) {
           />
         </div>
         <div className="field">
-          <label>Pushmeldingen op dit apparaat</label>
+          <label>{tx("Pushmeldingen op dit apparaat")}</label>
           {!isPushSupported() ? (
-            <p className="text-sm faint">Niet ondersteund in deze browser.</p>
+            <p className="text-sm faint">{tx("Niet ondersteund in deze browser.")}</p>
           ) : !sync.signedIn ? (
-            <p className="text-sm faint">Log eerst in bij Cloud Sync (More → Settings) — pushmeldingen hebben een account nodig.</p>
+            <p className="text-sm faint">{tx("Log eerst in bij Cloud Sync (More → Settings) — pushmeldingen hebben een account nodig.")}</p>
           ) : (
             <>
               <button className={`btn btn-sm ${data.settings.pushEnabled ? 'btn-secondary' : 'btn-primary'}`} onClick={handlePushToggle} disabled={pushBusy}>
-                {pushBusy ? 'Bezig…' : data.settings.pushEnabled ? 'Meldingen uitschakelen op dit apparaat' : 'Meldingen inschakelen op dit apparaat'}
+                {pushBusy ? tx("Bezig…") : data.settings.pushEnabled ? tx("Meldingen uitschakelen op dit apparaat") : tx("Meldingen inschakelen op dit apparaat")}
               </button>
               {pushError && <p className="text-sm" style={{ color: 'var(--danger)', marginTop: 6 }}>{pushError}</p>}
             </>
           )}
         </div>
         <div className="field">
-          <label>Meldingen per categorie</label>
+          <label>{tx("Meldingen per categorie")}</label>
           <div className="stack" style={{ gap: 8 }}>
             {TASK_CATEGORIES.map((cat) => (
               <label key={cat} className="row" style={{ justifyContent: 'flex-start', gap: 10, cursor: 'pointer' }}>
@@ -111,7 +112,7 @@ export default function DailySchedule({ onBack }) {
         </div>
       </div>
 
-      <div className="section-title">Dagschema</div>
+      <div className="section-title">{tx("Dagschema")}</div>
       <div className="stack" style={{ gap: 10, marginBottom: 16 }}>
         {WEEKDAY_KEYS.map((day) => {
           const tasks = [...(data.taskSchedule[day] || [])].sort((a, b) => a.time.localeCompare(b.time))
@@ -125,7 +126,7 @@ export default function DailySchedule({ onBack }) {
               >
                 <div style={{ fontWeight: 600 }}>{DAY_LABELS[day]}</div>
                 <div className="row" style={{ gap: 8, justifyContent: 'flex-end' }}>
-                  <span className="text-sm faint">{tasks.length} taken</span>
+                  <span className="text-sm faint">{tasks.length} {tx("taken")}</span>
                   <span style={{ transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>
                     <Icon name="chevronRight" size={16} />
                   </span>
@@ -139,17 +140,17 @@ export default function DailySchedule({ onBack }) {
                       <div key={t.id} className="row" style={{ padding: '8px 10px', borderRadius: 10, background: 'var(--surface-soft)' }}>
                         <div>
                           <span className="mono text-sm faint" style={{ marginRight: 8 }}>{t.time}</span>
-                          <span>{t.label}</span>
-                          <span className="text-sm faint" style={{ marginLeft: 8 }}>· {t.category}{t.notify ? '' : ' · geen melding'}</span>
+                          <span>{tx(t.label)}</span>
+                          <span className="text-sm faint" style={{ marginLeft: 8 }}>· {t.category}{t.notify ? '' : tx(" · geen melding")}</span>
                         </div>
                         <div className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
-                          <button className="btn-ghost" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)' }} onClick={() => openEditTask(day, t)}>Bewerk</button>
-                          <button className="btn-ghost" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }} onClick={() => setToDelete({ day, id: t.id })}>Verwijder</button>
+                          <button className="btn-ghost" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)' }} onClick={() => openEditTask(day, t)}>{tx("Bewerk")}</button>
+                          <button className="btn-ghost" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }} onClick={() => setToDelete({ day, id: t.id })}>{tx("Verwijder")}</button>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <button className="btn btn-secondary btn-sm" style={{ marginTop: 10 }} onClick={() => openAddTask(day)}>+ Taak toevoegen</button>
+                  <button className="btn btn-secondary btn-sm" style={{ marginTop: 10 }} onClick={() => openAddTask(day)}>{tx("+ Taak toevoegen")}</button>
                 </div>
               )}
             </div>
@@ -159,7 +160,7 @@ export default function DailySchedule({ onBack }) {
 
       {mealRotation && (
         <>
-          <div className="section-title">Menurotatie</div>
+          <div className="section-title">{tx("Menurotatie")}</div>
           <div className="card" style={{ marginBottom: 16 }}>
             <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
               {cycle.map((w) => (
@@ -168,7 +169,7 @@ export default function DailySchedule({ onBack }) {
                   className={`btn btn-sm ${mealWeek === w ? 'btn-primary' : 'btn-secondary'}`}
                   onClick={() => setMealWeek(w)}
                 >
-                  Week {w}
+                  {tx("Week")} {w}
                 </button>
               ))}
             </div>
@@ -195,17 +196,17 @@ export default function DailySchedule({ onBack }) {
         </>
       )}
 
-      <Sheet open={!!taskSheet} onClose={() => setTaskSheet(null)} title={taskSheet?.task ? 'Taak bewerken' : 'Taak toevoegen'}>
+      <Sheet open={!!taskSheet} onClose={() => setTaskSheet(null)} title={taskSheet?.task ? tx("Taak bewerken") : tx("Taak toevoegen")}>
         <div className="field">
-          <label>Tijdstip</label>
+          <label>{tx("Tijdstip")}</label>
           <input className="input" type="time" value={form.time} onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))} />
         </div>
         <div className="field">
-          <label>Omschrijving</label>
-          <input className="input" type="text" placeholder="bv. Ontbijt" value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
+          <label>{tx("Omschrijving")}</label>
+          <input className="input" type="text" placeholder={tx("bv. Ontbijt")} value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
         </div>
         <div className="field">
-          <label>Categorie</label>
+          <label>{tx("Categorie")}</label>
           <select className="input" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
             {TASK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -217,16 +218,16 @@ export default function DailySchedule({ onBack }) {
             onChange={(e) => setForm((f) => ({ ...f, notify: e.target.checked }))}
             style={{ width: 17, height: 17, accentColor: 'var(--accent)' }}
           />
-          <span>Melding sturen op dit tijdstip</span>
+          <span>{tx("Melding sturen op dit tijdstip")}</span>
         </label>
-        <button className="btn btn-primary btn-block" disabled={!form.label.trim()} onClick={saveTask}>Opslaan</button>
+        <button className="btn btn-primary btn-block" disabled={!form.label.trim()} onClick={saveTask}>{tx("Opslaan")}</button>
       </Sheet>
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Taak verwijderen?"
-        message="Deze taak wordt permanent verwijderd uit het weekschema."
-        confirmLabel="Verwijder"
+        title={tx("Taak verwijderen?")}
+        message={tx("Deze taak wordt permanent verwijderd uit het weekschema.")}
+        confirmLabel={tx("Verwijder")}
         danger
         onCancel={() => setToDelete(null)}
         onConfirm={() => { removeTaskFromDay(toDelete.day, toDelete.id); setToDelete(null) }}

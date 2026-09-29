@@ -2,6 +2,7 @@ import { useApp } from '../../context/AppContext'
 import { PHASES, getGPSStatus } from '../../utils/lifestyleGPS'
 import BackHeader from '../../components/BackHeader'
 import Icon from '../../components/Icon'
+import { tx } from '../../i18n/tx'
 
 export default function LifestyleGPS({ onBack }) {
   const { data } = useApp()
@@ -9,16 +10,16 @@ export default function LifestyleGPS({ onBack }) {
 
   return (
     <div className="page">
-      <BackHeader eyebrow="More" title="Lifestyle GPS" onBack={onBack} />
+      <BackHeader eyebrow={tx("More")} title={tx("Lifestyle GPS")} onBack={onBack} />
       <p className="muted text-sm" style={{ marginBottom: 4 }}>
-        A roadmap, not a race — your phase is based on your Consistency Score ({score}/100), which weighs the last 30 days.
+        {tx("A roadmap, not a race — your phase is based on your Consistency Score (")}{score}{tx("/100), which weighs the last 30 days.")}
       </p>
 
       {next && (
         <div className="card" style={{ marginTop: 16, marginBottom: 20 }}>
           <div className="row text-sm">
-            <span className="muted">{current.label}</span>
-            <span className="muted">{next.label}</span>
+            <span className="muted">{tx(current.label)}</span>
+            <span className="muted">{tx(next.label)}</span>
           </div>
           <div className="xp-bar-track" style={{ marginTop: 8 }}>
             <div className="xp-bar-fill" style={{ width: `${Math.round(progress * 100)}%` }} />
@@ -54,14 +55,14 @@ export default function LifestyleGPS({ onBack }) {
                     <Icon name={state === 'locked' ? 'lock' : phase.icon} size={20} />
                   </span>
                   <div>
-                    <div style={{ fontWeight: 700 }}>{phase.label}</div>
-                    <p className="text-sm muted" style={{ marginTop: 4, lineHeight: 1.5, maxWidth: 260 }}>{phase.description}</p>
+                    <div style={{ fontWeight: 700 }}>{tx(phase.label)}</div>
+                    <p className="text-sm muted" style={{ marginTop: 4, lineHeight: 1.5, maxWidth: 260 }}>{tx(phase.description)}</p>
                   </div>
                 </div>
-                {state === 'current' && <span className="tag" style={{ background: 'var(--accent)', color: 'var(--accent-contrast)', whiteSpace: 'nowrap' }}>You are here</span>}
+                {state === 'current' && <span className="tag" style={{ background: 'var(--accent)', color: 'var(--accent-contrast)', whiteSpace: 'nowrap' }}>{tx("You are here")}</span>}
               </div>
               {state === 'locked' && (
-                <div className="text-sm faint mono" style={{ marginTop: 8 }}>Unlocks at Consistency Score {phase.threshold}</div>
+                <div className="text-sm faint mono" style={{ marginTop: 8 }}>{tx("Unlocks at Consistency Score")} {phase.threshold}</div>
               )}
             </div>
           )

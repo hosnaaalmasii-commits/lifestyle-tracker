@@ -7,6 +7,7 @@ import WeeklyBarChart from '../../components/WeeklyBarChart'
 import Sheet from '../../components/Sheet'
 import MoodCheckIn from '../../components/MoodCheckIn'
 import Icon from '../../components/Icon'
+import { tx } from '../../i18n/tx'
 
 export default function Mood({ onBack }) {
   const { data, addMood } = useApp()
@@ -30,31 +31,31 @@ export default function Mood({ onBack }) {
   return (
     <div className="page">
       <BackHeader
-        eyebrow="More"
-        title="Mood"
+        eyebrow={tx("More")}
+        title={tx("Mood")}
         onBack={onBack}
-        action={<button className="btn btn-primary btn-sm" onClick={() => { setEmoji(todaysEntry?.emoji || '🙂'); setNote(''); setLogOpen(true) }}>+ Log</button>}
+        action={<button className="btn btn-primary btn-sm" onClick={() => { setEmoji(todaysEntry?.emoji || '🙂'); setNote(''); setLogOpen(true) }}>{tx("+ Log")}</button>}
       />
 
       <div className="card" style={{ textAlign: 'center', padding: '24px 18px' }}>
         <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--accent)' }}>
           {todaysEntry ? <Icon name={faceIconForEmoji(todaysEntry.emoji)} size={44} /> : <span className="mono faint" style={{ fontSize: 32 }}>—</span>}
         </div>
-        <div className="text-sm muted" style={{ marginTop: 6 }}>{todaysEntry ? 'Logged today' : 'Not logged today'}</div>
+        <div className="text-sm muted" style={{ marginTop: 6 }}>{todaysEntry ? tx("Logged today") : tx("Not logged today")}</div>
         {todaysEntry?.note && <p className="text-sm" style={{ marginTop: 10, fontStyle: 'italic' }}>"{todaysEntry.note}"</p>}
         <button className="btn btn-ghost btn-sm row" style={{ marginTop: 10, gap: 6, justifyContent: 'center' }} onClick={() => setCheckInOpen(true)}>
-          <Icon name="heart" size={14} /> Need a moment? Get a matched suggestion
+          <Icon name="heart" size={14} /> {tx("Need a moment? Get a matched suggestion")}
         </button>
       </div>
 
-      <div className="section-title">This week</div>
+      <div className="section-title">{tx("This week")}</div>
       <div className="card">
         <WeeklyBarChart values={weekValues} goal={0} color="var(--accent)" formatValue={(v) => MOOD_SCALE.find((m) => m.value === v)?.label || 'None'} />
       </div>
 
-      <div className="section-title">History</div>
+      <div className="section-title">{tx("History")}</div>
       {entries.length === 0 ? (
-        <div className="empty-state"><div className="icon"><Icon name="faceGood" size={26} /></div><p>No moods logged yet.</p></div>
+        <div className="empty-state"><div className="icon"><Icon name="faceGood" size={26} /></div><p>{tx("No moods logged yet.")}</p></div>
       ) : (
         <div className="stack">
           {[...entries].reverse().slice(0, 30).map((m) => (
@@ -71,7 +72,7 @@ export default function Mood({ onBack }) {
         </div>
       )}
 
-      <Sheet open={logOpen} onClose={() => setLogOpen(false)} title="How are you feeling?">
+      <Sheet open={logOpen} onClose={() => setLogOpen(false)} title={tx("How are you feeling?")}>
         <div className="row" style={{ marginBottom: 20 }}>
           {MOOD_SCALE.map((m) => (
             <button
@@ -91,10 +92,10 @@ export default function Mood({ onBack }) {
           ))}
         </div>
         <div className="field">
-          <label>Note (optional)</label>
-          <input className="input" type="text" placeholder="What's on your mind?" value={note} onChange={(e) => setNote(e.target.value)} />
+          <label>{tx("Note (optional)")}</label>
+          <input className="input" type="text" placeholder={tx("What's on your mind?")} value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
-        <button className="btn btn-primary btn-block" onClick={() => { addMood(emoji, note); setLogOpen(false) }}>Save</button>
+        <button className="btn btn-primary btn-block" onClick={() => { addMood(emoji, note); setLogOpen(false) }}>{tx("Save")}</button>
       </Sheet>
 
       <MoodCheckIn open={checkInOpen} onClose={() => setCheckInOpen(false)} />

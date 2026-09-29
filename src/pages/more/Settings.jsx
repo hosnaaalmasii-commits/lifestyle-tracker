@@ -11,6 +11,7 @@ import { isCloudSyncConfigured } from '../../utils/supabaseClient'
 import BackHeader from '../../components/BackHeader'
 import SegmentedControl from '../../components/SegmentedControl'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import { tx } from '../../i18n/tx'
 
 export default function Settings({ onBack }) {
   const {
@@ -213,7 +214,7 @@ export default function Settings({ onBack }) {
               className={`chip${(data.settings.language || 'nl') === l.code ? ' selected' : ''}`}
               onClick={() => setLanguage(l.code)}
             >
-              {l.label}
+              {tx(l.label)}
             </button>
           ))}
         </div>
@@ -257,27 +258,27 @@ export default function Settings({ onBack }) {
         />
       </div>
 
-      <div className="section-title">Wellbeing</div>
+      <div className="section-title">{tx("Wellbeing")}</div>
       <div className="card">
         <div className="row">
           <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Gentle mode</div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>{tx("Gentle mode")}</div>
             <div className="text-sm faint" style={{ maxWidth: 240 }}>
-              Hide exact weight numbers on Overview and the Weight page — shows a trend direction instead
+              {tx("Hide exact weight numbers on Overview and the Weight page — shows a trend direction instead")}
             </div>
           </div>
           <button
             className={`switch${data.settings.gentleMode ? ' on' : ''}`}
             onClick={() => setGentleMode(!data.settings.gentleMode)}
-            aria-label="Gentle mode"
+            aria-label={tx("Gentle mode")}
           />
         </div>
       </div>
 
-      <div className="section-title">Units</div>
+      <div className="section-title">{tx("Units")}</div>
       <div className="card">
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Weight unit</label>
+          <label>{tx("Weight unit")}</label>
           <SegmentedControl
             options={[{ value: 'kg', label: 'Kilograms' }, { value: 'lb', label: 'Pounds' }]}
             value={data.settings.weightUnit}
@@ -286,35 +287,35 @@ export default function Settings({ onBack }) {
         </div>
       </div>
 
-      <div className="section-title">AI Coach</div>
+      <div className="section-title">{tx("AI Coach")}</div>
       <div className="card stack">
         <p className="text-sm muted" style={{ margin: 0 }}>
-          Bring your own Claude API key to unlock the in-app coach. Requests go straight from this browser to Anthropic — never through any server of ours, and your key is stored only in this browser's local storage (it's excluded from data export/backup).
+          {tx("Bring your own Claude API key to unlock the in-app coach. Requests go straight from this browser to Anthropic — never through any server of ours, and your key is stored only in this browser's local storage (it's excluded from data export/backup).")}
         </p>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Anthropic API key</label>
+          <label>{tx("Anthropic API key")}</label>
           <div className="row" style={{ gap: 8 }}>
             <input
               className="input"
               style={{ flex: 1 }}
               type={showKey ? 'text' : 'password'}
-              placeholder="sk-ant-…"
+              placeholder={tx("sk-ant-…")}
               value={apiKeyInput}
               onChange={(e) => saveKey(e.target.value)}
               autoComplete="off"
               spellCheck={false}
             />
-            <button className="btn btn-secondary btn-sm" onClick={() => setShowKey((s) => !s)}>{showKey ? 'Hide' : 'Show'}</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowKey((s) => !s)}>{showKey ? tx("Hide") : tx("Show")}</button>
           </div>
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Model</label>
+          <label>{tx("Model")}</label>
           <select className="input" value={coachSettings.model} onChange={(e) => updateCoachSetting({ model: e.target.value })}>
-            {MODEL_OPTIONS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+            {MODEL_OPTIONS.map((m) => <option key={m.value} value={m.value}>{tx(m.label)}</option>)}
           </select>
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Coach personality</label>
+          <label>{tx("Coach personality")}</label>
           <div className="scroll-x">
             {PERSONALITIES.map((p) => (
               <button
@@ -322,62 +323,62 @@ export default function Settings({ onBack }) {
                 className={`chip${p.id === coachSettings.personality ? ' selected' : ''}`}
                 onClick={() => updateCoachSetting({ personality: p.id })}
               >
-                {p.label}
+                {tx(p.label)}
               </button>
             ))}
           </div>
         </div>
         <div className="row">
           <button className="btn btn-secondary btn-sm" disabled={!apiKeyInput || testStatus === 'testing'} onClick={testConnection}>
-            {testStatus === 'testing' ? 'Testing…' : 'Test connection'}
+            {testStatus === 'testing' ? tx("Testing…") : tx("Test connection")}
           </button>
-          {apiKeyInput && <button className="btn btn-ghost btn-sm" onClick={() => saveKey('')}>Remove key</button>}
+          {apiKeyInput && <button className="btn btn-ghost btn-sm" onClick={() => saveKey('')}>{tx("Remove key")}</button>}
         </div>
-        {testStatus === 'ok' && <div className="text-sm" style={{ color: 'var(--success)' }}>Connected — your coach is ready.</div>}
+        {testStatus === 'ok' && <div className="text-sm" style={{ color: 'var(--success)' }}>{tx("Connected — your coach is ready.")}</div>}
         {testStatus === 'error' && <div className="text-sm" style={{ color: 'var(--danger)' }}>{testMessage}</div>}
       </div>
 
-      <div className="section-title">Google Calendar</div>
+      <div className="section-title">{tx("Google Calendar")}</div>
       <div className="card stack">
         <p className="text-sm muted" style={{ margin: 0 }}>
-          Connect your Google Calendar so the day planner can plan around today's appointments and your tasks can be added as calendar events. This uses Google's own sign-in — your calendar data goes straight from Google to this browser, never through any server of ours. Just tap Connect and sign in with your Google account.
+          {tx("Connect your Google Calendar so the day planner can plan around today's appointments and your tasks can be added as calendar events. This uses Google's own sign-in — your calendar data goes straight from Google to this browser, never through any server of ours. Just tap Connect and sign in with your Google account.")}
         </p>
         {data.calendarStatus?.connected ? (
           <>
             <div className="row">
               <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>Connected</div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{tx("Connected")}</div>
                 <div className="text-sm faint">
-                  Today: {data.calendarStatus.busyMinutesToday >= 60
+                  {tx("Today:")} {data.calendarStatus.busyMinutesToday >= 60
                     ? `${Math.round(data.calendarStatus.busyMinutesToday / 60 * 10) / 10}h busy`
                     : `${data.calendarStatus.busyMinutesToday || 0}m busy`}
                 </div>
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={disconnectGoogleCalendar}>Disconnect</button>
+              <button className="btn btn-ghost btn-sm" onClick={disconnectGoogleCalendar}>{tx("Disconnect")}</button>
             </div>
             <div className="row" style={{ marginTop: 4 }}>
               <button className="btn btn-secondary btn-sm" onClick={handleSyncCalendar} disabled={calendarSyncing}>
-                {calendarSyncing ? 'Bezig…' : 'Taken syncen naar agenda (7 dagen)'}
+                {calendarSyncing ? tx("Bezig…") : tx("Taken syncen naar agenda (7 dagen)")}
               </button>
             </div>
             {calendarSyncResult && <div className="text-sm faint">{calendarSyncResult}</div>}
 
             <div className="row" style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-soft)' }}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>Automatic sync</div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{tx("Automatic sync")}</div>
                 <div className="text-sm faint" style={{ maxWidth: 260 }}>
                   {data.settings.googleAutoSyncEnabled
-                    ? 'Runs once a day on our server, even with the app closed.'
+                    ? tx("Runs once a day on our server, even with the app closed.")
                     : sync.signedIn
-                      ? 'Requires re-approving Google access once — needed so a daily server job can sync without the app open.'
-                      : 'Sign in to Cloud Sync above first — a daily server job needs your account to store this under.'}
+                      ? tx("Requires re-approving Google access once — needed so a daily server job can sync without the app open.")
+                      : tx("Sign in to Cloud Sync above first — a daily server job needs your account to store this under.")}
                 </div>
               </div>
               <button
                 className={`switch${data.settings.googleAutoSyncEnabled ? ' on' : ''}`}
                 onClick={handleToggleAutoSync}
                 disabled={autoSyncBusy || (!sync.signedIn && !data.settings.googleAutoSyncEnabled)}
-                aria-label="Automatic sync"
+                aria-label={tx("Automatic sync")}
               />
             </div>
             {autoSyncError && <div className="text-sm" style={{ color: 'var(--danger)' }}>{autoSyncError}</div>}
@@ -385,17 +386,17 @@ export default function Settings({ onBack }) {
         ) : (
           <>
             <button className="btn btn-secondary btn-block" disabled={calendarConnecting} onClick={handleConnectCalendar}>
-              {calendarConnecting ? 'Connecting…' : 'Connect Google Calendar'}
+              {calendarConnecting ? tx("Connecting…") : tx("Connect Google Calendar")}
             </button>
             {calendarError && <div className="text-sm" style={{ color: 'var(--danger)' }}>{calendarError}</div>}
             <details>
-              <summary className="text-sm faint" style={{ cursor: 'pointer' }}>Advanced: OAuth Client ID</summary>
+              <summary className="text-sm faint" style={{ cursor: 'pointer' }}>{tx("Advanced: OAuth Client ID")}</summary>
               <div className="field" style={{ marginBottom: 0, marginTop: 8 }}>
-                <label>Google OAuth Client ID (already filled in — only change for your own Google Cloud project)</label>
+                <label>{tx("Google OAuth Client ID (already filled in — only change for your own Google Cloud project)")}</label>
                 <input
                   className="input"
                   type="text"
-                  placeholder="xxxxx.apps.googleusercontent.com"
+                  placeholder={tx("xxxxx.apps.googleusercontent.com")}
                   value={clientIdInput}
                   onChange={(e) => setClientIdInput(e.target.value)}
                   autoComplete="off"
@@ -403,7 +404,7 @@ export default function Settings({ onBack }) {
                 />
                 {clientIdInput.trim() && !isValidGoogleClientId(clientIdInput) && (
                   <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 6 }}>
-                    This isn't a Client ID (it should end in .apps.googleusercontent.com) — the built-in one will be used instead. Your calendar's own web address doesn't go here.
+                    {tx("This isn't a Client ID (it should end in .apps.googleusercontent.com) — the built-in one will be used instead. Your calendar's own web address doesn't go here.")}
                   </div>
                 )}
               </div>
@@ -412,17 +413,17 @@ export default function Settings({ onBack }) {
         )}
       </div>
 
-      <div className="section-title">Oura Ring</div>
+      <div className="section-title">{tx("Oura Ring")}</div>
       <div className="card stack">
         <p className="text-sm muted" style={{ margin: 0 }}>
-          Bring your own Oura Personal Access Token to pull today's sleep score, readiness, and active calories in next to your day score. Get one at cloud.ouraring.com/personal-access-tokens — it goes straight from this browser to Oura, never through any server of ours, and is never included in export/backup.
+          {tx("Bring your own Oura Personal Access Token to pull today's sleep score, readiness, and active calories in next to your day score. Get one at cloud.ouraring.com/personal-access-tokens — it goes straight from this browser to Oura, never through any server of ours, and is never included in export/backup.")}
         </p>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Oura Personal Access Token</label>
+          <label>{tx("Oura Personal Access Token")}</label>
           <input
             className="input"
             type="password"
-            placeholder="Paste your token"
+            placeholder={tx("Paste your token")}
             value={ouraKeyInput}
             onChange={(e) => saveOuraKey(e.target.value)}
             autoComplete="off"
@@ -431,27 +432,27 @@ export default function Settings({ onBack }) {
         </div>
         <div className="row">
           <button className="btn btn-secondary btn-sm" disabled={!ouraKeyInput || ouraStatus === 'testing'} onClick={testOuraConnection}>
-            {ouraStatus === 'testing' ? 'Testing…' : 'Test connection'}
+            {ouraStatus === 'testing' ? tx("Testing…") : tx("Test connection")}
           </button>
-          {ouraKeyInput && <button className="btn btn-ghost btn-sm" onClick={() => saveOuraKey('')}>Remove token</button>}
+          {ouraKeyInput && <button className="btn btn-ghost btn-sm" onClick={() => saveOuraKey('')}>{tx("Remove token")}</button>}
         </div>
-        {ouraStatus === 'ok' && <div className="text-sm" style={{ color: 'var(--success)' }}>Connected — today's data is in.</div>}
+        {ouraStatus === 'ok' && <div className="text-sm" style={{ color: 'var(--success)' }}>{tx("Connected — today's data is in.")}</div>}
         {ouraStatus === 'error' && <div className="text-sm" style={{ color: 'var(--danger)' }}>{ouraMessage}</div>}
       </div>
 
-      <div className="section-title">Cloud Sync</div>
+      <div className="section-title">{tx("Cloud Sync")}</div>
       <div className="card stack">
         <p className="text-sm muted" style={{ margin: 0 }}>
-          Keep this data in sync across your own devices, using your own free Supabase project — a database service, not a server of ours. Requires a one-time setup: create a free account at supabase.com, create a project, paste its URL and "anon public" key below (neither is a secret), then run the SQL in this project's <span className="mono">supabase/schema.sql</span> once in Supabase's SQL Editor. After that, sign in with the same email on each device.
+          {tx("Keep this data in sync across your own devices, using your own free Supabase project — a database service, not a server of ours. Requires a one-time setup: create a free account at supabase.com, create a project, paste its URL and \"anon public\" key below (neither is a secret), then run the SQL in this project's")} <span className="mono">{tx("supabase/schema.sql")}</span> {tx("once in Supabase's SQL Editor. After that, sign in with the same email on each device.")}
         </p>
         {!isCloudSyncConfigured(data.settings) ? (
           <>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Supabase project URL</label>
+              <label>{tx("Supabase project URL")}</label>
               <input
                 className="input"
                 type="text"
-                placeholder="https://xxxxx.supabase.co"
+                placeholder={tx("https://xxxxx.supabase.co")}
                 value={supaUrlInput}
                 onChange={(e) => setSupaUrlInput(e.target.value)}
                 autoComplete="off"
@@ -459,11 +460,11 @@ export default function Settings({ onBack }) {
               />
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Anon public key</label>
+              <label>{tx("Anon public key")}</label>
               <input
                 className="input"
                 type="text"
-                placeholder="eyJ…"
+                placeholder={tx("eyJ…")}
                 value={supaKeyInput}
                 onChange={(e) => setSupaKeyInput(e.target.value)}
                 autoComplete="off"
@@ -471,56 +472,54 @@ export default function Settings({ onBack }) {
               />
             </div>
             <button className="btn btn-secondary btn-block" disabled={!supaUrlInput.trim() || !supaKeyInput.trim()} onClick={handleSaveSupabaseConfig}>
-              Save connection
+              {tx("Save connection")}
             </button>
           </>
         ) : !sync.signedIn ? (
           <>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Email</label>
+              <label>{tx("Email")}</label>
               <input className="input" type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} autoComplete="email" />
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Password</label>
+              <label>{tx("Password")}</label>
               <input className="input" type="password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} autoComplete="current-password" />
             </div>
             <div className="row" style={{ gap: 8 }}>
               <button className="btn btn-secondary btn-sm" disabled={!authEmail || !authPassword || authBusy} onClick={() => handleAuth('signin')}>
-                {authBusy ? 'Working…' : 'Sign in'}
+                {authBusy ? tx("Working…") : tx("Sign in")}
               </button>
               <button className="btn btn-ghost btn-sm" disabled={!authEmail || !authPassword || authBusy} onClick={() => handleAuth('signup')}>
-                First time — create account
+                {tx("First time — create account")}
               </button>
             </div>
             {authNotice && <div className="text-sm" style={{ color: 'var(--success)' }}>{authNotice}</div>}
             {authError && <div className="text-sm" style={{ color: 'var(--danger)' }}>{authError}</div>}
-            <button className="btn btn-ghost btn-sm" onClick={disconnectSupabase}>Disconnect Supabase</button>
+            <button className="btn btn-ghost btn-sm" onClick={disconnectSupabase}>{tx("Disconnect Supabase")}</button>
           </>
         ) : (
           <>
             <div className="row">
               <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>Signed in as {sync.email}</div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{tx("Signed in as")} {sync.email}</div>
                 <div className="text-sm faint">
-                  {sync.status === 'syncing' ? 'Syncing…' : sync.status === 'error' ? `Sync error: ${sync.error}` : sync.lastSyncedAt ? `Last synced ${new Date(sync.lastSyncedAt).toLocaleTimeString()}` : 'Not synced yet'}
+                  {sync.status === 'syncing' ? tx("Syncing…") : sync.status === 'error' ? `Sync error: ${sync.error}` : sync.lastSyncedAt ? `Last synced ${new Date(sync.lastSyncedAt).toLocaleTimeString()}` : tx("Not synced yet")}
                 </div>
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={syncNow} disabled={sync.status === 'syncing'}>Sync now</button>
+              <button className="btn btn-secondary btn-sm" onClick={syncNow} disabled={sync.status === 'syncing'}>{tx("Sync now")}</button>
             </div>
             <div className="row" style={{ gap: 8 }}>
-              <button className="btn btn-ghost btn-sm" onClick={cloudSignOut}>Sign out</button>
-              <button className="btn btn-ghost btn-sm" onClick={disconnectSupabase}>Disconnect Supabase</button>
+              <button className="btn btn-ghost btn-sm" onClick={cloudSignOut}>{tx("Sign out")}</button>
+              <button className="btn btn-ghost btn-sm" onClick={disconnectSupabase}>{tx("Disconnect Supabase")}</button>
             </div>
 
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-soft)' }}>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>Backfill existing data</div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>{tx("Backfill existing data")}</div>
               <p className="text-sm faint" style={{ margin: '2px 0 10px' }}>
-                New entries already mirror to individual Supabase tables (water_logs, sleep_logs, weight_logs, etc.)
-                alongside the usual whole-app backup. This pushes everything logged before that was wired up. Safe to
-                run more than once — it won't create duplicates.
+                {tx("New entries already mirror to individual Supabase tables (water_logs, sleep_logs, weight_logs, etc.) alongside the usual whole-app backup. This pushes everything logged before that was wired up. Safe to run more than once — it won't create duplicates.")}
               </p>
               <button className="btn btn-secondary btn-sm" disabled={backfillBusy} onClick={runBackfill}>
-                {backfillBusy ? `Backfilling ${backfillStage || '…'}` : 'Backfill existing data'}
+                {backfillBusy ? `Backfilling ${backfillStage || '…'}` : tx("Backfill existing data")}
               </button>
               {backfillError && <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 8 }}>{backfillError}</div>}
               {backfillResult && (
@@ -529,7 +528,7 @@ export default function Settings({ onBack }) {
                     <div key={label} className="row" style={{ padding: '2px 0' }}>
                       <span className="muted">{label}</span>
                       <span className={r.errors.length ? '' : 'muted'} style={r.errors.length ? { color: 'var(--danger)' } : undefined}>
-                        {r.ok} synced{r.errors.length ? `, ${r.errors.length} failed` : ''}
+                        {r.ok} {tx("synced")}{r.errors.length ? `, ${r.errors.length} failed` : ''}
                       </span>
                     </div>
                   ))}
@@ -540,46 +539,46 @@ export default function Settings({ onBack }) {
         )}
       </div>
 
-      <div className="section-title">Your data</div>
+      <div className="section-title">{tx("Your data")}</div>
       <div className="card stack">
         <div className="row">
           <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Export backup</div>
-            <div className="text-sm faint">Save everything as a JSON file</div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>{tx("Export backup")}</div>
+            <div className="text-sm faint">{tx("Save everything as a JSON file")}</div>
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={exportData}>Export</button>
+          <button className="btn btn-secondary btn-sm" onClick={exportData}>{tx("Export")}</button>
         </div>
         <div className="row">
           <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Import backup</div>
-            <div className="text-sm faint">Replace current data from a file</div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>{tx("Import backup")}</div>
+            <div className="text-sm faint">{tx("Replace current data from a file")}</div>
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={() => importRef.current?.click()}>Import</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => importRef.current?.click()}>{tx("Import")}</button>
           <input ref={importRef} type="file" accept="application/json" hidden onChange={handleImportFile} />
         </div>
-        {importedOk && <div className="text-sm" style={{ color: 'var(--success)' }}>Backup imported successfully.</div>}
+        {importedOk && <div className="text-sm" style={{ color: 'var(--success)' }}>{tx("Backup imported successfully.")}</div>}
         {importError && <div className="text-sm" style={{ color: 'var(--danger)' }}>{importError}</div>}
       </div>
 
       <div className="card" style={{ marginTop: 12 }}>
         <div className="row">
           <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Clear everything</div>
-            <div className="text-sm faint">Erase all local data, including your API key</div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>{tx("Clear everything")}</div>
+            <div className="text-sm faint">{tx("Erase all local data, including your API key")}</div>
           </div>
-          <button className="btn btn-danger btn-sm" onClick={() => setConfirmClear(true)}>Clear</button>
+          <button className="btn btn-danger btn-sm" onClick={() => setConfirmClear(true)}>{tx("Clear")}</button>
         </div>
       </div>
 
       <p className="text-sm faint" style={{ textAlign: 'center', margin: '28px 0 8px' }}>
-        Lifestyle Tracker · data stays on this device
+        {tx("Lifestyle Tracker · data stays on this device")}
       </p>
 
       <ConfirmDialog
         open={confirmClear}
-        title="Clear everything?"
-        message="This permanently deletes all water, sleep, workout, weight, mood, nutrition and photo data, plus your saved API key and coach chat history, on this device, and disconnects Cloud Sync (your Supabase account and its data are untouched). This can't be undone."
-        confirmLabel="Clear everything"
+        title={tx("Clear everything?")}
+        message={tx("This permanently deletes all water, sleep, workout, weight, mood, nutrition and photo data, plus your saved API key and coach chat history, on this device, and disconnects Cloud Sync (your Supabase account and its data are untouched). This can't be undone.")}
+        confirmLabel={tx("Clear everything")}
         danger
         onCancel={() => setConfirmClear(false)}
         onConfirm={() => {

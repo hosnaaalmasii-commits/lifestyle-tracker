@@ -11,6 +11,7 @@ import WeeklyBarChart from '../../components/WeeklyBarChart'
 import IconBadge from '../../components/IconBadge'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Icon from '../../components/Icon'
+import { tx } from '../../i18n/tx'
 
 const MACRO_BARS = [
   { key: 'calories', label: 'Calories', goalKey: 'calories', unit: '' },
@@ -113,16 +114,16 @@ export default function Nutrition({ onBack }) {
   return (
     <div className="page">
       <BackHeader
-        eyebrow="More"
-        title="Nutrition"
+        eyebrow={tx("More")}
+        title={tx("Nutrition")}
         onBack={onBack}
-        action={<button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13 }} onClick={() => { setDraftGoals(data.settings.macroGoals); setGoalsOpen(true) }}>Goals</button>}
+        action={<button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13 }} onClick={() => { setDraftGoals(data.settings.macroGoals); setGoalsOpen(true) }}>{tx("Goals")}</button>}
       />
 
       {phaseTip && (
         <div className="card" style={{ padding: '12px 16px', marginBottom: 12 }}>
           <div className="text-sm faint" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
-            {phase.name} window (estimated)
+            {tx(`${phase.name} window (estimated)`)}
           </div>
           <p className="text-sm" style={{ margin: '4px 0 0' }}>{phaseTip}</p>
         </div>
@@ -132,8 +133,8 @@ export default function Nutrition({ onBack }) {
         <div className="row" style={{ marginBottom: 4 }}>
           <button className="btn-ghost" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text-soft)' }} onClick={() => setViewDate((d) => addDaysToKey(d, -1))}>‹</button>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 600 }}>{isToday(viewDate) ? 'Today' : humanDate(viewDate)}</div>
-            <div className="text-sm faint mono">{count}/5 complete</div>
+            <div style={{ fontWeight: 600 }}>{isToday(viewDate) ? tx("Today") : humanDate(viewDate)}</div>
+            <div className="text-sm faint mono">{count}{tx("/5 complete")}</div>
           </div>
           <button
             className="btn-ghost"
@@ -151,12 +152,12 @@ export default function Nutrition({ onBack }) {
               <div key={item.key} className="row" style={{ padding: '6px 0' }}>
                 <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
                   <IconBadge icon={item.icon} color={item.color} size={30} iconSize={14} />
-                  <span className="text-sm" style={{ fontWeight: 500 }}>{item.label}</span>
+                  <span className="text-sm" style={{ fontWeight: 500 }}>{tx(item.label)}</span>
                 </div>
                 <button
                   className={`switch${on ? ' on' : ''}`}
                   onClick={() => setNutritionItem(viewDate, item.key, !on)}
-                  aria-label={item.label}
+                  aria-label={tx(item.label)}
                 />
               </div>
             )
@@ -165,8 +166,8 @@ export default function Nutrition({ onBack }) {
       </div>
 
       <div className="section-title row">
-        <span>Meals</span>
-        <button className="btn btn-primary btn-sm" onClick={() => { resetMealDraft(); setMealOpen(true) }}>+ Log a meal</button>
+        <span>{tx("Meals")}</span>
+        <button className="btn btn-primary btn-sm" onClick={() => { resetMealDraft(); setMealOpen(true) }}>{tx("+ Log a meal")}</button>
       </div>
       <div className="card">
         <div className="stack">
@@ -177,7 +178,7 @@ export default function Nutrition({ onBack }) {
             return (
               <div key={bar.key}>
                 <div className="row text-sm" style={{ marginBottom: 4 }}>
-                  <span className="faint">{bar.label}</span>
+                  <span className="faint">{tx(bar.label)}</span>
                   <span className="mono">{Math.round(value)}{bar.unit} / {goal}{bar.unit}</span>
                 </div>
                 <div className="xp-bar-track"><div className="xp-bar-fill" style={{ width: `${Math.round(pct * 100)}%` }} /></div>
@@ -199,35 +200,35 @@ export default function Nutrition({ onBack }) {
                 )}
                 <div style={{ minWidth: 0 }}>
                   <div className="text-sm" style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
-                  <div className="text-sm faint mono">{Math.round(m.calories)} cal · {Math.round(m.proteinG)}p {Math.round(m.carbsG)}c {Math.round(m.fatG)}f</div>
+                  <div className="text-sm faint mono">{Math.round(m.calories)} {tx("cal ·")} {Math.round(m.proteinG)}{tx("p")} {Math.round(m.carbsG)}{tx("c")} {Math.round(m.fatG)}{tx("f")}</div>
                 </div>
               </div>
-              <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }} onClick={() => setMealToDelete(m)}>Delete</button>
+              <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }} onClick={() => setMealToDelete(m)}>{tx("Delete")}</button>
             </div>
           ))}
         </div>
       )}
 
-      <div className="section-title">This week</div>
+      <div className="section-title">{tx("This week")}</div>
       <div className="card">
         <WeeklyBarChart values={weekValues} goal={5} color="var(--accent)" formatValue={(v) => `${v}/5`} />
       </div>
 
-      <Sheet open={goalsOpen} onClose={() => setGoalsOpen(false)} title="Macro goals">
+      <Sheet open={goalsOpen} onClose={() => setGoalsOpen(false)} title={tx("Macro goals")}>
         <div className="field">
-          <label>Calories</label>
+          <label>{tx("Calories")}</label>
           <input className="input" type="number" min="0" value={draftGoals.calories} onChange={(e) => setDraftGoals((g) => ({ ...g, calories: Number(e.target.value) }))} />
         </div>
         <div className="field">
-          <label>Protein (g)</label>
+          <label>{tx("Protein (g)")}</label>
           <input className="input" type="number" min="0" value={draftGoals.proteinG} onChange={(e) => setDraftGoals((g) => ({ ...g, proteinG: Number(e.target.value) }))} />
         </div>
         <div className="field">
-          <label>Carbs (g)</label>
+          <label>{tx("Carbs (g)")}</label>
           <input className="input" type="number" min="0" value={draftGoals.carbsG} onChange={(e) => setDraftGoals((g) => ({ ...g, carbsG: Number(e.target.value) }))} />
         </div>
         <div className="field">
-          <label>Fat (g)</label>
+          <label>{tx("Fat (g)")}</label>
           <input className="input" type="number" min="0" value={draftGoals.fatG} onChange={(e) => setDraftGoals((g) => ({ ...g, fatG: Number(e.target.value) }))} />
         </div>
         <button
@@ -242,36 +243,36 @@ export default function Nutrition({ onBack }) {
             setGoalsOpen(false)
           }}
         >
-          Save goals
+          {tx("Save goals")}
         </button>
       </Sheet>
 
-      <Sheet open={mealOpen} onClose={() => { setMealOpen(false); resetMealDraft() }} title="Log a meal">
+      <Sheet open={mealOpen} onClose={() => { setMealOpen(false); resetMealDraft() }} title={tx("Log a meal")}>
         {!hasApiKey() ? (
-          <p className="text-sm faint">Add a Claude API key in More → Settings → AI Coach to analyze meals from a name or photo.</p>
+          <p className="text-sm faint">{tx("Add a Claude API key in More → Settings → AI Coach to analyze meals from a name or photo.")}</p>
         ) : (
           <>
             <div className="field">
-              <label>Meal name (optional if you add a photo)</label>
+              <label>{tx("Meal name (optional if you add a photo)")}</label>
               <input
                 className="input"
                 type="text"
-                placeholder="e.g. Grilled chicken salad"
+                placeholder={tx("e.g. Grilled chicken salad")}
                 value={mealName}
                 onChange={(e) => { setMealName(e.target.value); setMealEstimate(null) }}
               />
             </div>
 
             <div className="field">
-              <label>Photo (optional)</label>
+              <label>{tx("Photo (optional)")}</label>
               {mealPhoto ? (
                 <div className="row" style={{ justifyContent: 'flex-start', gap: 12 }}>
                   <img src={mealPhoto} alt="" style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover' }} />
-                  <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => { setMealPhoto(null); setMealEstimate(null) }}>Remove</button>
+                  <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => { setMealPhoto(null); setMealEstimate(null) }}>{tx("Remove")}</button>
                 </div>
               ) : (
                 <label className="btn btn-secondary btn-block" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <Icon name="camera" size={16} /> Add photo
+                  <Icon name="camera" size={16} /> {tx("Add photo")}
                   <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleMealPhoto} />
                 </label>
               )}
@@ -283,21 +284,21 @@ export default function Nutrition({ onBack }) {
                 disabled={analyzing || (!mealName.trim() && !mealPhoto)}
                 onClick={runAnalysis}
               >
-                {analyzing ? 'Analyzing…' : 'Analyze with AI'}
+                {analyzing ? tx("Analyzing…") : tx("Analyze with AI")}
               </button>
             ) : (
               <>
                 <div className="card" style={{ padding: '12px 16px' }}>
                   <div className="row" style={{ marginBottom: 8 }}>
                     <span style={{ fontWeight: 600 }}>{mealEstimate.name}</span>
-                    <span className="text-sm faint" style={{ textTransform: 'capitalize' }}>{mealEstimate.confidence} confidence</span>
+                    <span className="text-sm faint" style={{ textTransform: 'capitalize' }}>{mealEstimate.confidence} {tx("confidence")}</span>
                   </div>
-                  <div className="text-sm mono">{Math.round(mealEstimate.calories)} cal · {Math.round(mealEstimate.proteinG)}g protein · {Math.round(mealEstimate.carbsG)}g carbs · {Math.round(mealEstimate.fatG)}g fat</div>
+                  <div className="text-sm mono">{Math.round(mealEstimate.calories)} {tx("cal ·")} {Math.round(mealEstimate.proteinG)}{tx("g protein ·")} {Math.round(mealEstimate.carbsG)}{tx("g carbs ·")} {Math.round(mealEstimate.fatG)}{tx("g fat")}</div>
                   {mealEstimate.note && <p className="text-sm faint" style={{ marginTop: 8 }}>{mealEstimate.note}</p>}
                 </div>
                 <div className="row" style={{ gap: 10, marginTop: 12 }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setMealEstimate(null)}>Re-analyze</button>
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveMeal}>Save</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setMealEstimate(null)}>{tx("Re-analyze")}</button>
+                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveMeal}>{tx("Save")}</button>
                 </div>
               </>
             )}
@@ -309,9 +310,9 @@ export default function Nutrition({ onBack }) {
 
       <ConfirmDialog
         open={!!mealToDelete}
-        title="Delete meal?"
-        message="This logged meal and its macros will be removed."
-        confirmLabel="Delete"
+        title={tx("Delete meal?")}
+        message={tx("This logged meal and its macros will be removed.")}
+        confirmLabel={tx("Delete")}
         danger
         onCancel={() => setMealToDelete(null)}
         onConfirm={() => { deleteMeal(mealToDelete.id); setMealToDelete(null) }}

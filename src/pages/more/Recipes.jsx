@@ -6,6 +6,7 @@ import BackHeader from '../../components/BackHeader'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Sheet from '../../components/Sheet'
 import Icon from '../../components/Icon'
+import { tx } from '../../i18n/tx'
 
 const SWAP_DIRECTIONS = [
   { value: 'lower-calorie', label: 'Lower calorie' },
@@ -96,9 +97,9 @@ export default function Recipes({ onBack, setView }) {
         </div>
       )}
       <div className="text-sm faint mono" style={{ marginTop: 8 }}>
-        {recipe.macros.calories} kcal · {recipe.macros.proteinG}g protein · {recipe.macros.carbsG}g carbs · {recipe.macros.fatG}g fat
+        {recipe.macros.calories} {tx("kcal ·")} {recipe.macros.proteinG}{tx("g protein ·")} {recipe.macros.carbsG}{tx("g carbs ·")} {recipe.macros.fatG}{tx("g fat")}
       </div>
-      <div className="text-sm faint" style={{ marginTop: 10, fontWeight: 600 }}>Ingredients</div>
+      <div className="text-sm faint" style={{ marginTop: 10, fontWeight: 600 }}>{tx("Ingredients")}</div>
       <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
         {recipe.ingredients.map((ing, i) => (
           <li
@@ -125,39 +126,39 @@ export default function Recipes({ onBack, setView }) {
           </li>
         ))}
       </ul>
-      <div className="text-sm faint" style={{ marginTop: 10, fontWeight: 600 }}>Instructions</div>
+      <div className="text-sm faint" style={{ marginTop: 10, fontWeight: 600 }}>{tx("Instructions")}</div>
       <ol style={{ margin: '4px 0 0', paddingLeft: 18 }}>
         {recipe.instructions.map((step, i) => <li key={i} className="text-sm">{step}</li>)}
       </ol>
       {lastSwappedKey === recipeKey && (
         <p className="text-sm faint" style={{ marginTop: 8, fontStyle: 'italic' }}>
-          Steps may need a small adjustment for this swap.
+          {tx("Steps may need a small adjustment for this swap.")}
         </p>
       )}
       {onSave && (
-        <button className="btn btn-primary btn-block" style={{ marginTop: 14 }} onClick={onSave}>Save</button>
+        <button className="btn btn-primary btn-block" style={{ marginTop: 14 }} onClick={onSave}>{tx("Save")}</button>
       )}
     </div>
   )
 
   return (
     <div className="page">
-      <BackHeader eyebrow="More" title="Recipes" onBack={onBack} />
+      <BackHeader eyebrow={tx("More")} title={tx("Recipes")} onBack={onBack} />
 
       {keyPresent ? (
         <>
           <div className="field">
-            <label>What do you want to cook?</label>
+            <label>{tx("What do you want to cook?")}</label>
             <input
               className="input"
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="e.g. something high-protein with chicken"
+              placeholder={tx("e.g. something high-protein with chicken")}
             />
           </div>
           <button className="btn btn-primary btn-block" onClick={handleGenerate} disabled={loading || !prompt.trim()}>
-            {loading ? 'Generating…' : 'Generate'}
+            {loading ? tx("Generating…") : tx("Generate")}
           </button>
           {error && <p className="text-sm" style={{ color: 'var(--danger)', marginTop: 8 }}>{error}</p>}
 
@@ -166,14 +167,14 @@ export default function Recipes({ onBack, setView }) {
       ) : (
         <div className="empty-state">
           <div className="icon"><Icon name="apple" size={26} /></div>
-          <p>Connect your own Claude API key to generate recipes from what you ask for — nothing is sent anywhere until you add a key.</p>
-          <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={() => setView('settings')}>Set up in Settings</button>
+          <p>{tx("Connect your own Claude API key to generate recipes from what you ask for — nothing is sent anywhere until you add a key.")}</p>
+          <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={() => setView('settings')}>{tx("Set up in Settings")}</button>
         </div>
       )}
 
-      <div className="section-title">Saved recipes</div>
+      <div className="section-title">{tx("Saved recipes")}</div>
       {saved.length === 0 ? (
-        <div className="empty-state"><div className="icon"><Icon name="apple" size={26} /></div><p>No recipes saved yet.</p></div>
+        <div className="empty-state"><div className="icon"><Icon name="apple" size={26} /></div><p>{tx("No recipes saved yet.")}</p></div>
       ) : (
         <div className="stack">
           {saved.map((r) => (
@@ -184,7 +185,7 @@ export default function Recipes({ onBack, setView }) {
                 style={{ marginTop: 10, background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }}
                 onClick={() => setToDelete(r)}
               >
-                Delete
+                {tx("Delete")}
               </button>
             </div>
           ))}
@@ -193,9 +194,9 @@ export default function Recipes({ onBack, setView }) {
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Delete recipe?"
-        message="This saved recipe will be removed."
-        confirmLabel="Delete"
+        title={tx("Delete recipe?")}
+        message={tx("This saved recipe will be removed.")}
+        confirmLabel={tx("Delete")}
         danger
         onCancel={() => setToDelete(null)}
         onConfirm={() => { deleteRecipe(toDelete.id); setToDelete(null) }}
@@ -214,7 +215,7 @@ export default function Recipes({ onBack, setView }) {
               disabled={swapLoading}
               onClick={() => handleSwap(d.value)}
             >
-              {swapLoading ? 'Swapping…' : d.label}
+              {swapLoading ? tx("Swapping…") : d.label}
             </button>
           ))}
         </div>
