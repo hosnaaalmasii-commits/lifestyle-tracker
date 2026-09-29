@@ -4,6 +4,7 @@ import { THEME_PRESETS } from '../../utils/colorPresets'
 import { FINTECH_GRADIENTS } from '../../utils/fintechGradients'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
 import { getOuraApiKey, setOuraApiKey } from '../../utils/ouraApi'
+import { isValidGoogleClientId } from '../../utils/googleCalendar'
 import { WALLPAPER_OPTIONS } from '../../components/Wallpaper'
 import { resizeImageToDataUrl } from '../../utils/image'
 import { PERSONALITIES } from '../../utils/coachContext'
@@ -484,7 +485,7 @@ export default function Settings({ onBack }) {
       <div className="section-title">Google Calendar</div>
       <div className="card stack">
         <p className="text-sm muted" style={{ margin: 0 }}>
-          Connect a read-only, free/busy-only view of today's calendar so workout suggestions can account for how packed today is. This uses Google's own sign-in — your calendar data goes straight from Google to this browser, never through any server of ours. Requires a one-time Google Cloud setup (a Client ID, not a secret — I'll walk you through it).
+          Connect your Google Calendar so the day planner can plan around today's appointments and your tasks can be added as calendar events. This uses Google's own sign-in — your calendar data goes straight from Google to this browser, never through any server of ours. Just tap Connect and sign in with your Google account.
         </p>
         {data.calendarStatus?.connected ? (
           <>
@@ -528,22 +529,30 @@ export default function Settings({ onBack }) {
           </>
         ) : (
           <>
-            <div className="field" style={{ marginBottom: 0 }}>
-              <label>Google OAuth Client ID</label>
-              <input
-                className="input"
-                type="text"
-                placeholder="xxxxx.apps.googleusercontent.com"
-                value={clientIdInput}
-                onChange={(e) => setClientIdInput(e.target.value)}
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </div>
-            <button className="btn btn-secondary btn-block" disabled={!clientIdInput.trim() || calendarConnecting} onClick={handleConnectCalendar}>
+            <button className="btn btn-secondary btn-block" disabled={calendarConnecting} onClick={handleConnectCalendar}>
               {calendarConnecting ? 'Connecting…' : 'Connect Google Calendar'}
             </button>
             {calendarError && <div className="text-sm" style={{ color: 'var(--danger)' }}>{calendarError}</div>}
+            <details>
+              <summary className="text-sm faint" style={{ cursor: 'pointer' }}>Advanced: OAuth Client ID</summary>
+              <div className="field" style={{ marginBottom: 0, marginTop: 8 }}>
+                <label>Google OAuth Client ID (already filled in — only change for your own Google Cloud project)</label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="xxxxx.apps.googleusercontent.com"
+                  value={clientIdInput}
+                  onChange={(e) => setClientIdInput(e.target.value)}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                {clientIdInput.trim() && !isValidGoogleClientId(clientIdInput) && (
+                  <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 6 }}>
+                    This isn't a Client ID (it should end in .apps.googleusercontent.com) — the built-in one will be used instead. Your calendar's own web address doesn't go here.
+                  </div>
+                )}
+              </div>
+            </details>
           </>
         )}
       </div>

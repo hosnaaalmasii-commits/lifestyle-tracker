@@ -13,6 +13,23 @@ import { getTasksForDate } from './taskSchedule'
 // calendar.events (write access, scoped to events only — not the broader
 // `calendar` scope, which would also grant calendar-management rights this
 // app has no use for) so tasks can be pushed in as real agenda items.
+// This project's own OAuth client (Google Cloud project "Lifestyle
+// Tracker", Web application client, origin hosnaaalmasii-commits.github.io).
+// Not a secret — Google restricts it by authorized origin — so it's the
+// built-in default rather than something the user has to find and paste.
+// A pasted value only overrides it when it actually looks like a client ID
+// (a calendar URL was once pasted here by mistake, giving Google's
+// "OAuth client was not found" 401).
+export const DEFAULT_GOOGLE_CLIENT_ID = '465688798119-td67kk2kealvlj1gjdtj6snon20m0dbc.apps.googleusercontent.com'
+
+export function isValidGoogleClientId(id) {
+  return /^[\w-]+\.apps\.googleusercontent\.com$/.test((id || '').trim())
+}
+
+export function resolveGoogleClientId(id) {
+  return isValidGoogleClientId(id) ? id.trim() : DEFAULT_GOOGLE_CLIENT_ID
+}
+
 const SCOPE = 'https://www.googleapis.com/auth/calendar.freebusy https://www.googleapis.com/auth/calendar.events'
 let scriptPromise = null
 

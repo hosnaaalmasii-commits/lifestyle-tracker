@@ -5,7 +5,7 @@ import { WEEKDAY_KEYS } from '../utils/taskSchedule'
 import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } from '../utils/workoutGenerator'
 import { DEFAULT_COLORS } from '../utils/colorPresets'
 import { DEFAULT_FINTECH_GRADIENT, getFintechGradient } from '../utils/fintechGradients'
-import { requestGoogleToken, requestGoogleAuthCode, fetchTodayBusyMinutes, syncTasksToCalendar, fetchEventsForDate } from '../utils/googleCalendar'
+import { requestGoogleToken, requestGoogleAuthCode, fetchTodayBusyMinutes, syncTasksToCalendar, fetchEventsForDate, DEFAULT_GOOGLE_CLIENT_ID, resolveGoogleClientId } from '../utils/googleCalendar'
 import { hasOuraApiKey, getOuraApiKey, fetchOuraToday } from '../utils/ouraApi'
 import { isCloudSyncConfigured, getSupabaseClient } from '../utils/supabaseClient'
 import { subscribeToPush, unsubscribeFromPush } from '../utils/push'
@@ -70,7 +70,7 @@ const DEFAULT_DATA = {
     density: 'comfortable',
     useGradientAccents: false,
     gentleMode: false,
-    googleClientId: '',
+    googleClientId: DEFAULT_GOOGLE_CLIENT_ID,
     googleCalendarConnected: false,
     googleAutoSyncEnabled: false,
     supabaseUrl: '',
@@ -140,7 +140,13 @@ function mergeWithDefaults(parsed) {
   return {
     ...structuredClone(DEFAULT_DATA),
     ...parsed,
-    settings: { ...DEFAULT_DATA.settings, ...parsed.settings, colors: { ...DEFAULT_COLORS, ...parsed.settings?.colors } },
+    settings: {
+      ...DEFAULT_DATA.settings,
+      ...parsed.settings,
+      colors: { ...DEFAULT_COLORS, ...parsed.settings?.colors },
+      // Empty or not-a-client-ID (e.g. a pasted calendar URL) → built-in ID.
+      googleClientId: resolveGoogleClientId(parsed.settings?.googleClientId),
+    },
     workouts: { ...DEFAULT_DATA.workouts, ...parsed.workouts, exerciseLogs: { ...parsed.workouts?.exerciseLogs } },
   }
 }
@@ -764,7 +770,8 @@ export function AppProvider({ children }) {
       },
     })),
 
-    connectGoogleCalendar: async (clientId) => {
+    connectGoogleCalendar: async (rawClientId) => {
+      const clientId = resolveGoogleClientId(rawClientId)
       setData((d) => ({ ...d, settings: { ...d.settings, googleClientId: clientId } }))
       setCalendarStatus({ connected: false, busyMinutesToday: null, error: null })
       try {
