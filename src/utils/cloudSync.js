@@ -103,12 +103,38 @@ export async function pushToCloud(url, anonKey, userId, blob, updatedAt) {
 
 // Reconciles local vs. cloud once, on sign-in / app load: whichever side
 // has the newer timestamp wins and overwrites the other.
+// Does this blob hold anything the user actually logged? A fresh browser
+// (or a wiped one) has only defaults — and a newer timestamp, since just
+// opening the app saves. Last-write-wins alone would then push that empty
+// blob over the real data in the cloud, and every other device would pull
+// the emptiness on its next sign-in.
+export function hasUserData(blob) {
+  if (!blob) return false
+  const n = (v) => (Array.isArray(v) ? v.length : v && typeof v === 'object' ? Object.keys(v).length : 0)
+  return n(blob.meals) + n(blob.water) + n(blob.sleep) + n(blob.weight) + n(blob.mood) + n(blob.notes)
+    + n(blob.taskCompletions) + n(blob.photos) + n(blob.cycle) + n(blob.budget) + n(blob.alcohol)
+    + n(blob.measurements) + n(blob.coach?.messages) + n(blob.workouts?.completions) + n(blob.nutrition) > 0
+}
+
 export async function reconcile(url, anonKey, userId, localBlob) {
   const localModified = getLocalLastModified() || new Date(0).toISOString()
   const remote = await pullFromCloud(url, anonKey, userId)
 
   if (!remote) {
     await pushToCloud(url, anonKey, userId, localBlob, localModified)
+    return { direction: 'pushed', blob: localBlob }
+  }
+
+  // An empty device never overwrites real data: it takes the cloud's.
+  if (!hasUserData(localBlob) && hasUserData(remote.blob)) {
+    markLocalModified(remote.updatedAt)
+    return { direction: 'pulled', blob: remote.blob }
+  }
+  // …and real data on this device always beats an empty cloud copy, even
+  // a newer one (e.g. an empty browser that synced first).
+  if (hasUserData(localBlob) && !hasUserData(remote.blob)) {
+    const ts = markLocalModified()
+    await pushToCloud(url, anonKey, userId, localBlob, ts)
     return { direction: 'pushed', blob: localBlob }
   }
 

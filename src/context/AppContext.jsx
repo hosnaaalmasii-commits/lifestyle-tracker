@@ -14,7 +14,7 @@ import { setSecretPusher, pullSecrets } from '../utils/secretSync'
 import { subscribeToPush, unsubscribeFromPush } from '../utils/push'
 import {
   signUp as cloudSignUpApi, signIn as cloudSignInApi, signOut as cloudSignOutApi,
-  getSession, onAuthStateChange, reconcile, pushToCloud, markLocalModified,
+  getSession, onAuthStateChange, reconcile, pushToCloud, markLocalModified, hasUserData,
   exchangeGoogleAuthCode, deleteGoogleCalendarToken,
 } from '../utils/cloudSync'
 // The normalized/encrypted Supabase tables (see supabase/normalized_tables.sql
@@ -286,6 +286,10 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (suppressSyncRef.current) { suppressSyncRef.current = false; return }
     if (!isCloudSyncConfigured(data.settings) || !sessionUserRef.current) return
+    // Never auto-push a blob with nothing logged in it — right after signing
+    // in on a fresh device that would overwrite the real data in the cloud
+    // before reconcile() has had the chance to pull it (cloudSync.js).
+    if (!hasUserData(data)) return
     if (pushTimerRef.current) clearTimeout(pushTimerRef.current)
     pushTimerRef.current = setTimeout(async () => {
       const { supabaseUrl: url, supabaseAnonKey: anonKey } = data.settings
