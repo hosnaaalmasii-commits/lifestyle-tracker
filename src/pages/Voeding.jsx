@@ -8,6 +8,7 @@ import { analyzeMeal } from '../utils/mealAnalysis'
 import Sheet from '../components/Sheet'
 import Icon from '../components/Icon'
 import { useT } from '../i18n/useT'
+import { useCountUp } from '../utils/useCountUp'
 import { useContentT } from '../i18n/useContentT'
 
 // Two-tone thumbnails per slot — stand-ins for the food photos in the
@@ -64,6 +65,7 @@ export default function Voeding({ onNavigate }) {
   }), { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 })
 
   const slots = MEAL_SLOTS.filter((s) => info?.meals?.[s])
+  const kcalShown = useCountUp(eaten.calories)
   const estimateFor = (text) => macrosFromText(text) || data.mealEstimates?.[text] || null
   const loggedFor = (slot, text) => logged.find((m) => m.plannedSlot === slot && m.plannedText === text)
 
@@ -132,7 +134,7 @@ export default function Voeding({ onNavigate }) {
 
       <div className="card" style={{ marginTop: 14, padding: 16 }}>
         <div className="row" style={{ alignItems: 'baseline' }}>
-          <span style={{ fontSize: 22, fontWeight: 800 }}>{nlNum(eaten.calories)} kcal</span>
+          <span style={{ fontSize: 22, fontWeight: 800 }}>{nlNum(kcalShown)} kcal</span>
           <span className="text-sm faint">{t('stat.of', { x: nlNum(kcalGoal) })}</span>
         </div>
         <div className="xp-bar-track" style={{ height: 6, marginTop: 10 }}>

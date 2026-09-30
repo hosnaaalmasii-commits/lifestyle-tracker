@@ -1,0 +1,110 @@
+/* All ambient/entrance motion in one place. Everything here is switched
+   off for people who ask their OS for reduced motion (bottom of file). */
+
+/* ---- Page content rises in, one block after another ---- */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page > * {
+  animation: rise-in 0.55s cubic-bezier(.22, 1, .36, 1) both;
+}
+.page > *:nth-child(2) { animation-delay: 0.04s; }
+.page > *:nth-child(3) { animation-delay: 0.08s; }
+.page > *:nth-child(4) { animation-delay: 0.12s; }
+.page > *:nth-child(5) { animation-delay: 0.16s; }
+.page > *:nth-child(6) { animation-delay: 0.2s; }
+.page > *:nth-child(7) { animation-delay: 0.24s; }
+.page > *:nth-child(8) { animation-delay: 0.28s; }
+.page > *:nth-child(9) { animation-delay: 0.32s; }
+.page > *:nth-child(n+10) { animation-delay: 0.36s; }
+
+/* ---- The bottom glow breathes slowly ---- */
+@keyframes glow-breathe {
+  0%, 100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.08); }
+}
+body::before { animation: glow-breathe 9s ease-in-out infinite; }
+
+/* ---- Progress bars fill up when they appear ---- */
+@keyframes bar-grow { from { width: 0; } }
+.xp-bar-fill { animation: bar-grow 1s cubic-bezier(.22, 1, .36, 1) both; animation-delay: 0.15s; }
+
+/* ---- Tap feedback on tappable cards ---- */
+button.card { transition: transform 0.15s ease, border-color 0.2s ease; }
+button.card:active { transform: scale(0.985); }
+@media (hover: hover) {
+  button.card:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--border-soft)); }
+}
+
+/* ---- Voice (sparkle) button: a soft pulsing halo invites a tap ---- */
+@keyframes halo {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+.speak-btn { position: relative; }
+.speak-btn::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  animation: halo 2.4s ease-out infinite;
+  pointer-events: none;
+}
+.speak-btn:active { transform: scale(0.94); }
+
+/* ---- Companion floats gently ---- */
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.float-soft { animation: float-soft 4.2s ease-in-out infinite; }
+
+/* ---- Streak flame flickers ---- */
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.12, 0.94) rotate(-4deg); }
+  60% { transform: scale(0.95, 1.08) rotate(3deg); }
+}
+.flame-flicker { display: inline-flex; transform-origin: 50% 90%; animation: flame-flicker 1.6s ease-in-out infinite; }
+
+/* ---- Task check: the dot pops, the tick draws itself ---- */
+@keyframes dot-pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+@keyframes tick-draw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+.check-dot { transition: background 0.2s ease, border-color 0.2s ease; }
+.check-dot.done { animation: dot-pop 0.4s cubic-bezier(.34, 1.56, .64, 1); }
+.check-dot.done svg * { stroke-dasharray: 24; animation: tick-draw 0.35s ease-out 0.1s both; }
+
+/* ---- Tab bar: the active dot pops and glows ---- */
+@keyframes tab-pop {
+  0% { transform: scale(0.4); }
+  70% { transform: scale(1.45); }
+  100% { transform: scale(1); }
+}
+.tab-btn.active .tab-dot {
+  animation: tab-pop 0.4s cubic-bezier(.34, 1.56, .64, 1);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.tab-btn .tab-label { transition: color 0.2s ease, font-weight 0.2s ease; }
+
+/* ---- Sheets spring up from the bottom ---- */
+@keyframes sheet-spring {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.sheet { animation: sheet-spring 0.45s cubic-bezier(.32, 1.25, .5, 1) both !important; }
+
+/* ---- Chips and pill buttons: a little bounce when pressed ---- */
+.chip, .btn { transition: transform 0.18s cubic-bezier(.34, 1.56, .64, 1), background 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .page > *, body::before, .xp-bar-fill, .speak-btn::after, .float-soft, .flame-flicker,
+  .check-dot.done, .check-dot.done svg *, .tab-btn.active .tab-dot, .sheet {
+    animation: none !important;
+  }
+}

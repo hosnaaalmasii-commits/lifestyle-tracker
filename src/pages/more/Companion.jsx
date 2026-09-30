@@ -63,7 +63,7 @@ export default function Companion() {
             background: `radial-gradient(circle, color-mix(in srgb, ${archetype.color} 55%, transparent) 0%, color-mix(in srgb, var(--accent) 22%, transparent) 45%, transparent 72%)`,
           }}
         />
-        <ElementalCreature archetypeId={archetype.id} growth={growth} vitality={condition.vitality} muted={condition.muted} size={190} />
+        <div className="float-soft"><ElementalCreature archetypeId={archetype.id} growth={growth} vitality={condition.vitality} muted={condition.muted} size={190} /></div>
       </div>
 
       <div className="row" style={{ gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>

@@ -19,6 +19,7 @@ import { computeXP } from '../utils/gamification'
 import { getMicroHabit } from '../utils/microHabits'
 import { getGPSStatus } from '../utils/lifestyleGPS'
 import { COACH_PREFILL } from './more/Coach'
+import { useCountUp } from '../utils/useCountUp'
 
 // "anna.devries@…" → "Anna" — the account holder's name when no display
 // name has been set in Settings.
@@ -58,6 +59,10 @@ export default function Overview({ onNavigate }) {
   const proteinToday = Math.round(data.meals.filter((m) => m.date === today).reduce((sum, m) => sum + (m.proteinG || 0), 0))
   const proteinGoal = data.settings.calorieTargets?.protein_g?.[1] || data.settings.macroGoals.proteinG
   const hUnit = t('unit.h')
+  // Numbers count up to their value when the page opens.
+  const scoreShown = Math.round(useCountUp(score))
+  const waterShown = useCountUp(waterToday)
+  const proteinShown = Math.round(useCountUp(proteinToday))
 
   const celebratedToday = useRef(null)
   const [confettiTick, setConfettiTick] = useState(0)
@@ -89,6 +94,7 @@ export default function Overview({ onNavigate }) {
         <button
           onClick={() => setVoiceOpen(true)}
           aria-label={t('ov.speak')}
+          className="speak-btn"
           style={{
             width: 44, height: 44, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
             border: '2px solid var(--accent)', background: 'color-mix(in srgb, var(--accent) 25%, transparent)', color: 'var(--text)',
@@ -114,7 +120,7 @@ export default function Overview({ onNavigate }) {
           gradientTo="var(--second)"
           trackColor="color-mix(in srgb, var(--text) 8%, transparent)"
         >
-          <div style={{ fontSize: 25, fontWeight: 800, lineHeight: 1 }}>{score}%</div>
+          <div style={{ fontSize: 25, fontWeight: 800, lineHeight: 1 }}>{scoreShown}%</div>
         </Ring>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
           <span className="faint" style={{ fontSize: 12, fontWeight: 500 }}>{t('ov.dayScore')}</span>
@@ -122,7 +128,7 @@ export default function Overview({ onNavigate }) {
             {tasks.length ? t('ov.tasksOf', { done: doneCount, total: tasks.length }) : t('ov.noTasks')}
           </span>
           <span className="chip" style={{ alignSelf: 'flex-start', cursor: 'default', padding: '5px 12px', fontSize: 12 }}>
-            <Icon name="flame" size={13} /> {streak ? t(streak === 1 ? 'ov.streakDay' : 'ov.streakDays', { n: streak }) : t('ov.reachForStreak', { pct: threshold })}
+            <span className="flame-flicker"><Icon name="flame" size={13} /></span> {streak ? t(streak === 1 ? 'ov.streakDay' : 'ov.streakDays', { n: streak }) : t('ov.reachForStreak', { pct: threshold })}
           </span>
         </div>
       </div>
@@ -134,14 +140,14 @@ export default function Overview({ onNavigate }) {
       </div>
 
       <div className="card-row" style={{ marginTop: 14, gap: 10 }}>
-        <StatCard label={t('stat.water')} value={`${num1(waterToday / 1000)} L`} sub={t('stat.of', { x: `${num1(data.settings.waterGoalMl / 1000)} L` })} onClick={() => onNavigate('water')} />
+        <StatCard label={t('stat.water')} value={`${num1(Math.round(waterShown / 100) / 10)} L`} sub={t('stat.of', { x: `${num1(data.settings.waterGoalMl / 1000)} L` })} onClick={() => onNavigate('water')} />
         <StatCard
           label={t('stat.sleep')}
           value={sleepToday ? `${Math.floor(sleepToday.hours)}${hUnit} ${String(Math.round((sleepToday.hours % 1) * 60)).padStart(2, '0')}` : '—'}
           sub={t('stat.goal', { x: `${data.settings.sleepGoalHours}${hUnit}` })}
           onClick={() => onNavigate('sleep')}
         />
-        <StatCard label={t('stat.protein')} value={`${proteinToday} g`} sub={t('stat.of', { x: `${proteinGoal} g` })} onClick={() => onNavigate('voeding')} />
+        <StatCard label={t('stat.protein')} value={`${proteinShown} g`} sub={t('stat.of', { x: `${proteinGoal} g` })} onClick={() => onNavigate('voeding')} />
       </div>
 
       <div style={{ marginTop: 14 }}>

@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useEffect, useId, useState } from 'react'
 
 export default function Ring({
   value, // 0..1
@@ -11,9 +11,19 @@ export default function Ring({
 }) {
   const gradientId = useId()
   const clamped = Math.max(0, Math.min(1, value || 0))
+  // Starts empty and fills to the real value on the next frame, so the
+  // ring visibly sweeps up when a page opens (the CSS transition does the
+  // animating; later value changes animate the same way).
+  const [shown, setShown] = useState(0)
+  useEffect(() => {
+    // setTimeout rather than requestAnimationFrame: rAF is paused in a
+    // background tab, which would leave the ring stuck empty.
+    const id = setTimeout(() => setShown(clamped), 30)
+    return () => clearTimeout(id)
+  }, [clamped])
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
-  const dash = c * clamped
+  const dash = c * shown
   const strokeValue = gradientTo ? `url(#${gradientId})` : color
 
   return (
@@ -34,10 +44,10 @@ export default function Ring({
         <circle
           cx={size / 2} cy={size / 2} r={r}
           fill="none" stroke={strokeValue} strokeWidth={stroke}
-          strokeLinecap={clamped > 0 ? 'round' : 'butt'}
+          strokeLinecap={shown > 0 ? 'round' : 'butt'}
           strokeDasharray={`${dash} ${c}`}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(.4,0,.2,1)' }}
+          style={{ transition: 'stroke-dasharray 1.1s cubic-bezier(.22,1,.36,1)' }}
         />
       </svg>
       <div style={{

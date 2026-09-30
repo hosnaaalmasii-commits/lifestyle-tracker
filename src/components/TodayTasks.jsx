@@ -71,6 +71,7 @@ export default function TodayTasks({ onOpenSchedule }) {
           >
             <span
               aria-hidden
+              className={`check-dot${done ? ' done' : ''}`}
               style={{
                 width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: done ? 'var(--accent)' : 'transparent',

@@ -78,7 +78,7 @@ export default function CharacterCard({ variant = 'hero', onOpen }) {
               pointerEvents: 'none',
             }}
           />
-          <ElementalCreature {...creatureProps} size={92} />
+          <div className="float-soft"><ElementalCreature {...creatureProps} size={92} /></div>
         </div>
         <div style={{ minWidth: 0 }}>
           <div className="text-sm muted">{archetypeName} · {stageLabel}</div>
