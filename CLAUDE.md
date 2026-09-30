@@ -637,6 +637,29 @@ the browser.
   pills (one opens the replan sheet) and a pill input. **Je figuurtje**
   (`pages/more/Companion.jsx`, opened by tapping the small
   `CompanionTile` on Vandaag).
+- **Vandaag extras the user asked back** (after the strict-mockup pass):
+  flame streak chip, the larger `CharacterCard`, Insights, and the
+  level / GPS phase / micro-habit card sit below the coach bar. Greeting
+  shows `settings.displayName`, else the Cloud Sync email's first part.
+- **Voice input from the sparkle avatar** (Vandaag, `VoiceLogSheet`):
+  `voiceLogging.js` now also handles sleep, weight, `food` (named meal +
+  estimated macros → `data.meals`), `appointment` (appends to today's
+  `dayOverrides` and re-runs `replanDay`), `place` (→ `data.places`,
+  "home" also sets `settings.homeLocation`; places feed `aiReplanDay`),
+  `task_done` (matched against today's task ids sent in the prompt) and
+  `note`. "Praat met de coach" hands the text to Coach via
+  sessionStorage `COACH_PREFILL`.
+- **Motion** (`src/styles/motion.css`, `utils/useCountUp.js`): staggered
+  `.page > *` rise-in, breathing bottom glow, bar-grow on `.xp-bar-fill`,
+  ring sweep from 0 (Ring uses setTimeout, not rAF — rAF is paused in a
+  background tab and left it stuck), count-ups with a hidden-tab/timeout
+  fallback, check-dot pop + tick draw, tab-dot pop, sheet spring, sparkle
+  halo (`.speak-btn`), companion float (`.float-soft`), flame flicker. All
+  disabled under prefers-reduced-motion.
+- **Figma**: section "App — huidige versie (bewerkbaar)" (node 15:2) holds
+  the current screens as editable layers bound to the "Kleuren" variable
+  collection (modes Paars/Warm/Neon). Workflow: user edits there, sends a
+  frame link, Claude implements it.
 - **Languages** (`src/i18n/index.js` + `useT()` hook, Settings → Taal):
   nl (default) / en / fr / de / es. Every string is one key with five
   versions in that fixed order; dates use `Intl` with the language's
