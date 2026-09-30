@@ -3,6 +3,7 @@ import {
   isSpeechSynthesisSupported, getVoicesFor, voiceLabel, onVoicesChanged,
   getPreferredVoiceName, setPreferredVoiceName, getSpeechRate, setSpeechRate,
   getVoiceProvider, setVoiceProvider, VOICE_PROVIDERS, SPEECH_RATES, speak, unlockSpeech,
+  SPEECH_LANGS, getSpeechLangSetting, setSpeechLangSetting,
 } from '../utils/speechOutput'
 import {
   getElevenKey, setElevenKey, getElevenVoice, setElevenVoice, getElevenModel, setElevenModel,
@@ -13,6 +14,22 @@ import Icon from './Icon'
 import { tx } from '../i18n/tx'
 import { useT } from '../i18n/useT'
 
+// The sample sentence, in the conversation language (so a French voice
+// isn't judged on a Dutch sentence).
+const SAMPLES = {
+  nl: 'Hoi! Zo klink ik. Zullen we samen je dag doornemen?',
+  en: "Hi! This is how I sound. Shall we go through your day together?",
+  fr: 'Salut ! Voilà ma voix. On regarde ta journée ensemble ?',
+  de: 'Hallo! So klinge ich. Wollen wir zusammen deinen Tag durchgehen?',
+  es: '¡Hola! Así sueno yo. ¿Repasamos juntos tu día?',
+  it: 'Ciao! Ecco la mia voce. Vediamo insieme la tua giornata?',
+  pt: 'Olá! É assim que eu soo. Vamos rever o teu dia juntos?',
+  tr: 'Merhaba! Sesim böyle. Gününü birlikte gözden geçirelim mi?',
+  ar: 'مرحبًا! هذا هو صوتي. هل نراجع يومك معًا؟',
+  fa: 'سلام! صدای من این‌طوری است. با هم روزت را مرور کنیم؟',
+  pl: 'Cześć! Tak brzmi mój głos. Przejrzymy razem twój dzień?',
+}
+
 // Choose who speaks for the coach — the device's own voices, OpenAI or
 // ElevenLabs — which voice, and how fast. Everything here is per device
 // (own localStorage keys; the API keys never leave this device). Used in
@@ -22,29 +39,44 @@ export default function CoachVoicePicker() {
   const [provider, setProvider] = useState(getVoiceProvider)
   const [speakError, setSpeakError] = useState('')
   const [rate, setRate] = useState(getSpeechRate)
+  const [langSetting, setLangSetting] = useState(getSpeechLangSetting)
+  const lang = langSetting || locale
 
-  const preview = () => {
+  // forLang: right after a language change, before state has caught up.
+  const preview = (forLang) => {
+    const l = typeof forLang === 'string' ? forLang : lang
     setSpeakError('')
     unlockSpeech()
-    speak(tx("Hoi! Zo klink ik. Zullen we samen je dag doornemen?"), {
-      lang: locale,
+    speak(SAMPLES[l.split('-')[0]] || SAMPLES.nl, {
+      lang: l,
       onError: (e) => setSpeakError(`${e.message} ${tx("Je hoorde nu de stem van je toestel.")}`),
     })
   }
   // After picking a voice: unlock inside the tap, then play a sample.
-  const previewSoon = () => { unlockSpeech(); setTimeout(preview, 50) }
+  const previewSoon = (forLang) => { unlockSpeech(); setTimeout(() => preview(forLang), 50) }
 
   const chooseProvider = (id) => { setProvider(id); setVoiceProvider(id); setSpeakError('') }
-  const chooseRate = (value) => { setRate(value); setSpeechRate(value) }
+  const chooseRate = (value) => { setRate(value); setSpeechRate(value); previewSoon() }
+  const chooseLang = (code) => { setLangSetting(code); setSpeechLangSetting(code); previewSoon(code || locale) }
 
   const previewButton = (
-    <button type="button" className="btn btn-secondary btn-sm" onClick={preview} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+    <button type="button" className="btn btn-secondary btn-sm" onClick={() => preview()} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
       <Icon name="speaker" size={15} />{tx("Beluister")}
     </button>
   )
 
   return (
     <div className="stack" style={{ gap: 12 }}>
+      <div className="field" style={{ marginBottom: 0 }}>
+        <label>{tx("Taal van het gesprek")}</label>
+        <select className="input" value={langSetting} onChange={(e) => chooseLang(e.target.value)}>
+          <option value="">{tx("Zelfde als de app")}</option>
+          {SPEECH_LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+        </select>
+        <p className="text-sm faint" style={{ margin: '6px 0 0' }}>
+          {tx("De taal waarin je inspreekt en waarin de coach antwoordt en praat. Niet elke stem spreekt elke taal even goed — probeer het met Beluister.")}
+        </p>
+      </div>
       <div className="field" style={{ marginBottom: 0 }}>
         <label>{tx("Wie praat er voor de coach?")}</label>
         <div className="scroll-x">
@@ -56,7 +88,7 @@ export default function CoachVoicePicker() {
         </div>
       </div>
 
-      {provider === 'device' && <DeviceSection locale={locale} previewButton={previewButton} onPicked={previewSoon} />}
+      {provider === 'device' && <DeviceSection locale={lang} previewButton={previewButton} onPicked={previewSoon} />}
       {provider === 'openai' && <OpenAiSection previewButton={previewButton} onPicked={previewSoon} />}
       {provider === 'elevenlabs' && <ElevenSection previewButton={previewButton} onPicked={previewSoon} />}
 

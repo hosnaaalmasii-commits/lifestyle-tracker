@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext'
 import { hasApiKey, sendToClaude, getCoachSettings, ClaudeApiError } from '../../utils/claudeApi'
 import { buildSystemPrompt } from '../../utils/coachContext'
 import { isSpeechRecognitionSupported, createSpeechRecognizer } from '../../utils/speechInput'
-import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech } from '../../utils/speechOutput'
+import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech, getSpeechLang, getSpeechAiLanguage } from '../../utils/speechOutput'
 import DayReplanSheet from '../../components/DayReplanSheet'
 import DictateButton from '../../components/DictateButton'
 import Sheet from '../../components/Sheet'
@@ -76,6 +76,8 @@ export default function Coach({ setView }) {
   useEffect(() => () => { talkRef.current = false; recognizerRef.current?.abort(); stopSpeaking() }, [])
 
   const send = () => sendText(input)
+  // The language to listen and speak in (voice settings; default the app's).
+  const voiceLang = () => getSpeechLang(locale)
   // OpenAI/ElevenLabs failed (credit used up, bad key…) — it already fell back
   // to the device voice; just say why it sounds different.
   const voiceError = (e) => setError(`${e.message} ${tx("De stem van je apparaat wordt nu gebruikt.")}`)
@@ -97,9 +99,11 @@ export default function Coach({ setView }) {
         system,
         messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
         maxTokens: voice ? 400 : 700,
+        // A conversation language picked in the voice settings overrides the app language.
+        language: getSpeechAiLanguage() || undefined,
       })
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
-      if (!talkRef.current && CAN_SPEAK && (voice || speakOnRef.current)) speak(reply, { lang: locale, onError: voiceError })
+      if (!talkRef.current && CAN_SPEAK && (voice || speakOnRef.current)) speak(reply, { lang: voiceLang(), onError: voiceError })
       return reply
     } catch (e) {
       setError(e instanceof ClaudeApiError ? e.message : 'Something went wrong sending that.')
@@ -126,7 +130,7 @@ export default function Coach({ setView }) {
     setTalkState('listening')
     let said = ''
     const recognizer = createSpeechRecognizer({
-      lang: locale,
+      lang: voiceLang(),
       onResult: ({ text }) => { said = text; setHeard(text) },
       onError: () => {},
       onEnd: async () => {
@@ -138,7 +142,7 @@ export default function Coach({ setView }) {
         if (!talkRef.current) return
         if (!reply) { setTalkState('idle'); return }
         setTalkState('speaking')
-        speak(reply, { lang: locale, onError: voiceError, onEnd: () => { if (talkRef.current) listen() } })
+        speak(reply, { lang: voiceLang(), onError: voiceError, onEnd: () => { if (talkRef.current) listen() } })
       },
     })
     recognizerRef.current = recognizer
@@ -230,7 +234,7 @@ export default function Coach({ setView }) {
           <Bubble
             key={i}
             role={m.role}
-            onSpeak={m.role === 'assistant' && CAN_SPEAK ? () => { unlockSpeech(); speak(m.content, { lang: locale, onError: voiceError }) } : null}
+            onSpeak={m.role === 'assistant' && CAN_SPEAK ? () => { unlockSpeech(); speak(m.content, { lang: voiceLang(), onError: voiceError }) } : null}
             speakLabel={t('coach.readAloud')}
           >
             {m.content}

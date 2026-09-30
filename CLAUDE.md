@@ -688,6 +688,14 @@ the browser.
   (`lifestyle-tracker-coach-voice-provider`; unset + ElevenLabs key =
   ElevenLabs for backward compat). A cloud provider without a key or
   with a failing call falls back to the device voice.
+  **Tempo** is applied at playback for OpenAI/ElevenLabs
+  (`audio.playbackRate` + `defaultPlaybackRate`, `preservesPitch`) —
+  asking the services for a speed was barely audible (user complaint);
+  device voices use `utterance.rate`. 5 steps 0.75–1.3.
+  **Conversation language** (`SPEECH_LANGS`, `lifestyle-tracker-speech-lang`,
+  "Taal van het gesprek" in the picker; default = app language): used for
+  speech recognition (DictateButton, VoiceLogSheet, coach), for TTS, and
+  as `sendToClaude({ language })` so the coach replies in it.
 - **Spending guard** (`utils/usageGuard.js` + Settings → Kostenlimieten,
   2026-09-30, user asked for "absoluut nergens onverwachte kosten"):
   per-device monthly ceilings checked *before* every paid call — Claude

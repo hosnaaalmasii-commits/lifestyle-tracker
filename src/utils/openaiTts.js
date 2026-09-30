@@ -52,15 +52,14 @@ async function explain(res) {
   return `OpenAI-fout ${res.status}${detail ? `: ${detail}` : ''}`
 }
 
-// gpt-4o-mini-tts ignores the `speed` field, so pace goes in the
-// instructions instead — together with the coach's tone.
-function instructionsFor(lang, rate) {
-  const pace = rate < 0.95 ? 'Speak at a calm, unhurried pace.' : rate > 1.1 ? 'Speak at a brisk, lively pace.' : 'Speak at a natural conversational pace.'
-  return `You are a warm, encouraging personal health coach talking to the user. Speak with a natural native accent for the language of the text (the app language is ${lang}). ${pace}`
+// The coach's tone. Tempo isn't asked for here (the model barely follows
+// it) — it's applied as the audio's playback rate in speechOutput.js.
+function instructionsFor(lang) {
+  return `You are a warm, encouraging personal health coach talking to the user. Speak with a natural native accent for the language of the text (expected language: ${lang}). Speak at a natural conversational pace.`
 }
 
 // Returns an audio Blob (mp3).
-export async function synthesizeOpenAi(text, { lang = 'nl-NL', rate = 1, signal } = {}) {
+export async function synthesizeOpenAi(text, { lang = 'nl-NL', signal } = {}) {
   const input = text.slice(0, 4000)
   checkAndRecordSpeech('openai', input.length) // throws once the monthly limit is reached
   const res = await fetch('https://api.openai.com/v1/audio/speech', {
@@ -70,7 +69,7 @@ export async function synthesizeOpenAi(text, { lang = 'nl-NL', rate = 1, signal 
       model: MODEL,
       voice: getOpenAiVoice(),
       input,
-      instructions: instructionsFor(lang, rate),
+      instructions: instructionsFor(lang),
       response_format: 'mp3',
     }),
     signal,

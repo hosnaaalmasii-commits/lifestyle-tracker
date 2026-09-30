@@ -42,11 +42,53 @@ function activeCloud() {
   return null
 }
 
+const SPEECH_LANG_STORAGE = 'lifestyle-tracker-speech-lang'
+
+// Applied to every voice: the device voice's own rate, and the playback
+// rate of OpenAI/ElevenLabs audio (pitch preserved) — asking those
+// services for a speed barely changed anything audible.
 export const SPEECH_RATES = [
-  { value: 0.85, label: 'Rustig' },
-  { value: 1.02, label: 'Normaal' },
-  { value: 1.2, label: 'Snel' },
+  { value: 0.75, label: 'Heel rustig' },
+  { value: 0.9, label: 'Rustig' },
+  { value: 1, label: 'Normaal' },
+  { value: 1.15, label: 'Snel' },
+  { value: 1.3, label: 'Heel snel' },
 ]
+
+// The language you talk to the app in and the coach answers in — by
+// default the app language. aiName is what Claude is told to reply in.
+export const SPEECH_LANGS = [
+  { code: 'nl-NL', label: 'Nederlands (Nederland)', aiName: 'Dutch' },
+  { code: 'nl-BE', label: 'Nederlands (België)', aiName: 'Dutch (Flemish)' },
+  { code: 'en-GB', label: 'English (UK)', aiName: 'English' },
+  { code: 'en-US', label: 'English (US)', aiName: 'English' },
+  { code: 'fr-FR', label: 'Français', aiName: 'French' },
+  { code: 'de-DE', label: 'Deutsch', aiName: 'German' },
+  { code: 'es-ES', label: 'Español', aiName: 'Spanish' },
+  { code: 'it-IT', label: 'Italiano', aiName: 'Italian' },
+  { code: 'pt-PT', label: 'Português', aiName: 'Portuguese' },
+  { code: 'tr-TR', label: 'Türkçe', aiName: 'Turkish' },
+  { code: 'ar-SA', label: 'العربية (Arabisch)', aiName: 'Arabic' },
+  { code: 'fa-IR', label: 'فارسی (Perzisch)', aiName: 'Persian (Farsi)' },
+  { code: 'pl-PL', label: 'Polski', aiName: 'Polish' },
+]
+
+// Saved choice, or '' = follow the app language.
+export function getSpeechLangSetting() {
+  try { return localStorage.getItem(SPEECH_LANG_STORAGE) || '' } catch { return '' }
+}
+export function setSpeechLangSetting(code) {
+  try { code ? localStorage.setItem(SPEECH_LANG_STORAGE, code) : localStorage.removeItem(SPEECH_LANG_STORAGE) } catch { /* private mode */ }
+}
+// The locale to listen and speak in, given the app's own locale.
+export function getSpeechLang(appLocale) {
+  return getSpeechLangSetting() || appLocale
+}
+// The language name to make Claude reply in, or null = app language.
+export function getSpeechAiLanguage() {
+  const code = getSpeechLangSetting()
+  return code ? SPEECH_LANGS.find((l) => l.code === code)?.aiName || null : null
+}
 
 let voices = []
 const voiceListeners = new Set()
@@ -97,8 +139,11 @@ export function getPreferredVoiceName() {
 export function setPreferredVoiceName(name) {
   try { name ? localStorage.setItem(VOICE_STORAGE, name) : localStorage.removeItem(VOICE_STORAGE) } catch { /* private mode */ }
 }
+// Snapped to the nearest option (older saves used 0.85 / 1.02 / 1.2).
 export function getSpeechRate() {
-  try { return Number(localStorage.getItem(RATE_STORAGE)) || 1.02 } catch { return 1.02 }
+  let saved = 1
+  try { saved = Number(localStorage.getItem(RATE_STORAGE)) || 1 } catch { /* private mode */ }
+  return SPEECH_RATES.reduce((best, r) => (Math.abs(r.value - saved) < Math.abs(best - saved) ? r.value : best), 1)
 }
 export function setSpeechRate(rate) {
   try { localStorage.setItem(RATE_STORAGE, String(rate)) } catch { /* private mode */ }
@@ -145,12 +190,6 @@ function getAudio() {
   return audioEl
 }
 
-// The device-speed chips map onto the cloud voices' narrower range.
-function cloudRate() {
-  const r = getSpeechRate()
-  return r < 0.95 ? 0.9 : r > 1.1 ? 1.15 : 1
-}
-
 function speakWithDevice(parts, lang, id, onEnd) {
   if (!isSpeechSynthesisSupported()) { onEnd?.(); return }
   const voice = pickVoice(lang)
@@ -172,7 +211,7 @@ async function speakWithCloud(cloud, text, parts, lang, id, onEnd, onError) {
   const controller = new AbortController()
   abort = controller
   try {
-    const blob = await cloud.synth(text, { lang, rate: cloudRate(), signal: controller.signal })
+    const blob = await cloud.synth(text, { lang, signal: controller.signal })
     if (id !== session) return
     const audio = getAudio()
     const url = URL.createObjectURL(blob)
@@ -180,6 +219,12 @@ async function speakWithCloud(cloud, text, parts, lang, id, onEnd, onError) {
     audio.onended = done
     audio.onerror = done
     audio.src = url
+    // Tempo via playback rate, pitch kept. Loading a new src resets
+    // playbackRate to defaultPlaybackRate, so set both.
+    const rate = getSpeechRate()
+    audio.preservesPitch = true
+    audio.defaultPlaybackRate = rate
+    audio.playbackRate = rate
     await audio.play()
   } catch (e) {
     if (id !== session || e?.name === 'AbortError') return

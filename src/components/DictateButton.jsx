@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { isSpeechRecognitionSupported, createSpeechRecognizer } from '../utils/speechInput'
+import { getSpeechLang } from '../utils/speechOutput'
 import Icon from './Icon'
 import { tx } from '../i18n/tx'
 import { useT } from '../i18n/useT'
@@ -14,7 +15,7 @@ export const DICTATION_SUPPORTED = isSpeechRecognitionSupported()
 export default function DictateButton({ onText, onDone, lang: langProp, compact = false }) {
   const [listening, setListening] = useState(false)
   const { locale } = useT()
-  const lang = langProp || locale // listen in the app language
+  const lang = langProp || getSpeechLang(locale) // the chosen conversation language, else the app's
   const recognizerRef = useRef(null)
 
   useEffect(() => () => recognizerRef.current?.abort(), [])

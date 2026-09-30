@@ -67,8 +67,8 @@ export async function fetchElevenVoices() {
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
-// Returns an audio Blob (mp3). rate: 0.7–1.2 (ElevenLabs' own range).
-export async function synthesize(text, { lang = 'nl-NL', rate = 1, signal } = {}) {
+// Returns an audio Blob (mp3). Tempo is applied at playback (speechOutput.js).
+export async function synthesize(text, { lang = 'nl-NL', signal } = {}) {
   const model = getElevenModel()
   const input = text.slice(0, 4500)
   checkAndRecordSpeech('elevenlabs', input.length) // throws once the monthly limit is reached
@@ -80,11 +80,12 @@ export async function synthesize(text, { lang = 'nl-NL', rate = 1, signal } = {}
       similarity_boost: 0.8,
       style: 0.15,
       use_speaker_boost: true,
-      speed: Math.min(1.2, Math.max(0.7, rate)),
     },
   }
-  // The v2.5 models take an explicit language; v2 detects it from the text.
-  if (model.includes('v2_5')) body.language_code = lang.split('-')[0]
+  // The v2.5 models take an explicit language (only ones they support —
+  // anything else is detected from the text); v2 always detects it.
+  const code = lang.split('-')[0]
+  if (model.includes('v2_5') && ['nl', 'en', 'fr', 'de', 'es', 'it', 'pt', 'tr', 'ar', 'pl'].includes(code)) body.language_code = code
   const res = await fetch(`${API}/text-to-speech/${encodeURIComponent(getElevenVoice())}?output_format=mp3_44100_128`, {
     method: 'POST',
     headers: { 'xi-api-key': getElevenKey(), 'Content-Type': 'application/json', Accept: 'audio/mpeg' },

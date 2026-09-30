@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import { hasApiKey, ClaudeApiError } from '../utils/claudeApi'
 import { parseVoiceTranscript, applyVoiceIntent, CATEGORY_META, CATEGORY_DESTINATION } from '../utils/voiceLogging'
 import { parseTranscriptLocally } from '../utils/localVoiceParser'
-import { unlockSpeech } from '../utils/speechOutput'
+import { unlockSpeech, getSpeechLang } from '../utils/speechOutput'
 import { isSpeechRecognitionSupported, createSpeechRecognizer } from '../utils/speechInput'
 import Sheet from './Sheet'
 import Icon from './Icon'
@@ -129,7 +129,7 @@ export default function VoiceLogSheet({ open, onClose, onOpenCoach }) {
     }
 
     const recognizer = createSpeechRecognizer({
-      lang: locale,
+      lang: getSpeechLang(locale),
       onResult: ({ text, isFinal }) => {
         setTranscript(text)
         transcriptRef.current = text

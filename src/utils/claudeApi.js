@@ -83,7 +83,9 @@ class ClaudeApiError extends Error {
  * effort (optional): 'low' | 'medium' | 'high' — thinking depth/spend on
  * models that support it (ignored for Haiku 4.5, which rejects it).
  */
-export async function sendToClaude({ system, messages, maxTokens = 1024, model, schema, effort = 'low' }) {
+// language (optional): reply in this language instead of the app language.
+export async function sendToClaude({ system, messages, maxTokens = 1024, model, schema, effort = 'low', language }) {
+  const replyLanguage = language || aiLanguage
   const chosenModel = model || getCoachSettings().model
   const isHaiku = chosenModel.startsWith('claude-haiku')
   const outputConfig = {}
@@ -118,8 +120,8 @@ export async function sendToClaude({ system, messages, maxTokens = 1024, model, 
       body: JSON.stringify({
         model: chosenModel,
         max_tokens: maxTokensSent,
-        system: aiLanguage && typeof system === 'string'
-          ? `${system}\n\nIMPORTANT: write every piece of user-facing text (replies, notes, summaries, meal names) in ${aiLanguage}, whatever language the instructions above use. Keep JSON keys and enum values exactly as specified.`
+        system: replyLanguage && typeof system === 'string'
+          ? `${system}\n\nIMPORTANT: write every piece of user-facing text (replies, notes, summaries, meal names) in ${replyLanguage}, whatever language the instructions above use. Keep JSON keys and enum values exactly as specified.`
           : system,
         messages,
         ...(Object.keys(outputConfig).length ? { output_config: outputConfig } : {}),
