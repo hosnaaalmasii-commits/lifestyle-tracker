@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext'
 import { COLOR_THEMES } from '../../utils/colorThemes'
 import { LANGUAGES } from '../../i18n'
 import { useT } from '../../i18n/useT'
+import CoachVoicePicker from '../../components/CoachVoicePicker'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
 import { getOuraApiKey, setOuraApiKey } from '../../utils/ouraApi'
 import { isValidGoogleClientId } from '../../utils/googleCalendar'
@@ -328,6 +329,7 @@ export default function Settings({ onBack }) {
             ))}
           </div>
         </div>
+        <CoachVoicePicker />
         <div className="row">
           <button className="btn btn-secondary btn-sm" disabled={!apiKeyInput || testStatus === 'testing'} onClick={testConnection}>
             {testStatus === 'testing' ? tx("Testing…") : tx("Test connection")}
@@ -587,6 +589,9 @@ export default function Settings({ onBack }) {
           Object.keys(localStorage)
             .filter((k) => k.startsWith('lifestyle-tracker-daily-note-')
               || k === 'lifestyle-tracker-coach-chat'
+              || k.startsWith('lifestyle-tracker-coach-')
+              || k.startsWith('lifestyle-tracker-elevenlabs-')
+              || k.startsWith('lifestyle-tracker-openai-')
               || k === 'lifestyle-tracker-eod-report-cache')
             .forEach((k) => localStorage.removeItem(k))
           setConfirmClear(false)

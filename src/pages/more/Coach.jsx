@@ -8,7 +8,9 @@ import DayReplanSheet from '../../components/DayReplanSheet'
 import DictateButton from '../../components/DictateButton'
 import Sheet from '../../components/Sheet'
 import Icon from '../../components/Icon'
+import CoachVoicePicker from '../../components/CoachVoicePicker'
 import { useT } from '../../i18n/useT'
+import { tx } from '../../i18n/tx'
 
 const CHAT_STORAGE = 'lifestyle-tracker-coach-chat'
 const SPEAK_STORAGE = 'lifestyle-tracker-coach-speak'
@@ -74,6 +76,9 @@ export default function Coach({ setView }) {
   useEffect(() => () => { talkRef.current = false; recognizerRef.current?.abort(); stopSpeaking() }, [])
 
   const send = () => sendText(input)
+  // OpenAI/ElevenLabs failed (credit used up, bad key…) — it already fell back
+  // to the device voice; just say why it sounds different.
+  const voiceError = (e) => setError(`${e.message} ${tx("De stem van je apparaat wordt nu gebruikt.")}`)
 
   // voice: the message was spoken → short spoken-style reply, read aloud
   // (in the conversation sheet the loop does the speaking itself).
@@ -94,7 +99,7 @@ export default function Coach({ setView }) {
         maxTokens: voice ? 400 : 700,
       })
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
-      if (!talkRef.current && CAN_SPEAK && (voice || speakOnRef.current)) speak(reply, { lang: locale })
+      if (!talkRef.current && CAN_SPEAK && (voice || speakOnRef.current)) speak(reply, { lang: locale, onError: voiceError })
       return reply
     } catch (e) {
       setError(e instanceof ClaudeApiError ? e.message : 'Something went wrong sending that.')
@@ -133,7 +138,7 @@ export default function Coach({ setView }) {
         if (!talkRef.current) return
         if (!reply) { setTalkState('idle'); return }
         setTalkState('speaking')
-        speak(reply, { lang: locale, onEnd: () => { if (talkRef.current) listen() } })
+        speak(reply, { lang: locale, onError: voiceError, onEnd: () => { if (talkRef.current) listen() } })
       },
     })
     recognizerRef.current = recognizer
@@ -225,7 +230,7 @@ export default function Coach({ setView }) {
           <Bubble
             key={i}
             role={m.role}
-            onSpeak={m.role === 'assistant' && CAN_SPEAK ? () => { unlockSpeech(); speak(m.content, { lang: locale }) } : null}
+            onSpeak={m.role === 'assistant' && CAN_SPEAK ? () => { unlockSpeech(); speak(m.content, { lang: locale, onError: voiceError }) } : null}
             speakLabel={t('coach.readAloud')}
           >
             {m.content}
@@ -296,6 +301,10 @@ export default function Coach({ setView }) {
           </div>
           {error && <div className="text-sm" style={{ color: 'var(--danger)' }}>{error}</div>}
           <button className="btn btn-secondary btn-block" onClick={closeTalk}>{t('coach.stopTalk')}</button>
+          <details style={{ width: '100%', textAlign: 'left' }}>
+            <summary className="text-sm muted" style={{ cursor: 'pointer', textAlign: 'center', padding: '4px 0' }}>{tx("Stem kiezen")}</summary>
+            <div style={{ paddingTop: 10 }}><CoachVoicePicker /></div>
+          </details>
         </div>
       </Sheet>
     </div>

@@ -67,7 +67,8 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
   further than anything before it — even "growth over time" is a *derived*
   decayed rolling average (see below), not a stored counter that increments.
 - **Four external services get called, all bring-your-own-credential and
-  all opt-in** (was "three, and only three" until the transformation-plan
+  all opt-in** (five since 2026-09-30: ElevenLabs for the coach's voice,
+  see the Coach voice notes under Design system) (was "three, and only three" until the transformation-plan
   session added Oura — see below; still the same principle, just one more
   entry). Everything else, including the voice pipeline below, reuses one
   of these rather than adding a new one:
@@ -665,7 +666,28 @@ the browser.
   (`SPOKEN_STYLE` prompt suffix). `unlockSpeech()` must run inside a tap
   for iOS to allow the later async speech. The loop needs
   SpeechRecognition, so it's hidden on Safari/iOS; read-aloud still works
-  there.
+  there. **Voice choice** (`CoachVoicePicker.jsx`, Settings → AI Coach
+  and "Stem kiezen" in the talk sheet): device voice + speed, per device.
+- **ElevenLabs** (`utils/elevenLabs.js`, added 2026-09-30 at the user's
+  explicit request for "echt goede en natuurlijke stemmen" — a **fifth**
+  BYOK external service, chosen over OpenAI TTS and the free Edge/iOS
+  premium-voice route). Key in its own localStorage slot
+  (`lifestyle-tracker-elevenlabs-key`), never in `data`/export, wiped by
+  Clear everything — same trust model as the Anthropic key. With a key,
+  `speak()` plays ElevenLabs mp3 (voice list from `/v1/voices`, model
+  multilingual_v2 "Mooiste klank" or flash_v2_5 "Snelste reactie");
+  on any failure it falls back to the device voice and reports why.
+  `unlockSpeech()` also primes a shared `<audio>` element for iOS.
+  Tested only against a mocked fetch — no real key in the dev env.
+- **OpenAI TTS** (`utils/openaiTts.js`, same day — a **sixth** BYOK
+  service, user asked for both): `gpt-4o-mini-tts`, 13 fixed voices
+  (marin/cedar recommended), ~1.5 ct/min, pace + coach tone via
+  `instructions` (the model ignores `speed`). Key in
+  `lifestyle-tracker-openai-key`. The user picks the provider in
+  `CoachVoicePicker` — Toestel / OpenAI / ElevenLabs
+  (`lifestyle-tracker-coach-voice-provider`; unset + ElevenLabs key =
+  ElevenLabs for backward compat). A cloud provider without a key or
+  with a failing call falls back to the device voice.
 - **Motion** (`src/styles/motion.css`, `utils/useCountUp.js`): staggered
   `.page > *` rise-in, breathing bottom glow, bar-grow on `.xp-bar-fill`,
   ring sweep from 0 (Ring uses setTimeout, not rAF — rAF is paused in a

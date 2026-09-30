@@ -1,28 +1,114 @@
-// Text-to-speech for the coach, on the browser's built-in speechSynthesis
-// (works in Chrome, Edge and Safari incl. iOS — no key or service needed).
-// Long replies are spoken sentence by sentence: Chrome silently stops a
-// single utterance after ~15 seconds.
+// Text-to-speech for the coach. The user picks the provider: the device's
+// own voices (browser speechSynthesis — Chrome, Edge, Safari incl. iOS, no
+// key needed), OpenAI (openaiTts.js) or ElevenLabs (elevenLabs.js). A
+// cloud provider without a key, or whose call fails, falls back to the
+// device voice. Device-voice replies are spoken sentence by sentence:
+// Chrome silently stops a single utterance after ~15 seconds.
+import { hasElevenKey, synthesize } from './elevenLabs'
+import { hasOpenAiKey, synthesizeOpenAi } from './openaiTts'
 
 export function isSpeechSynthesisSupported() {
   return typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
 }
 
+// The chosen provider, voice and speed are per device (each device has its
+// own voices and keys), so they live in their own localStorage keys, not in `data`.
+const VOICE_STORAGE = 'lifestyle-tracker-coach-voice'
+const RATE_STORAGE = 'lifestyle-tracker-coach-rate'
+const PROVIDER_STORAGE = 'lifestyle-tracker-coach-voice-provider'
+
+export const VOICE_PROVIDERS = [
+  { id: 'device', label: 'Toestel' },
+  { id: 'openai', label: 'OpenAI' },
+  { id: 'elevenlabs', label: 'ElevenLabs' },
+]
+
+// Before the provider choice existed, an ElevenLabs key alone meant "use it".
+export function getVoiceProvider() {
+  let saved = ''
+  try { saved = localStorage.getItem(PROVIDER_STORAGE) || '' } catch { /* private mode */ }
+  if (VOICE_PROVIDERS.some((p) => p.id === saved)) return saved
+  return hasElevenKey() ? 'elevenlabs' : 'device'
+}
+export function setVoiceProvider(id) {
+  try { localStorage.setItem(PROVIDER_STORAGE, id) } catch { /* private mode */ }
+}
+
+// The cloud provider that will actually be used right now, if any.
+function activeCloud() {
+  const provider = getVoiceProvider()
+  if (provider === 'elevenlabs' && hasElevenKey()) return { name: 'ElevenLabs', synth: synthesize }
+  if (provider === 'openai' && hasOpenAiKey()) return { name: 'OpenAI', synth: synthesizeOpenAi }
+  return null
+}
+
+export const SPEECH_RATES = [
+  { value: 0.85, label: 'Rustig' },
+  { value: 1.02, label: 'Normaal' },
+  { value: 1.2, label: 'Snel' },
+]
+
 let voices = []
+const voiceListeners = new Set()
 function loadVoices() {
   voices = window.speechSynthesis.getVoices()
+  voiceListeners.forEach((fn) => fn())
 }
 if (isSpeechSynthesisSupported()) {
   loadVoices()
   window.speechSynthesis.addEventListener?.('voiceschanged', loadVoices)
 }
 
-// Prefer the nicer-sounding voices a platform ships for the language.
-function pickVoice(lang) {
+// Voices load asynchronously in Chrome — returns an unsubscribe function.
+export function onVoicesChanged(fn) {
+  voiceListeners.add(fn)
+  return () => voiceListeners.delete(fn)
+}
+
+const NICE_VOICE = /natural|neural|premium|enhanced|google/i
+
+// All voices for the app language, nicest first.
+export function getVoicesFor(lang) {
+  if (!isSpeechSynthesisSupported()) return []
   if (!voices.length) loadVoices()
   const base = lang.split('-')[0].toLowerCase()
-  const matching = voices.filter((v) => v.lang.replace('_', '-').toLowerCase() === lang.toLowerCase())
-  const pool = matching.length ? matching : voices.filter((v) => v.lang.toLowerCase().startsWith(base))
-  return pool.find((v) => /natural|neural|premium|enhanced|google/i.test(v.name)) || pool[0] || null
+  return voices
+    .filter((v) => v.lang.replace('_', '-').toLowerCase().startsWith(base))
+    .sort((a, b) => Number(NICE_VOICE.test(b.name)) - Number(NICE_VOICE.test(a.name))
+      || Number(b.lang.replace('_', '-').toLowerCase() === lang.toLowerCase()) - Number(a.lang.replace('_', '-').toLowerCase() === lang.toLowerCase())
+      || a.name.localeCompare(b.name))
+}
+
+// "Microsoft Colette Online (Natural) - Dutch (Netherlands)" → "Colette"
+export function voiceLabel(voice) {
+  const name = voice.name
+    .replace(/^(Microsoft|Google|Apple)\s+/i, '')
+    .replace(/\s*-\s*[^-]*$/, '')
+    .replace(/\s*\((Natural|Enhanced|Premium)\)/i, '')
+    .replace(/\s+Online/i, '')
+    .trim() || voice.name
+  const region = voice.lang.replace('_', '-').split('-')[1]
+  return `${name}${region ? ` (${region})` : ''}${NICE_VOICE.test(voice.name) ? ' · natuurlijk' : ''}`
+}
+
+export function getPreferredVoiceName() {
+  try { return localStorage.getItem(VOICE_STORAGE) || '' } catch { return '' }
+}
+export function setPreferredVoiceName(name) {
+  try { name ? localStorage.setItem(VOICE_STORAGE, name) : localStorage.removeItem(VOICE_STORAGE) } catch { /* private mode */ }
+}
+export function getSpeechRate() {
+  try { return Number(localStorage.getItem(RATE_STORAGE)) || 1.02 } catch { return 1.02 }
+}
+export function setSpeechRate(rate) {
+  try { localStorage.setItem(RATE_STORAGE, String(rate)) } catch { /* private mode */ }
+}
+
+// The user's chosen voice if it speaks this language, else the nicest one.
+function pickVoice(lang) {
+  const pool = getVoicesFor(lang)
+  const preferred = getPreferredVoiceName()
+  return (preferred && pool.find((v) => v.name === preferred)) || pool[0] || null
 }
 
 // Markdown, emoji and list bullets read out loud sound odd.
@@ -50,21 +136,29 @@ function chunks(text) {
 }
 
 let session = 0
+let abort = null
+let audioEl = null
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
 
-// onEnd fires once, after the last chunk (or right away if there's nothing
-// to say) — but not when stopSpeaking() cut it short.
-export function speak(text, { lang = 'nl-NL', onEnd } = {}) {
+function getAudio() {
+  if (!audioEl && typeof Audio !== 'undefined') audioEl = new Audio()
+  return audioEl
+}
+
+// The device-speed chips map onto the cloud voices' narrower range.
+function cloudRate() {
+  const r = getSpeechRate()
+  return r < 0.95 ? 0.9 : r > 1.1 ? 1.15 : 1
+}
+
+function speakWithDevice(parts, lang, id, onEnd) {
   if (!isSpeechSynthesisSupported()) { onEnd?.(); return }
-  stopSpeaking()
-  const id = ++session
-  const parts = chunks(toSpeakable(text))
-  if (!parts.length) { onEnd?.(); return }
   const voice = pickVoice(lang)
   parts.forEach((part, i) => {
     const u = new SpeechSynthesisUtterance(part)
     u.lang = voice?.lang || lang
     if (voice) u.voice = voice
-    u.rate = 1.02
+    u.rate = getSpeechRate()
     if (i === parts.length - 1) {
       const done = () => { if (id === session) onEnd?.() }
       u.onend = done
@@ -74,16 +168,59 @@ export function speak(text, { lang = 'nl-NL', onEnd } = {}) {
   })
 }
 
-export function stopSpeaking() {
-  if (!isSpeechSynthesisSupported()) return
-  session++
-  window.speechSynthesis.cancel()
+async function speakWithCloud(cloud, text, parts, lang, id, onEnd, onError) {
+  const controller = new AbortController()
+  abort = controller
+  try {
+    const blob = await cloud.synth(text, { lang, rate: cloudRate(), signal: controller.signal })
+    if (id !== session) return
+    const audio = getAudio()
+    const url = URL.createObjectURL(blob)
+    const done = () => { URL.revokeObjectURL(url); if (id === session) onEnd?.() }
+    audio.onended = done
+    audio.onerror = done
+    audio.src = url
+    await audio.play()
+  } catch (e) {
+    if (id !== session || e?.name === 'AbortError') return
+    // Out of credits, bad key, offline… — say it with the device voice
+    // rather than staying silent, and let the caller show why.
+    console.warn(`${cloud.name} failed, using the device voice`, e)
+    onError?.(e)
+    speakWithDevice(parts, lang, id, onEnd)
+  }
 }
 
-// iOS only allows speech that starts from a tap. Calling this inside a
-// click handler unlocks later, asynchronous speak() calls (e.g. once the
-// coach's reply arrives).
+// onEnd fires once, after speaking finishes (or right away if there's
+// nothing to say) — but not when stopSpeaking() cut it short.
+export function speak(text, { lang = 'nl-NL', onEnd, onError } = {}) {
+  stopSpeaking()
+  const id = ++session
+  const clean = toSpeakable(text)
+  const parts = chunks(clean)
+  if (!parts.length) { onEnd?.(); return }
+  const cloud = activeCloud()
+  if (cloud) speakWithCloud(cloud, clean, parts, lang, id, onEnd, onError)
+  else speakWithDevice(parts, lang, id, onEnd)
+}
+
+export function stopSpeaking() {
+  session++
+  abort?.abort()
+  abort = null
+  if (audioEl) { audioEl.pause(); audioEl.onended = null; audioEl.onerror = null }
+  if (isSpeechSynthesisSupported()) window.speechSynthesis.cancel()
+}
+
+// iOS only allows audio/speech that starts from a tap. Calling this inside
+// a click handler unlocks later, asynchronous speak() calls (e.g. once the
+// coach's reply arrives) — for both the device voice and cloud audio.
 export function unlockSpeech() {
+  const audio = getAudio()
+  if (audio && activeCloud()) {
+    audio.src = SILENT_WAV
+    audio.play().catch(() => {})
+  }
   if (!isSpeechSynthesisSupported()) return
   const u = new SpeechSynthesisUtterance(' ')
   u.volume = 0
