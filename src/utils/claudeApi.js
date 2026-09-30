@@ -81,11 +81,19 @@ class ClaudeApiError extends Error {
  * effort (optional): 'low' | 'medium' | 'high' — thinking depth/spend on
  * models that support it (ignored for Haiku 4.5, which rejects it).
  */
-export async function sendToClaude({ system, messages, maxTokens = 1024, model, schema, effort }) {
+export async function sendToClaude({ system, messages, maxTokens = 1024, model, schema, effort = 'low' }) {
   const chosenModel = model || getCoachSettings().model
+  const isHaiku = chosenModel.startsWith('claude-haiku')
   const outputConfig = {}
   if (schema) outputConfig.format = { type: 'json_schema', schema }
-  if (effort && !chosenModel.startsWith('claude-haiku')) outputConfig.effort = effort
+  // Sonnet 5.5 / Opus 5.5 always think first (it can't be switched off),
+  // and that thinking counts against max_tokens — a small cap could be used
+  // up before any text is written ("empty response"). So: low effort by
+  // default (chat, parsing and short answers don't need deep reasoning;
+  // callers can ask for more), and never less than 2048 tokens of room.
+  // Only tokens actually generated are billed, so the headroom costs nothing.
+  if (effort && !isHaiku) outputConfig.effort = effort
+  const maxTokensSent = isHaiku ? maxTokens : Math.max(maxTokens, 2048)
   const apiKey = getApiKey()
   if (!apiKey) throw new ClaudeApiError('No API key set. Add one in Settings → AI Coach.')
 
@@ -101,7 +109,7 @@ export async function sendToClaude({ system, messages, maxTokens = 1024, model, 
       },
       body: JSON.stringify({
         model: chosenModel,
-        max_tokens: maxTokens,
+        max_tokens: maxTokensSent,
         system: aiLanguage && typeof system === 'string'
           ? `${system}\n\nIMPORTANT: write every piece of user-facing text (replies, notes, summaries, meal names) in ${aiLanguage}, whatever language the instructions above use. Keep JSON keys and enum values exactly as specified.`
           : system,
@@ -128,6 +136,7 @@ export async function sendToClaude({ system, messages, maxTokens = 1024, model, 
   if (data?.stop_reason === 'refusal') throw new ClaudeApiError('Claude declined this request — try rephrasing it.')
   if (data?.stop_reason === 'max_tokens' && schema) throw new ClaudeApiError('The answer got cut off — try again.')
   const text = data?.content?.find((c) => c.type === 'text')?.text
+  if (!text && data?.stop_reason === 'max_tokens') throw new ClaudeApiError('Claude ran out of room before answering — try again, or pick Haiku in Settings.')
   if (!text) throw new ClaudeApiError('Got an empty response — try again.')
   return text
 }
