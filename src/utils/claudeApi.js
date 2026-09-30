@@ -5,6 +5,7 @@
 // route through, by design.
 
 import { checkClaudeAllowed, recordClaudeUsage } from './usageGuard'
+import { secretChanged } from './secretSync'
 
 const KEY_STORAGE = 'lifestyle-tracker-anthropic-key'
 const SETTINGS_STORAGE = 'lifestyle-tracker-coach-settings'
@@ -36,6 +37,7 @@ export function getApiKey() {
 export function setApiKey(key) {
   if (key) localStorage.setItem(KEY_STORAGE, key)
   else localStorage.removeItem(KEY_STORAGE)
+  secretChanged('anthropic', key) // encrypted copy for the user's other devices (secretSync.js)
 }
 
 export function hasApiKey() {

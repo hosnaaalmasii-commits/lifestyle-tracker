@@ -10,6 +10,7 @@ import { setTxState, flushTx } from '../i18n/tx'
 import { requestGoogleToken, requestGoogleAuthCode, fetchTodayBusyMinutes, syncTasksToCalendar, fetchEventsForDate, DEFAULT_GOOGLE_CLIENT_ID, resolveGoogleClientId } from '../utils/googleCalendar'
 import { hasOuraApiKey, getOuraApiKey, fetchOuraToday } from '../utils/ouraApi'
 import { isCloudSyncConfigured, getSupabaseClient } from '../utils/supabaseClient'
+import { setSecretPusher, pullSecrets } from '../utils/secretSync'
 import { subscribeToPush, unsubscribeFromPush } from '../utils/push'
 import {
   signUp as cloudSignUpApi, signIn as cloudSignInApi, signOut as cloudSignOutApi,
@@ -213,6 +214,25 @@ export function AppProvider({ children }) {
   // next render doesn't turn around and re-push what was just pulled.
   const suppressSyncRef = useRef(false)
   const pushTimerRef = useRef(null)
+  // Bumped when API keys arrive from another device (secretSync.js), so
+  // every screen re-renders and sees them.
+  const [, setSecretsVersion] = useState(0)
+
+  // While signed in: keep the user's API keys in their own Supabase,
+  // encrypted, and fill in keys this device doesn't have yet.
+  const startSecretSync = useCallback(async (url, anonKey) => {
+    const client = getSupabaseClient(url, anonKey)
+    if (!client) return
+    setSecretPusher(async (name, value) => {
+      const { error } = await client.rpc('set_user_secret', { p_name: name, p_value: value })
+      if (error) throw error
+    })
+    try {
+      if (await pullSecrets(client)) setSecretsVersion((v) => v + 1)
+    } catch (e) {
+      console.warn('Key sync unavailable (has supabase/user_secrets.sql been run?)', e)
+    }
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
@@ -246,12 +266,16 @@ export function AppProvider({ children }) {
       if (cancelled || !session) return
       sessionUserRef.current = session.user
       setSync((s) => ({ ...s, signedIn: true, email: session.user.email }))
+      startSecretSync(url, anonKey)
       await doReconcile(session.user.id)
     })
 
     const unsubscribe = onAuthStateChange(url, anonKey, (session) => {
+      const wasSignedIn = !!sessionUserRef.current
       sessionUserRef.current = session?.user || null
       setSync((s) => ({ ...s, signedIn: !!session, email: session?.user?.email || null }))
+      if (session && !wasSignedIn) startSecretSync(url, anonKey)
+      if (!session) setSecretPusher(null)
     })
 
     return () => { cancelled = true; unsubscribe() }

@@ -58,7 +58,7 @@ export default function CoachSettingsSheet({ open, onClose }) {
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowClaudeKey((x) => !x)}>{showClaudeKey ? tx("Hide") : tx("Show")}</button>
         </div>
         <p className="text-sm" style={{ margin: '6px 0 0', color: claudeKey ? 'var(--success)' : 'var(--text-soft)' }}>
-          {claudeKey ? `✓ ${tx("Opgeslagen op dit apparaat")}` : tx("Maak een sleutel op console.anthropic.com → API Keys en plak hem hier. Hij blijft alleen op dit apparaat.")}
+          {claudeKey ? `✓ ${tx("Opgeslagen")}` : tx("Maak een sleutel op console.anthropic.com → API Keys en plak hem hier.")}
         </p>
       </div>
 

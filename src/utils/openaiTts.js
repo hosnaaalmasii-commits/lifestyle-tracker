@@ -5,6 +5,7 @@
 // straight from the browser.
 
 import { checkAndRecordSpeech } from './usageGuard'
+import { secretChanged } from './secretSync'
 
 const KEY_STORAGE = 'lifestyle-tracker-openai-key'
 const VOICE_STORAGE = 'lifestyle-tracker-openai-voice'
@@ -36,7 +37,7 @@ function write(key, value) {
 }
 
 export const getOpenAiKey = () => read(KEY_STORAGE)
-export const setOpenAiKey = (key) => write(KEY_STORAGE, key.trim())
+export const setOpenAiKey = (key) => { write(KEY_STORAGE, key.trim()); secretChanged('openai', key.trim()) }
 export const hasOpenAiKey = () => !!getOpenAiKey()
 export const getOpenAiVoice = () => read(VOICE_STORAGE) || OPENAI_VOICES[0].id
 export const setOpenAiVoice = (id) => write(VOICE_STORAGE, id)

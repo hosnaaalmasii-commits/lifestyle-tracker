@@ -4,6 +4,7 @@ import { COLOR_THEMES } from '../../utils/colorThemes'
 import { LANGUAGES } from '../../i18n'
 import { useT } from '../../i18n/useT'
 import UsageLimitsCard from '../../components/UsageLimitsCard'
+import { forgetSyncedSecrets } from '../../utils/secretSync'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
 import { getOuraApiKey, setOuraApiKey } from '../../utils/ouraApi'
 import { isValidGoogleClientId } from '../../utils/googleCalendar'
@@ -587,6 +588,7 @@ export default function Settings({ onBack }) {
         danger
         onCancel={() => setConfirmClear(false)}
         onConfirm={() => {
+          forgetSyncedSecrets()
           clearAll()
           saveKey('')
           Object.keys(localStorage)

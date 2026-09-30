@@ -259,7 +259,7 @@ export default function Coach({ setView, openSettings = false }) {
               <li>{tx("Klik links op API Keys → Create Key.")}</li>
               <li>{tx("Kopieer de sleutel (begint met sk-ant-) en plak hem hierboven.")}</li>
             </ol>
-            <div style={{ marginTop: 6 }}>{tx("Hij blijft alleen op dit apparaat bewaard.")}</div>
+            <div style={{ marginTop: 6 }}>{tx("Ben je ingelogd bij Cloud Sync, dan wordt hij versleuteld bewaard en staat hij ook op je andere apparaten.")}</div>
           </div>
         </div>
         {avatarSheet}

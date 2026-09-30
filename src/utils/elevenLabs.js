@@ -6,6 +6,7 @@
 // key the coach uses the device's own voices (speechOutput.js).
 
 import { checkAndRecordSpeech } from './usageGuard'
+import { secretChanged } from './secretSync'
 
 const KEY_STORAGE = 'lifestyle-tracker-elevenlabs-key'
 const VOICE_STORAGE = 'lifestyle-tracker-elevenlabs-voice'
@@ -30,7 +31,7 @@ function write(key, value) {
 }
 
 export const getElevenKey = () => read(KEY_STORAGE)
-export const setElevenKey = (key) => write(KEY_STORAGE, key.trim())
+export const setElevenKey = (key) => { write(KEY_STORAGE, key.trim()); secretChanged('elevenlabs', key.trim()) }
 export const hasElevenKey = () => !!getElevenKey()
 export const getElevenVoice = () => read(VOICE_STORAGE) || DEFAULT_VOICE_ID
 export const setElevenVoice = (id) => write(VOICE_STORAGE, id)

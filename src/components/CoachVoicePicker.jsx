@@ -107,7 +107,7 @@ export default function CoachVoicePicker() {
 
       {speakError && <p className="text-sm" style={{ margin: 0, color: 'var(--danger)' }}>{speakError}</p>}
       <p className="text-sm faint" style={{ margin: 0 }}>
-        {tx("Stem en sleutels worden per apparaat bewaard — stel ze op je telefoon en je computer apart in. Sleutels blijven op dit apparaat en gaan niet mee in back-ups of synchronisatie.")}
+        {tx("Ben je ingelogd bij Cloud Sync, dan worden je sleutels versleuteld bewaard in je eigen Supabase en staan ze vanzelf op al je apparaten. De gekozen stem en snelheid stel je per apparaat in.")}
       </p>
     </div>
   )

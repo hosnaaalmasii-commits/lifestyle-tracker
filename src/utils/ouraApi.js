@@ -13,6 +13,7 @@ export function getOuraApiKey() {
 export function setOuraApiKey(key) {
   if (key) localStorage.setItem(KEY_STORAGE, key)
   else localStorage.removeItem(KEY_STORAGE)
+  secretChanged('oura', key)
 }
 
 export function hasOuraApiKey() {
