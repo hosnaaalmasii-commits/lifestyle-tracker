@@ -148,7 +148,13 @@ export async function sendToClaude({ system, messages, maxTokens = 1024, model, 
   recordClaudeUsage(data?.model || chosenModel, data?.usage)
   if (data?.stop_reason === 'refusal') throw new ClaudeApiError('Claude declined this request — try rephrasing it.')
   if (data?.stop_reason === 'max_tokens' && schema) throw new ClaudeApiError('The answer got cut off — try again.')
-  const text = data?.content?.find((c) => c.type === 'text')?.text
+  // A reply can hold several text blocks (e.g. around a thinking block) —
+  // join them all rather than taking only the first, which may be blank.
+  const text = (data?.content || [])
+    .filter((c) => c.type === 'text' && c.text)
+    .map((c) => c.text)
+    .join('')
+    .trim()
   if (!text && data?.stop_reason === 'max_tokens') throw new ClaudeApiError('Claude ran out of room before answering — try again, or pick Haiku in Settings.')
   if (!text) throw new ClaudeApiError('Got an empty response — try again.')
   return text
