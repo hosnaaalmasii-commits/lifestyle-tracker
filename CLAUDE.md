@@ -313,9 +313,12 @@ Repo: **github.com/hosnaaalmasii-commits/lifestyle-tracker**
   - "Nutrition" as a growth input is a **proxy**, not real macro tracking:
     the existing 5-item daily checklist (`NUTRITION_KEYS`) still drives
     growth — the newer per-meal macro logging (see "Meal macro tracking"
-    below) exists as a separate, real number the user can see, but nothing
-    wires it into `characterEngine.js`'s weighting yet. That's a plausible
-    next step, not done.
+    below) is now wired in as a second signal: `mealRatioFor()` scores a
+    day's logged `data.meals` against the same calorie/protein targets the
+    Voeding page uses (training/rest-day `calorieTargets` upper bound,
+    `macroGoals` fallback), with ~80% of target counting as full and
+    overshoot never penalised. The day's nutrition metric is
+    `max(checklist, meals)`, so logging meals can only help.
 - **Meal macro tracking** (`mealAnalysis.js`, `data.meals`, Nutrition
   page's "Log a meal" sheet): real per-meal calories/protein/carbs/fat,
   distinct from the older 5-item nutrition checklist proxy. One Claude
@@ -1080,11 +1083,9 @@ progress rollup).
    parsing) working**, they still need to create and paste in an
    Anthropic API key — this was scoped and explained but deliberately
    not done. Don't create one without the user explicitly asking again.
-3. Not yet requested, but a plausible next ask given the pattern so far:
-   wiring the new real meal-macro data (`data.meals`) into the Character
-   System's growth weighting as a second nutrition signal alongside the
-   existing 5-item checklist proxy — or extending the voice pipeline to
-   also cover weight/sleep intents.
+3. Meal macros now feed the Character System (done). Still open as a
+   plausible next ask: extending the voice pipeline to also cover
+   weight/sleep intents.
 4. If asked to deepen the Character System's visuals further, or change
    the app's look: get a concrete reference (named app/brand/image)
    before building — abstract adjectives alone have repeatedly taken

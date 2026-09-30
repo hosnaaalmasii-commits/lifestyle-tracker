@@ -6,6 +6,7 @@
 // archetype/figure choice and a one-time migration credit (data.character).
 import { todayKey, addDaysToKey, lastNDayKeys, diffDays, weekdayShort } from './dates'
 import { computeConsistencyScore } from './consistencyScore'
+import { getTasksForDate } from './taskSchedule'
 
 const NUTRITION_KEYS = ['breakfast', 'lunch', 'dinner', 'vegetables', 'snacks']
 const POINTS_PER_DAY = 10
@@ -88,13 +89,60 @@ function workoutRatioFor(data, dayKey) {
   return data.workouts.completions[dayKey] ? 1 : 0
 }
 
+// Real per-meal macros (data.meals) as a second nutrition signal next to
+// the 5-item checklist. Deliberately a "fuelled enough" read, not a diet
+// score: reaching ~80% of the day's calorie and protein targets counts as
+// full, and going over is never penalised — the companion should never
+// shrink for eating (same wellbeing line as the declined body-appearance
+// axis). Meals are grouped per date once per data.meals array, since
+// dayMetrics runs for every day of the 90-day growth window.
+const MEAL_FULL_AT = 0.8
+const mealTotalsCache = new WeakMap()
+
+function mealTotalsByDate(meals) {
+  let totals = mealTotalsCache.get(meals)
+  if (!totals) {
+    totals = {}
+    for (const m of meals) {
+      const t = totals[m.date] || (totals[m.date] = { calories: 0, proteinG: 0 })
+      t.calories += m.calories || 0
+      t.proteinG += m.proteinG || 0
+    }
+    mealTotalsCache.set(meals, totals)
+  }
+  return totals
+}
+
+// Same target resolution as the Voeding page: the transformation plan's
+// training/rest-day ranges (upper bound) win, macroGoals is the fallback.
+function mealTargetsFor(data, dayKey) {
+  const targets = data.settings.calorieTargets || {}
+  const goals = data.settings.macroGoals || {}
+  const trainingDay = getTasksForDate(data.taskSchedule, dayKey, data.dayOverrides).some((t) => t.category === 'training')
+  return {
+    calories: (trainingDay ? targets.training_day_kcal : targets.rest_day_kcal)?.[1] || goals.calories,
+    proteinG: targets.protein_g?.[1] || goals.proteinG,
+  }
+}
+
+export function mealRatioFor(data, dayKey) {
+  const eaten = data.meals ? mealTotalsByDate(data.meals)[dayKey] : null
+  if (!eaten) return null
+  const goal = mealTargetsFor(data, dayKey)
+  const part = (value, target) => (target > 0 ? Math.min(1, value / (target * MEAL_FULL_AT)) : 1)
+  return (part(eaten.calories, goal.calories) + part(eaten.proteinG, goal.proteinG)) / 2
+}
+
 function dayMetrics(data, dayKey) {
   const water = Math.min(1, (data.water[dayKey] || 0) / data.settings.waterGoalMl)
   const sleepEntry = data.sleep[dayKey]
   const sleep = sleepEntry ? Math.min(1, sleepEntry.hours / data.settings.sleepGoalHours) : 0
   const workout = workoutRatioFor(data, dayKey)
   const nutritionDay = data.nutrition[dayKey] || {}
-  const nutrition = NUTRITION_KEYS.filter((k) => nutritionDay[k]).length / NUTRITION_KEYS.length
+  const checklist = NUTRITION_KEYS.filter((k) => nutritionDay[k]).length / NUTRITION_KEYS.length
+  // Whichever signal is stronger counts, so logging real meals can only
+  // ever help — never drag down a day the checklist already credits.
+  const nutrition = Math.max(checklist, mealRatioFor(data, dayKey) ?? 0)
   const moodCycle = data.mood.some((m) => m.date === dayKey) || data.cycle.some((c) => c.date === dayKey) ? 1 : 0
   return { water, sleep, workout, nutrition, moodCycle }
 }
@@ -284,9 +332,14 @@ export function computeConditionState(data) {
     return data.workouts.completions[today] ? 'Done' : 'Not yet'
   })()
 
+  const mealsToday = data.meals ? mealTotalsByDate(data.meals)[today] : null
+  const nutritionLabel = mealsToday
+    ? `${Math.round(mealsToday.calories)} kcal · ${Math.round(mealsToday.proteinG)}g protein today`
+    : `${Math.round(weekAvg.nutrition * 100)}% avg`
+
   const drivers = [
     { key: 'water', label: 'Water (7d)', ratio: weekAvg.water, valueLabel: `${waterToday}ml today` },
-    { key: 'nutrition', label: 'Nutrition (7d)', ratio: weekAvg.nutrition, valueLabel: `${Math.round(weekAvg.nutrition * 5)}/5 avg` },
+    { key: 'nutrition', label: 'Nutrition (7d)', ratio: weekAvg.nutrition, valueLabel: nutritionLabel },
     { key: 'sleep', label: 'Sleep (7d)', ratio: weekAvg.sleep, valueLabel: sleepToday ? `${sleepToday.hours}h last night` : 'Not logged' },
     { key: 'workout', label: 'Workout', ratio: weekAvg.workout, valueLabel: workoutLabel },
   ]
