@@ -16,6 +16,15 @@ export function isSpeechSynthesisSupported() {
 const VOICE_STORAGE = 'lifestyle-tracker-coach-voice'
 const RATE_STORAGE = 'lifestyle-tracker-coach-rate'
 const PROVIDER_STORAGE = 'lifestyle-tracker-coach-voice-provider'
+const READ_ALOUD_STORAGE = 'lifestyle-tracker-coach-speak'
+
+// Read typed coach replies aloud too (spoken ones always are).
+export function getReadAloud() {
+  try { return localStorage.getItem(READ_ALOUD_STORAGE) === '1' } catch { return false }
+}
+export function setReadAloud(on) {
+  try { localStorage.setItem(READ_ALOUD_STORAGE, on ? '1' : '0') } catch { /* private mode */ }
+}
 
 export const VOICE_PROVIDERS = [
   { id: 'device', label: 'Toestel' },

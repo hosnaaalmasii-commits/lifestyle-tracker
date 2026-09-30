@@ -6,7 +6,9 @@ import Sheet from './Sheet'
 import Icon from './Icon'
 import CoachAvatarPicker from './CoachAvatarPicker'
 import CoachVoicePicker from './CoachVoicePicker'
+import { getReadAloud, setReadAloud, stopSpeaking, unlockSpeech } from '../utils/speechOutput'
 import { tx } from '../i18n/tx'
+import { getApiKey, setApiKey } from '../utils/claudeApi'
 
 // Everything about the coach in one place (Coach page → gear or face):
 // face + name, voice, and memory — what it remembers about you, with
@@ -15,6 +17,17 @@ export default function CoachSettingsSheet({ open, onClose }) {
   const { data, setCoachName, deleteCoachMemoryItem, clearCoachConversation, forgetCoachEverything } = useApp()
   const [tab, setTab] = useState('face')
   const [confirm, setConfirm] = useState(null) // 'chat' | 'all'
+  const [readAloud, setReadAloudState] = useState(getReadAloud)
+  const [claudeKey, setClaudeKey] = useState(getApiKey)
+  const saveClaudeKey = (v) => { const k = v.trim(); setClaudeKey(k); setApiKey(k) }
+  const [showClaudeKey, setShowClaudeKey] = useState(false)
+  const toggleReadAloud = () => {
+    const next = !readAloud
+    setReadAloudState(next)
+    setReadAloud(next)
+    if (next) unlockSpeech()
+    else stopSpeaking()
+  }
   const presetName = coachImage(data.settings.coachAvatar)?.name
   const facts = data.coach?.memory || []
   const msgCount = data.coach?.messages?.length || 0
@@ -28,6 +41,27 @@ export default function CoachSettingsSheet({ open, onClose }) {
 
   return (
     <Sheet open={open} onClose={() => { setConfirm(null); onClose() }} title={name ? `${tx("Coach instellen")} — ${name}` : tx("Coach instellen")}>
+      {/* The key that makes the coach talk at all — keys stay on this device. */}
+      <div className="field" style={{ marginBottom: 14 }}>
+        <label>{tx("Claude-sleutel (om met je coach te praten)")}</label>
+        <div className="row" style={{ gap: 8 }}>
+          <input
+            className="input"
+            style={{ flex: 1, minWidth: 0 }}
+            type={showClaudeKey ? 'text' : 'password'}
+            placeholder="sk-ant-…"
+            value={claudeKey}
+            onChange={(e) => saveClaudeKey(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowClaudeKey((x) => !x)}>{showClaudeKey ? tx("Hide") : tx("Show")}</button>
+        </div>
+        <p className="text-sm" style={{ margin: '6px 0 0', color: claudeKey ? 'var(--success)' : 'var(--text-soft)' }}>
+          {claudeKey ? `✓ ${tx("Opgeslagen op dit apparaat")}` : tx("Maak een sleutel op console.anthropic.com → API Keys en plak hem hier. Hij blijft alleen op dit apparaat.")}
+        </p>
+      </div>
+
       <div className="scroll-x" style={{ marginBottom: 14 }}>
         {tabs.map((x) => (
           <button key={x.id} type="button" className={`chip${tab === x.id ? ' selected' : ''}`} onClick={() => setTab(x.id)}>{x.label}</button>
@@ -51,7 +85,20 @@ export default function CoachSettingsSheet({ open, onClose }) {
         </div>
       )}
 
-      {tab === 'voice' && <CoachVoicePicker />}
+      {tab === 'voice' && (
+        <div className="stack" style={{ gap: 14 }}>
+          <div className="row" style={{ gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>{tx("Antwoorden voorlezen")}</div>
+              <div className="text-sm faint">{tx("Ook als je typt. Als je praat, praat je coach altijd terug.")}</div>
+            </div>
+            <button type="button" className={`chip${readAloud ? ' selected' : ''}`} onClick={toggleReadAloud} aria-pressed={readAloud}>
+              {readAloud ? tx("Aan") : tx("Uit")}
+            </button>
+          </div>
+          <CoachVoicePicker />
+        </div>
+      )}
 
       {tab === 'memory' && (
         <div className="stack" style={{ gap: 12 }}>

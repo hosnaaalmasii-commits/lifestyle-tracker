@@ -30,6 +30,8 @@ const SAMPLES = {
   pl: 'Cześć! Tak brzmi mój głos. Przejrzymy razem twój dzień?',
 }
 
+// Keys save as you type (no save button) — the status line under each key
+// field says so.
 // Choose who speaks for the coach — the device's own voices, OpenAI or
 // ElevenLabs — which voice, and how fast. Everything here is per device
 // (own localStorage keys; the API keys never leave this device). Used in
@@ -181,6 +183,7 @@ function OpenAiSection({ previewButton, onPicked }) {
           </p>
         )}
         <KeyInput value={key} onChange={saveKey} placeholder="sk-…" />
+        {key && <p className="text-sm" style={{ margin: '6px 0 0', color: 'var(--success)' }}>✓ {tx("Opgeslagen — tik op Beluister om te testen")}</p>}
       </div>
       {key && (
         <div className="field" style={{ marginBottom: 0 }}>
@@ -232,6 +235,11 @@ function ElevenSection({ previewButton, onPicked }) {
           </p>
         )}
         <KeyInput value={key} onChange={saveKey} placeholder={tx("ElevenLabs API-sleutel")} />
+        {key && (
+          <p className="text-sm" style={{ margin: '6px 0 0', color: loadError ? 'var(--danger)' : voices ? 'var(--success)' : 'var(--text-soft)' }}>
+            {loadError ? tx("Opgeslagen, maar ElevenLabs weigert deze sleutel — zie hieronder.") : voices ? `✓ ${tx("Opgeslagen en verbonden")}` : tx("Opgeslagen — verbinden…")}
+          </p>
+        )}
       </div>
       {key && (
         <>

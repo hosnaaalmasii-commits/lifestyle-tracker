@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext'
 import { hasApiKey, sendToClaude, getCoachSettings, ClaudeApiError } from '../../utils/claudeApi'
 import { buildSystemPrompt } from '../../utils/coachContext'
 import { isSpeechRecognitionSupported, createSpeechRecognizer, micErrorText } from '../../utils/speechInput'
-import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech, getSpeechLang, getSpeechAiLanguage } from '../../utils/speechOutput'
+import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech, getSpeechLang, getSpeechAiLanguage, getReadAloud } from '../../utils/speechOutput'
 import DayReplanSheet from '../../components/DayReplanSheet'
 import DictateButton from '../../components/DictateButton'
 import Sheet from '../../components/Sheet'
@@ -19,7 +19,6 @@ import { useT } from '../../i18n/useT'
 import { tx } from '../../i18n/tx'
 
 const CHAT_STORAGE = 'lifestyle-tracker-coach-chat'
-const SPEAK_STORAGE = 'lifestyle-tracker-coach-speak'
 export const COACH_PREFILL = 'lifestyle-tracker-coach-prefill'
 
 const CAN_LISTEN = isSpeechRecognitionSupported()
@@ -38,9 +37,6 @@ function takeOldChat() {
   } catch { return [] }
 }
 
-function loadSpeakPref() {
-  try { return localStorage.getItem(SPEAK_STORAGE) === '1' } catch { return false }
-}
 
 // Chat layout after the Richting E Figma mockup: glowing coach orb,
 // bubbles, quick-reply pills and a pill input pinned above the tab bar.
@@ -60,7 +56,6 @@ export default function Coach({ setView }) {
   const [replanOpen, setReplanOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [speakingNow, setSpeakingNow] = useState(false)
-  const [speakOn, setSpeakOn] = useState(loadSpeakPref)
   const [talkOpen, setTalkOpen] = useState(false)
   const [talkState, setTalkState] = useState('idle') // idle | listening | thinking | speaking
   const [heard, setHeard] = useState('')
@@ -73,7 +68,6 @@ export default function Coach({ setView }) {
   const dataRef = useRef(data)
   dataRef.current = data
   const memoryBusy = useRef(false)
-  const speakOnRef = useRef(speakOn)
   const scrollRef = useRef(null)
 
   const keyPresent = hasApiKey()
@@ -155,7 +149,7 @@ export default function Coach({ setView }) {
       messagesRef.current = [...messagesRef.current, coachMsg]
       addCoachMessages([coachMsg])
       updateMemory(false, { ...coachRef.current, messages: messagesRef.current })
-      if (!talkRef.current && CAN_SPEAK && (voice || speakOnRef.current)) speak(reply, { lang: voiceLang(), onError: voiceError })
+      if (!talkRef.current && CAN_SPEAK && (voice || getReadAloud())) speak(reply, { lang: voiceLang(), onError: voiceError })
       return reply
     } catch (e) {
       setError(e instanceof ClaudeApiError ? e.message : 'Something went wrong sending that.')
@@ -165,14 +159,6 @@ export default function Coach({ setView }) {
     }
   }
 
-  const toggleSpeak = () => {
-    const next = !speakOn
-    setSpeakOn(next)
-    speakOnRef.current = next
-    try { localStorage.setItem(SPEAK_STORAGE, next ? '1' : '0') } catch { /* private mode */ }
-    if (next) unlockSpeech()
-    else stopSpeaking()
-  }
 
   // ---- hands-free conversation ----
   const listen = () => {
@@ -225,42 +211,22 @@ export default function Coach({ setView }) {
     else if (talkState === 'speaking' || talkState === 'idle') { setError(''); talkRef.current = true; listen() }
   }
 
+  // Just the coach at the top: tap the face or name to set it up (face,
+  // name, voice incl. reading replies aloud, memory).
   const header = (
-    <div className="row" style={{ gap: 12, justifyContent: 'flex-start', marginBottom: 16, paddingRight: 52 }}>
-      <button
-        type="button"
-        onClick={() => setSettingsOpen(true)}
-        aria-label={tx("Coach instellen")}
-        title={tx("Coach instellen")}
-        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', borderRadius: '50%' }}
-      >
-        <CoachAvatar avatar={data.settings.coachAvatar} size={48} />
-      </button>
+    <button
+      type="button"
+      onClick={() => setSettingsOpen(true)}
+      aria-label={tx("Coach instellen")}
+      className="row"
+      style={{ gap: 12, justifyContent: 'flex-start', marginBottom: 16, paddingRight: 52, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text)', textAlign: 'left' }}
+    >
+      <CoachAvatar avatar={data.settings.coachAvatar} size={48} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{coachName(data) || t('coach.title')}</div>
         <div className="text-sm faint">{t('coach.sub')}</div>
       </div>
-      <button
-        type="button"
-        onClick={() => setSettingsOpen(true)}
-        aria-label={tx("Coach instellen")}
-        title={tx("Coach instellen: gezicht, naam, stem en geheugen")}
-        className="icon-btn"
-      >
-        <Icon name="gear" size={18} />
-      </button>
-      {keyPresent && CAN_SPEAK && (
-        <button
-          type="button"
-          onClick={toggleSpeak}
-          aria-label={speakOn ? t('coach.voiceOn') : t('coach.voiceOff')}
-          title={speakOn ? t('coach.voiceOn') : t('coach.voiceOff')}
-          className={speakOn ? 'icon-btn on' : 'icon-btn'}
-        >
-          <Icon name={speakOn ? 'speaker' : 'speakerOff'} size={18} />
-        </button>
-      )}
-    </div>
+    </button>
   )
 
   const avatarSheet = <CoachSettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
@@ -270,7 +236,6 @@ export default function Coach({ setView }) {
       <div className="page">
         {header}
         <Bubble role="assistant">{t('coach.noKey')}</Bubble>
-        <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={() => setView('settings')}>{t('coach.toSettings')}</button>
         {avatarSheet}
       </div>
     )
