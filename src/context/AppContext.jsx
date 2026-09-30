@@ -38,6 +38,9 @@ import { addNote as addNoteLog, deleteNote as deleteNoteLog } from '../services/
 import { backfillNormalizedTables as runNormalizedBackfill } from '../utils/normalizedBackfill'
 
 const STORAGE_KEY = 'lifestyle-tracker-data-v1'
+// The user's own Supabase project ("Tessera") — public URL + publishable key.
+const DEFAULT_SUPABASE_URL = 'https://lsxyejppowqdtcchzhjt.supabase.co'
+const DEFAULT_SUPABASE_KEY = 'sb_publishable_Pl149c106nxfQCS0XXuIiA_aEwZl2yO'
 // The coach keeps this many messages (synced); older ones drop off, but
 // what it learned from them stays in data.coach.memory.
 const COACH_MAX_MESSAGES = 300
@@ -82,8 +85,11 @@ const DEFAULT_DATA = {
     googleClientId: DEFAULT_GOOGLE_CLIENT_ID,
     googleCalendarConnected: false,
     googleAutoSyncEnabled: false,
-    supabaseUrl: '',
-    supabaseAnonKey: '',
+    // Pre-filled with the user's own Supabase project so every device only
+    // needs a sign-in — neither value is a secret (RLS protects the data;
+    // same trust model as the Google Client ID).
+    supabaseUrl: DEFAULT_SUPABASE_URL,
+    supabaseAnonKey: DEFAULT_SUPABASE_KEY,
     streakThresholdPct: 80,
     notifyCategories: { eten: true, training: true, supplement: true, herstel: true, werk: false, zelfzorg: true },
     calorieTargets: structuredClone(transformatieplan.calorie_targets || {}),
@@ -168,6 +174,9 @@ function mergeWithDefaults(parsed) {
       ...savedSettings,
       // Empty or not-a-client-ID (e.g. a pasted calendar URL) → built-in ID.
       googleClientId: resolveGoogleClientId(parsed.settings?.googleClientId),
+      // Old saves (and devices set up before this) had these empty.
+      supabaseUrl: savedSettings.supabaseUrl || DEFAULT_SUPABASE_URL,
+      supabaseAnonKey: savedSettings.supabaseAnonKey || DEFAULT_SUPABASE_KEY,
     },
     workouts: { ...DEFAULT_DATA.workouts, ...parsed.workouts, exerciseLogs: { ...parsed.workouts?.exerciseLogs } },
     coach: { ...DEFAULT_DATA.coach, ...parsed.coach },
