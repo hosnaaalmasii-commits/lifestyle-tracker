@@ -4,6 +4,7 @@ import { COLOR_THEMES } from '../../utils/colorThemes'
 import { LANGUAGES } from '../../i18n'
 import { useT } from '../../i18n/useT'
 import CoachVoicePicker from '../../components/CoachVoicePicker'
+import CoachAvatarPicker from '../../components/CoachAvatarPicker'
 import UsageLimitsCard from '../../components/UsageLimitsCard'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
 import { getOuraApiKey, setOuraApiKey } from '../../utils/ouraApi'
@@ -329,6 +330,10 @@ export default function Settings({ onBack }) {
               </button>
             ))}
           </div>
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>{tx("Gezicht van de coach")}</label>
+          <CoachAvatarPicker />
         </div>
         <CoachVoicePicker />
         <div className="row">

@@ -696,6 +696,50 @@ the browser.
   "Taal van het gesprek" in the picker; default = app language): used for
   speech recognition (DictateButton, VoiceLogSheet, coach), for TTS, and
   as `sendToClaude({ language })` so the coach replies in it.
+- **Coach face — preset people in a glass arch** (`utils/coachAvatar.js`,
+  `CoachPortrait.jsx`, `CoachAvatar.jsx`, `CoachAvatarPicker.jsx`;
+  2026-09-30). `data.settings.coachAvatar` = `{ type: 'preset', id }`
+  (six AI-generated people the user hand-picked from a Pixabay gallery —
+  Sofie, Lina, Lucas, Daan, Sem, Thomas — in `public/coaches/`, resized to
+  ≤1000 px JPEG with sharp; Pixabay Content License, no attribution
+  required, no real people), `{ type: 'photo', image }` (own upload, 3:4
+  JPEG data URL, synced) or null = the orb. `CoachPortrait` renders the
+  person waist-up in a glass arch on deep purple (the user's reference
+  image), above the chat (tap = start talking) and big in the talk sheet;
+  it breathes / glows while speaking (`.coach-arch` in motion.css) — no
+  lip movement. `CoachAvatar` is the small round face-zoomed version
+  (per-preset `face` focus point).
+  **Rejected on the way, don't re-propose without a new reference**:
+  DiceBear drawn avatars ("te cartoon"), a free talking 3D person via
+  TalkingHead/Ready Player Me ("niet mooi", game-like), a round-cropped
+  photo ("te koud"), and a free in-browser mouth animation (mesh warp over
+  MediaPipe landmarks — "mondbeweging niet goed"). LivePortrait video
+  loops were tried next: the Hugging Face Spaces need 360 s of ZeroGPU
+  (free tier can't), and on the user's PC (Ryzen 5 7530U, no NVIDIA) one
+  7-second video took 20+ min on CPU — stopped and fully uninstalled at
+  the user's request. **Open lead: Spatius** (spatius.ai — on-device 3D
+  Gaussian-splat avatars with real lip-sync, BYO TTS incl. ElevenLabs, web
+  SDK, free plan ~12k credits/yr). Waiting on the user to create a free
+  account; unknowns: custom avatar from a photo on the free plan,
+  watermark, whether it needs a server-side token (would go in a Supabase
+  Edge Function). Brief: "realistisch, classy, rustgevend, dat ik de
+  neiging heb om mee te praten", **nothing paid**.
+- **Coach memory** (`utils/coachMemory.js`, `CoachSettingsSheet.jsx`,
+  2026-09-30): the conversation lives in `data.coach.messages` (synced,
+  last 300; was per-browser localStorage, migrated once on first open),
+  and every 3 user messages — plus when a spoken conversation ends — one
+  Haiku 4.5 call (structured output) rewrites `data.coach.memory`, a list
+  of ≤50 durable facts about the user. Each reply gets the last 30
+  messages + those facts + the coach's name (`coachName()`:
+  `settings.coachName` or the preset's name) + the data snapshot, which
+  now also covers today's plan tasks, food vs. calorie/protein targets,
+  recent notes and body measurements (`coachContext.js`). Coach page →
+  gear or face → "Coach instellen": Gezicht & naam / Stem / Geheugen (see
+  and delete facts, "Gesprek wissen", "Alles vergeten"). Mic errors
+  (`micErrorText()` in speechInput.js) now show a clear message instead of
+  failing silently.
+  A second launch config `vite-preview-build` (port 4173) serves the
+  production build — use it for anything that might differ once bundled.
 - **Spending guard** (`utils/usageGuard.js` + Settings → Kostenlimieten,
   2026-09-30, user asked for "absoluut nergens onverwachte kosten"):
   per-device monthly ceilings checked *before* every paid call — Claude

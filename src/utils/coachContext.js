@@ -7,6 +7,7 @@ import { computeConsistencyScore } from './consistencyScore'
 import { activeContractsToday } from './habitContracts'
 import { getGPSStatus } from './lifestyleGPS'
 import { estimateCyclePhase } from './cyclePhase'
+import { getTasksForDate, computeDayScore } from './taskSchedule'
 
 export const PERSONALITIES = [
   {
@@ -136,7 +137,39 @@ Consistency score: ${consistency.score}/100 (${consistency.label}) — a 30-day 
 Lifestyle GPS phase: ${gps.current.label}${gps.next ? ` (${gps.next.threshold - gps.score} points from ${gps.next.label})` : ' (top phase)'}.
 ${cyclePhaseSummary}
 ${calendarSummary(data)}
-${habitContractsSummary(data)}`
+${habitContractsSummary(data)}
+${planSummary(data, today)}
+${foodSummary(data, today)}
+${notesAndMeasurementsSummary(data)}`
+}
+
+// The personal transformation plan: today's tasks and whether they're done.
+function planSummary(data, today) {
+  const tasks = getTasksForDate(data.taskSchedule, today, data.dayOverrides)
+  if (!tasks.length) return 'Plan today: no tasks scheduled.'
+  const done = data.taskCompletions?.[today] || {}
+  const list = tasks.map((t) => `${t.time} ${t.label}${done[t.id] ? ' ✓' : ''}`).join('; ')
+  return `Plan today (✓ = done, ${computeDayScore(tasks, done)}% done so far): ${list}.`
+}
+
+// What was eaten today against the plan's calorie/protein targets.
+function foodSummary(data, today) {
+  const meals = (data.meals || []).filter((m) => m.date === today)
+  const kcal = Math.round(meals.reduce((a, m) => a + (m.calories || 0), 0))
+  const protein = Math.round(meals.reduce((a, m) => a + (m.proteinG || 0), 0))
+  const t = data.settings.calorieTargets || {}
+  const training = getTasksForDate(data.taskSchedule, today, data.dayOverrides).some((x) => x.category === 'training')
+  const kcalRange = (training ? t.training_day_kcal : t.rest_day_kcal) || null
+  const targets = kcalRange ? ` Target today (${training ? 'training' : 'rest'} day): ${kcalRange.join('–')} kcal, protein ${(t.protein_g || []).join('–')} g.` : ''
+  const names = meals.map((m) => m.name).slice(-8).join(', ')
+  return `Food logged today: ${meals.length ? `${kcal} kcal, ${protein} g protein (${names})` : 'nothing yet'}.${targets}${t.goal ? ` Plan goal: ${t.goal}.` : ''}`
+}
+
+function notesAndMeasurementsSummary(data) {
+  const notes = (data.notes || []).slice(-5).map((n) => `${n.date?.slice(5) || ''}: "${String(n.text || '').slice(0, 140)}"`)
+  const m = (data.measurements || []).slice(-1)[0]
+  const measure = m && !data.settings.gentleMode ? `Latest body measurements (${m.date}): ${Object.entries(m).filter(([k, v]) => !['id', 'date'].includes(k) && typeof v === 'number').map(([k, v]) => `${k} ${v}`).join(', ')}.` : ''
+  return `Recent notes: ${notes.length ? notes.join('; ') : 'none'}.${measure ? `\n${measure}` : ''}`
 }
 
 function calendarSummary(data) {

@@ -4,7 +4,7 @@ import { hasApiKey, ClaudeApiError } from '../utils/claudeApi'
 import { parseVoiceTranscript, applyVoiceIntent, CATEGORY_META, CATEGORY_DESTINATION } from '../utils/voiceLogging'
 import { parseTranscriptLocally } from '../utils/localVoiceParser'
 import { unlockSpeech, getSpeechLang } from '../utils/speechOutput'
-import { isSpeechRecognitionSupported, createSpeechRecognizer } from '../utils/speechInput'
+import { isSpeechRecognitionSupported, createSpeechRecognizer, micErrorText } from '../utils/speechInput'
 import Sheet from './Sheet'
 import Icon from './Icon'
 import { tx } from '../i18n/tx'
@@ -149,7 +149,7 @@ export default function VoiceLogSheet({ open, onClose, onOpenCoach }) {
       },
       onError: (err) => {
         setListening(false)
-        if (err !== 'no-speech' && err !== 'aborted') setError('Couldn\'t hear anything — try again or type it instead.')
+        if (err !== 'no-speech' && err !== 'aborted') setError(micErrorText(err) || tx("Couldn't hear anything — try again or type it instead."))
       },
     })
     recognizerRef.current = recognizer

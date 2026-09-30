@@ -2,13 +2,19 @@ import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { hasApiKey, sendToClaude, getCoachSettings, ClaudeApiError } from '../../utils/claudeApi'
 import { buildSystemPrompt } from '../../utils/coachContext'
-import { isSpeechRecognitionSupported, createSpeechRecognizer } from '../../utils/speechInput'
+import { isSpeechRecognitionSupported, createSpeechRecognizer, micErrorText } from '../../utils/speechInput'
 import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech, getSpeechLang, getSpeechAiLanguage } from '../../utils/speechOutput'
 import DayReplanSheet from '../../components/DayReplanSheet'
 import DictateButton from '../../components/DictateButton'
 import Sheet from '../../components/Sheet'
 import Icon from '../../components/Icon'
+import CoachAvatar from '../../components/CoachAvatar'
+import { coachImage } from '../../utils/coachAvatar'
+import CoachPortrait from '../../components/CoachPortrait'
 import CoachVoicePicker from '../../components/CoachVoicePicker'
+import { coachName, memoryPrompt, memoryIsDue, refreshMemory, HISTORY_FOR_REPLY } from '../../utils/coachMemory'
+import { getSpeechProgress } from '../../utils/speechOutput'
+import CoachSettingsSheet from '../../components/CoachSettingsSheet'
 import { useT } from '../../i18n/useT'
 import { tx } from '../../i18n/tx'
 
@@ -22,12 +28,16 @@ const CAN_SPEAK = isSpeechSynthesisSupported()
 // Appended to the system prompt when the reply will be read out loud.
 const SPOKEN_STYLE = '\n\nThe user is talking to you by voice and your reply will be read aloud. Answer in 1–3 short, natural spoken sentences. No lists, headings, markdown or emoji.'
 
-function loadChat() {
-  try { return JSON.parse(localStorage.getItem(CHAT_STORAGE) || '[]') } catch { return [] }
+// Chats used to live only in this browser (last 30 messages); they now
+// sync in data.coach — moved over once, then the old key is removed.
+function takeOldChat() {
+  try {
+    const old = JSON.parse(localStorage.getItem(CHAT_STORAGE) || '[]')
+    localStorage.removeItem(CHAT_STORAGE)
+    return Array.isArray(old) ? old : []
+  } catch { return [] }
 }
-function saveChat(messages) {
-  localStorage.setItem(CHAT_STORAGE, JSON.stringify(messages.slice(-30)))
-}
+
 function loadSpeakPref() {
   try { return localStorage.getItem(SPEAK_STORAGE) === '1' } catch { return false }
 }
@@ -40,14 +50,16 @@ function loadSpeakPref() {
 // when the speaker toggle is on. "Praat met je coach" opens a hands-free
 // conversation (listen → reply → speak → listen again).
 export default function Coach({ setView }) {
-  const { data } = useApp()
+  const { data, addCoachMessages, setCoachMemory } = useApp()
   const { t, locale } = useT()
   const coachSettings = getCoachSettings()
-  const [messages, setMessages] = useState(loadChat)
+  const messages = data.coach?.messages || []
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [replanOpen, setReplanOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [speakingNow, setSpeakingNow] = useState(false)
   const [speakOn, setSpeakOn] = useState(loadSpeakPref)
   const [talkOpen, setTalkOpen] = useState(false)
   const [talkState, setTalkState] = useState('idle') // idle | listening | thinking | speaking
@@ -55,12 +67,28 @@ export default function Coach({ setView }) {
   const talkRef = useRef(false)
   const recognizerRef = useRef(null)
   const messagesRef = useRef(messages)
+  messagesRef.current = messages
+  const coachRef = useRef(data.coach)
+  coachRef.current = data.coach
+  const dataRef = useRef(data)
+  dataRef.current = data
+  const memoryBusy = useRef(false)
   const speakOnRef = useRef(speakOn)
   const scrollRef = useRef(null)
 
   const keyPresent = hasApiKey()
 
-  useEffect(() => { saveChat(messages); messagesRef.current = messages }, [messages])
+  useEffect(() => {
+    const old = takeOldChat()
+    if (old.length && !messagesRef.current.length) addCoachMessages(old.map((m) => ({ role: m.role, content: m.content })))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  // Whether the coach is speaking right now (also replies read aloud in the
+  // chat) — makes the portrait glow.
+  useEffect(() => {
+    const id = setInterval(() => setSpeakingNow(!!getSpeechProgress()), 250)
+    return () => clearInterval(id)
+  }, [])
   // A message handed over from the Vandaag voice sheet ("Praat met de
   // coach") — it was spoken, so the reply is spoken too. Sent once, then cleared.
   useEffect(() => {
@@ -84,25 +112,49 @@ export default function Coach({ setView }) {
 
   // voice: the message was spoken → short spoken-style reply, read aloud
   // (in the conversation sheet the loop does the speaking itself).
+  // Every few messages (and when a spoken conversation ends) the coach
+  // updates what it knows about the user — in the background.
+  const updateMemory = async (force = false, coachNow = coachRef.current) => {
+    if (memoryBusy.current || !memoryIsDue(coachNow, force)) return
+    memoryBusy.current = true
+    try {
+      const result = await refreshMemory(coachNow, { language: getSpeechAiLanguage() || undefined })
+      if (result) setCoachMemory(result.memory, result.memoryUpTo)
+    } catch (e) {
+      console.warn('Coach memory update failed', e)
+    } finally {
+      memoryBusy.current = false
+    }
+  }
+
   const sendText = async (raw, { voice = false } = {}) => {
     const text = raw.trim()
     if (!text || sending) return null
     setInput('')
     setError('')
-    const nextMessages = [...messagesRef.current, { role: 'user', content: text }]
+    const userMsg = { role: 'user', content: text, at: Date.now() }
+    const nextMessages = [...messagesRef.current, userMsg]
     messagesRef.current = nextMessages
-    setMessages(nextMessages)
+    addCoachMessages([userMsg])
     setSending(true)
     try {
-      const system = buildSystemPrompt(coachSettings.personality, data) + (voice ? SPOKEN_STYLE : '')
+      const d = dataRef.current
+      const system = buildSystemPrompt(coachSettings.personality, d) + memoryPrompt(d) + (voice ? SPOKEN_STYLE : '')
+      // The API needs the history to start with the user; older messages
+      // are covered by the remembered facts.
+      let history = nextMessages.slice(-HISTORY_FOR_REPLY).map((m) => ({ role: m.role, content: m.content }))
+      while (history.length && history[0].role !== 'user') history = history.slice(1)
       const reply = await sendToClaude({
         system,
-        messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+        messages: history,
         maxTokens: voice ? 400 : 700,
         // A conversation language picked in the voice settings overrides the app language.
         language: getSpeechAiLanguage() || undefined,
       })
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      const coachMsg = { role: 'assistant', content: reply, at: Date.now() }
+      messagesRef.current = [...messagesRef.current, coachMsg]
+      addCoachMessages([coachMsg])
+      updateMemory(false, { ...coachRef.current, messages: messagesRef.current })
       if (!talkRef.current && CAN_SPEAK && (voice || speakOnRef.current)) speak(reply, { lang: voiceLang(), onError: voiceError })
       return reply
     } catch (e) {
@@ -132,10 +184,13 @@ export default function Coach({ setView }) {
     const recognizer = createSpeechRecognizer({
       lang: voiceLang(),
       onResult: ({ text }) => { said = text; setHeard(text) },
-      onError: () => {},
+      onError: (err) => {
+        const msg = micErrorText(err)
+        if (msg) { setError(msg); talkRef.current = false; setTalkState('idle') }
+      },
       onEnd: async () => {
         recognizerRef.current = null
-        if (!talkRef.current) return
+        if (!talkRef.current) { setTalkState('idle'); return }
         if (!said.trim()) { setTalkState('idle'); return }
         setTalkState('thinking')
         const reply = await sendText(said, { voice: true })
@@ -163,26 +218,42 @@ export default function Coach({ setView }) {
     stopSpeaking()
     setTalkOpen(false)
     setTalkState('idle')
+    updateMemory(true)
   }
   const tapOrb = () => {
     if (talkState === 'listening') recognizerRef.current?.stop()
-    else if (talkState === 'speaking' || talkState === 'idle') listen()
+    else if (talkState === 'speaking' || talkState === 'idle') { setError(''); talkRef.current = true; listen() }
   }
 
   const header = (
     <div className="row" style={{ gap: 12, justifyContent: 'flex-start', marginBottom: 16, paddingRight: 52 }}>
-      <span
-        aria-hidden
-        style={{
-          width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
-          background: 'radial-gradient(circle at 40% 38%, #ffffff 0%, color-mix(in srgb, var(--accent) 55%, #ffffff) 30%, var(--accent) 62%, color-mix(in srgb, var(--accent) 60%, #000000) 100%)',
-          boxShadow: '0 0 24px color-mix(in srgb, var(--accent) 55%, transparent)',
-        }}
-      />
+      <button
+        type="button"
+        onClick={() => setSettingsOpen(true)}
+        aria-label={tx("Coach instellen")}
+        title={tx("Coach instellen")}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', borderRadius: '50%' }}
+      >
+        <CoachAvatar avatar={data.settings.coachAvatar} size={48} />
+      </button>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{t('coach.title')}</div>
+        <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{coachName(data) || t('coach.title')}</div>
         <div className="text-sm faint">{t('coach.sub')}</div>
       </div>
+      <button
+        type="button"
+        onClick={() => setSettingsOpen(true)}
+        aria-label={tx("Coach instellen")}
+        title={tx("Coach instellen: gezicht, naam, stem en geheugen")}
+        style={{
+          width: 38, height: 38, borderRadius: '50%', flexShrink: 0, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'transparent', color: 'var(--second)',
+          border: '1.2px solid color-mix(in srgb, var(--second) 70%, transparent)',
+        }}
+      >
+        <Icon name="gear" size={18} />
+      </button>
       {keyPresent && CAN_SPEAK && (
         <button
           type="button"
@@ -203,28 +274,48 @@ export default function Coach({ setView }) {
     </div>
   )
 
+  const avatarSheet = <CoachSettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
   if (!keyPresent) {
     return (
       <div className="page">
         {header}
         <Bubble role="assistant">{t('coach.noKey')}</Bubble>
         <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={() => setView('settings')}>{t('coach.toSettings')}</button>
+        {avatarSheet}
       </div>
     )
   }
 
   const quickAsk = (text) => { setInput(''); sendText(text) }
+  // A coach with a face (preset person or own photo): shown waist-up in a
+  // glass arch above the chat; tapping it starts a spoken conversation.
+  // It can't move its lips, so it breathes and glows (motion.css .coach-arch).
+  const face = coachImage(data.settings.coachAvatar)
   const talkLabel = {
     listening: t('coach.listening'),
     thinking: t('coach.thinking'),
     speaking: t('coach.speaking'),
-    idle: t('coach.tapToTalk'),
+    idle: face ? tx("Tik op je coach en praat") : t('coach.tapToTalk'),
   }[talkState]
   const lastReply = [...messages].reverse().find((m) => m.role === 'assistant')
 
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100dvh - var(--tabbar-height) - 40px)' }}>
       {header}
+
+      {face && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, margin: '0 0 18px' }}>
+          <CoachPortrait
+            avatar={data.settings.coachAvatar}
+            width={170}
+            state={speakingNow ? 'speaking' : 'idle'}
+            onClick={CAN_LISTEN ? openTalk : undefined}
+            label={t('coach.talk')}
+          />
+          {CAN_LISTEN && <div className="text-sm muted">{coachName(data) ? `${tx("Tik op")} ${coachName(data)} ${tx("om te praten")}` : tx("Tik op je coach om te praten")}</div>}
+        </div>
+      )}
 
       <div ref={scrollRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0 14px' }}>
         {messages.length === 0 && (
@@ -277,28 +368,26 @@ export default function Coach({ setView }) {
             compact
             onText={setInput}
             onDone={(text) => { unlockSpeech(); sendText(text, { voice: true }) }}
+            onError={(err) => { const msg = micErrorText(err); if (msg) setError(msg) }}
           />
           <button className="btn btn-primary btn-sm" disabled={sending || !input.trim()} onClick={send}>{t('coach.send')}</button>
         </div>
       </div>
 
       <DayReplanSheet open={replanOpen} onClose={() => setReplanOpen(false)} />
+      {avatarSheet}
 
       <Sheet open={talkOpen} onClose={closeTalk} title={t('coach.talk')}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '6px 0 4px', textAlign: 'center' }}>
-          <button
-            type="button"
-            onClick={tapOrb}
-            disabled={talkState === 'thinking'}
-            aria-label={talkLabel}
-            className={talkState === 'speaking' ? 'coach-orb speaking' : talkState === 'listening' ? 'coach-orb listening' : 'coach-orb'}
-            style={{
-              width: 132, height: 132, borderRadius: '50%', border: 'none', cursor: 'pointer',
-              background: 'radial-gradient(circle at 40% 38%, #ffffff 0%, color-mix(in srgb, var(--accent) 55%, #ffffff) 30%, var(--accent) 62%, color-mix(in srgb, var(--accent) 60%, #000000) 100%)',
-              boxShadow: '0 0 40px color-mix(in srgb, var(--accent) 55%, transparent)',
-              opacity: talkState === 'thinking' ? 0.7 : 1,
-            }}
-          />
+          <div style={{ opacity: talkState === 'thinking' ? 0.75 : 1, transition: 'opacity 0.3s' }}>
+            <CoachPortrait
+              avatar={data.settings.coachAvatar}
+              width={face ? 220 : 200}
+              state={talkState}
+              onClick={talkState === 'thinking' ? undefined : tapOrb}
+              label={talkLabel}
+            />
+          </div>
           <div style={{ fontWeight: 700 }}>{talkLabel}</div>
           <div className="text-sm muted" style={{ minHeight: 40, maxWidth: 320 }}>
             {talkState === 'listening' || talkState === 'thinking' ? heard : talkState === 'speaking' ? lastReply?.content : ''}

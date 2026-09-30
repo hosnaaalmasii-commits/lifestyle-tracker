@@ -115,9 +115,23 @@ button.card:active { transform: scale(0.985); }
   to { transform: scale(1.06); }
 }
 
+/* Coach portrait (glass arch): it can't move its lips, so it breathes slowly and
+   glows softly in rhythm while the coach speaks — calm, not jumpy. */
+.coach-arch { animation: photo-breathe 7s ease-in-out infinite; }
+.coach-arch.listening { animation: orb-listen 1.8s ease-out infinite; }
+.coach-arch.speaking { animation: photo-speak 1.6s ease-in-out infinite; }
+@keyframes photo-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 30%, transparent); }
+  50% { transform: scale(1.015); box-shadow: 0 0 44px color-mix(in srgb, var(--accent) 42%, transparent); }
+}
+@keyframes photo-speak {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 70%, transparent), 0 0 28px color-mix(in srgb, var(--accent) 35%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 60px color-mix(in srgb, var(--accent) 60%, transparent); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page > *, body::before, .xp-bar-fill, .speak-btn::after, .float-soft, .flame-flicker,
-  .check-dot.done, .check-dot.done svg *, .tab-btn.active .tab-dot, .sheet, .coach-orb {
+  .check-dot.done, .check-dot.done svg *, .tab-btn.active .tab-dot, .sheet, .coach-orb, .coach-arch {
     animation: none !important;
   }
 }

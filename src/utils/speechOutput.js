@@ -185,6 +185,27 @@ let abort = null
 let audioEl = null
 const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
 
+// Where the coach is in what it's saying (and whether it's speaking at
+// all) — e.g. for the portrait's speaking glow. Cloud
+// audio: exact, from the <audio> element's position. Device voice: word
+// boundary events where the browser gives them, else estimated at ~14
+// characters a second.
+const tracker = { active: false, text: '', audio: null, offset: 0, at: 0, cps: 14 }
+
+export function getSpeechProgress() {
+  if (!tracker.active) return null
+  const len = tracker.text.length
+  let pos
+  if (tracker.audio) {
+    const a = tracker.audio
+    if (!a.duration || !isFinite(a.duration)) return { text: tracker.text, pos: 0 }
+    pos = (a.currentTime / a.duration) * len
+  } else {
+    pos = tracker.offset + ((performance.now() - tracker.at) / 1000) * tracker.cps
+  }
+  return { text: tracker.text, pos: Math.min(len - 1, Math.max(0, pos)) }
+}
+
 function getAudio() {
   if (!audioEl && typeof Audio !== 'undefined') audioEl = new Audio()
   return audioEl
@@ -193,13 +214,19 @@ function getAudio() {
 function speakWithDevice(parts, lang, id, onEnd) {
   if (!isSpeechSynthesisSupported()) { onEnd?.(); return }
   const voice = pickVoice(lang)
+  Object.assign(tracker, { active: false, text: parts.join(' '), audio: null, offset: 0, at: performance.now(), cps: 14 * getSpeechRate() })
+  let offset = 0
   parts.forEach((part, i) => {
     const u = new SpeechSynthesisUtterance(part)
     u.lang = voice?.lang || lang
     if (voice) u.voice = voice
     u.rate = getSpeechRate()
+    const partOffset = offset
+    offset += part.length + 1
+    u.onstart = () => { if (id === session) Object.assign(tracker, { active: true, offset: partOffset, at: performance.now() }) }
+    u.onboundary = (e) => { if (id === session) Object.assign(tracker, { offset: partOffset + (e.charIndex || 0), at: performance.now() }) }
     if (i === parts.length - 1) {
-      const done = () => { if (id === session) onEnd?.() }
+      const done = () => { if (id === session) { tracker.active = false; onEnd?.() } }
       u.onend = done
       u.onerror = done
     }
@@ -215,7 +242,7 @@ async function speakWithCloud(cloud, text, parts, lang, id, onEnd, onError) {
     if (id !== session) return
     const audio = getAudio()
     const url = URL.createObjectURL(blob)
-    const done = () => { URL.revokeObjectURL(url); if (id === session) onEnd?.() }
+    const done = () => { URL.revokeObjectURL(url); if (id === session) { tracker.active = false; onEnd?.() } }
     audio.onended = done
     audio.onerror = done
     audio.src = url
@@ -225,6 +252,7 @@ async function speakWithCloud(cloud, text, parts, lang, id, onEnd, onError) {
     audio.preservesPitch = true
     audio.defaultPlaybackRate = rate
     audio.playbackRate = rate
+    Object.assign(tracker, { active: true, text, audio })
     await audio.play()
   } catch (e) {
     if (id !== session || e?.name === 'AbortError') return
@@ -251,6 +279,7 @@ export function speak(text, { lang = 'nl-NL', onEnd, onError } = {}) {
 
 export function stopSpeaking() {
   session++
+  tracker.active = false
   abort?.abort()
   abort = null
   if (audioEl) { audioEl.pause(); audioEl.onended = null; audioEl.onerror = null }

@@ -1,3 +1,5 @@
+import { tx } from '../i18n/tx'
+
 // Thin wrapper around the browser's built-in SpeechRecognition API.
 // Notably unsupported on Safari (desktop and iOS) as of this writing —
 // callers must check isSpeechRecognitionSupported() and offer a text
@@ -29,4 +31,13 @@ export function createSpeechRecognizer({ onResult, onEnd, onError, lang = 'en-US
   recognition.onend = () => onEnd?.()
 
   return recognition
+}
+
+// What the microphone reported, in words the user can act on.
+export function micErrorText(err) {
+  if (err === 'not-allowed' || err === 'service-not-allowed') return tx("De microfoon is geblokkeerd. Klik op het slotje naast het webadres → Microfoon → Toestaan, en herlaad de pagina.")
+  if (err === 'audio-capture') return tx("Geen microfoon gevonden. Controleer of er een microfoon aangesloten en aangezet is.")
+  if (err === 'network') return tx("Spraakherkenning heeft internet nodig. Controleer je verbinding.")
+  if (err === 'language-not-supported') return tx("Deze taal wordt niet ondersteund door de spraakherkenning van je browser.")
+  return null
 }

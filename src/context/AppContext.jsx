@@ -37,6 +37,9 @@ import { addNote as addNoteLog, deleteNote as deleteNoteLog } from '../services/
 import { backfillNormalizedTables as runNormalizedBackfill } from '../utils/normalizedBackfill'
 
 const STORAGE_KEY = 'lifestyle-tracker-data-v1'
+// The coach keeps this many messages (synced); older ones drop off, but
+// what it learned from them stays in data.coach.memory.
+const COACH_MAX_MESSAGES = 300
 
 // Seeds the editable task schedule from data/transformatieplan-data.json on
 // first load. Once a user's own taskSchedule is saved to localStorage, the
@@ -64,6 +67,9 @@ const DEFAULT_DATA = {
     colorTheme: DEFAULT_COLOR_THEME,
     // Shown in the Overview greeting ("Goedemorgen, <name>"). Optional.
     displayName: '',
+    // The coach's face: { style, seed } of a DiceBear avatar
+    // (utils/coachAvatar.js), or null for the glowing orb.
+    coachAvatar: null,
     // App language (i18n/index.js): nl | en | fr | de | es. Also the
     // language every Claude reply is written in.
     language: DEFAULT_LANGUAGE,
@@ -105,6 +111,12 @@ const DEFAULT_DATA = {
   // Named places the user told the app about ("gym", "work", "home") —
   // [{ id, name, address }]. Used for appointment locations/travel.
   places: [],
+  // The coach's memory, synced like everything else so every device's
+  // coach knows the same things: the conversation (last COACH_MAX_MESSAGES
+  // messages, { role, content, at }), durable facts it learned about the
+  // user ({ id, text, at } — utils/coachMemory.js) and how many messages
+  // have already been read for facts (memoryUpTo).
+  coach: { messages: [], memory: [], memoryUpTo: 0 },
   measurements: [],
   googleCalendarEventIds: {},
   water: {},
@@ -157,6 +169,7 @@ function mergeWithDefaults(parsed) {
       googleClientId: resolveGoogleClientId(parsed.settings?.googleClientId),
     },
     workouts: { ...DEFAULT_DATA.workouts, ...parsed.workouts, exerciseLogs: { ...parsed.workouts?.exerciseLogs } },
+    coach: { ...DEFAULT_DATA.coach, ...parsed.coach },
   }
 }
 
@@ -719,6 +732,18 @@ export function AppProvider({ children }) {
     setColorTheme: (key) => setData((d) => ({ ...d, settings: { ...d.settings, colorTheme: key } })),
     setLanguage: (code) => setData((d) => ({ ...d, settings: { ...d.settings, language: code } })),
     setDisplayName: (name) => setData((d) => ({ ...d, settings: { ...d.settings, displayName: name } })),
+    setCoachAvatar: (avatar) => setData((d) => ({ ...d, settings: { ...d.settings, coachAvatar: avatar } })),
+    setCoachName: (name) => setData((d) => ({ ...d, settings: { ...d.settings, coachName: name } })),
+    addCoachMessages: (msgs) => setData((d) => {
+      const all = [...(d.coach?.messages || []), ...msgs.map((m) => ({ at: Date.now(), ...m }))]
+      const drop = Math.max(0, all.length - COACH_MAX_MESSAGES)
+      const coach = { ...DEFAULT_DATA.coach, ...d.coach }
+      return { ...d, coach: { ...coach, messages: all.slice(drop), memoryUpTo: Math.max(0, (coach.memoryUpTo || 0) - drop) } }
+    }),
+    setCoachMemory: (memory, memoryUpTo) => setData((d) => ({ ...d, coach: { ...DEFAULT_DATA.coach, ...d.coach, memory, memoryUpTo } })),
+    deleteCoachMemoryItem: (id) => setData((d) => ({ ...d, coach: { ...DEFAULT_DATA.coach, ...d.coach, memory: (d.coach?.memory || []).filter((m) => m.id !== id) } })),
+    clearCoachConversation: () => setData((d) => ({ ...d, coach: { ...DEFAULT_DATA.coach, ...d.coach, messages: [], memoryUpTo: 0 } })),
+    forgetCoachEverything: () => setData((d) => ({ ...d, coach: { messages: [], memory: [], memoryUpTo: 0 } })),
     setGentleMode: (on) => setData((d) => ({ ...d, settings: { ...d.settings, gentleMode: on } })),
 
     connectGoogleCalendar: async (rawClientId) => {

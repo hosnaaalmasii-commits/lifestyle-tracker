@@ -67,13 +67,10 @@ export async function fetchElevenVoices() {
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
-// Returns an audio Blob (mp3). Tempo is applied at playback (speechOutput.js).
-export async function synthesize(text, { lang = 'nl-NL', signal } = {}) {
+function requestBody(text, lang) {
   const model = getElevenModel()
-  const input = text.slice(0, 4500)
-  checkAndRecordSpeech('elevenlabs', input.length) // throws once the monthly limit is reached
   const body = {
-    text: input,
+    text,
     model_id: model,
     voice_settings: {
       stability: 0.45,
@@ -86,10 +83,17 @@ export async function synthesize(text, { lang = 'nl-NL', signal } = {}) {
   // anything else is detected from the text); v2 always detects it.
   const code = lang.split('-')[0]
   if (model.includes('v2_5') && ['nl', 'en', 'fr', 'de', 'es', 'it', 'pt', 'tr', 'ar', 'pl'].includes(code)) body.language_code = code
+  return JSON.stringify(body)
+}
+
+// Returns an audio Blob (mp3). Tempo is applied at playback (speechOutput.js).
+export async function synthesize(text, { lang = 'nl-NL', signal } = {}) {
+  const input = text.slice(0, 4500)
+  checkAndRecordSpeech('elevenlabs', input.length) // throws once the monthly limit is reached
   const res = await fetch(`${API}/text-to-speech/${encodeURIComponent(getElevenVoice())}?output_format=mp3_44100_128`, {
     method: 'POST',
     headers: { 'xi-api-key': getElevenKey(), 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
-    body: JSON.stringify(body),
+    body: requestBody(input, lang),
     signal,
   })
   if (!res.ok) throw new ElevenLabsError(await explain(res))

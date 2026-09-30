@@ -12,7 +12,7 @@ export const DICTATION_SUPPORTED = isSpeechRecognitionSupported()
 // SpeechRecognition (Safari/iOS); callers show a hint pointing at the
 // keyboard's own dictation mic instead.
 // compact: a round icon-only mic, for inside a pill input bar.
-export default function DictateButton({ onText, onDone, lang: langProp, compact = false }) {
+export default function DictateButton({ onText, onDone, onError, lang: langProp, compact = false }) {
   const [listening, setListening] = useState(false)
   const { locale } = useT()
   const lang = langProp || getSpeechLang(locale) // the chosen conversation language, else the app's
@@ -32,7 +32,7 @@ export default function DictateButton({ onText, onDone, lang: langProp, compact 
       lang,
       onResult: ({ text }) => { last = text; onText(text) },
       onEnd: () => { setListening(false); recognizerRef.current = null; if (last) onDone?.(last) },
-      onError: () => setListening(false),
+      onError: (err) => { setListening(false); onError?.(err) },
     })
     recognizerRef.current = recognizer
     setListening(true)
