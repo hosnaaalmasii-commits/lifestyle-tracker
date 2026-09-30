@@ -752,6 +752,19 @@ the browser.
   an old build after deploys.
   A second launch config `vite-preview-build` (port 4173) serves the
   production build — use it for anything that might differ once bundled.
+- **API keys sync across devices, encrypted** (`utils/secretSync.js`,
+  `supabase/user_secrets.sql` — **run and confirmed on Tessera 2026-09-30**).
+  User request ("ik moet elke key telkens opnieuw ingeven"), knowingly
+  changing the old "keys never leave the device" rule: keys still live
+  and are used from their own localStorage slots and are still never in
+  `data`/export, but while signed in to Cloud Sync each one is also stored
+  in `user_secrets` (pgp_sym_encrypt with the existing Vault key, only
+  reachable via `set_user_secret`/`get_user_secrets` RPCs acting as
+  auth.uid(); no select policy at all). On sign-in: missing local keys
+  are filled, local-only keys uploaded; setters push changes (debounced);
+  Clear everything also deletes the synced copies. The built-in browser
+  pane loses localStorage when previews restart — that, not a bug, was
+  why keys "kept disappearing" there.
 - **Spending guard** (`utils/usageGuard.js` + Settings → Kostenlimieten,
   2026-09-30, user asked for "absoluut nergens onverwachte kosten"):
   per-device monthly ceilings checked *before* every paid call — Claude
