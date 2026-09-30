@@ -4,9 +4,21 @@
       <stop offset="0" stop-color="#243119"/>
       <stop offset="1" stop-color="#182010"/>
     </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="62%" r="45%">
+      <stop offset="0" stop-color="#FFDB8A" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FFDB8A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="outer" x1="256" y1="128" x2="256" y2="388" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F6B94A"/>
+      <stop offset="1" stop-color="#D9631F"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="256" y1="198" x2="256" y2="388" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF3C4"/>
+      <stop offset="1" stop-color="#FCCB56"/>
+    </linearGradient>
   </defs>
   <rect x="0" y="0" width="512" height="512" rx="112.64" ry="112.64" fill="url(#bg)"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#7C5A9C" stroke-width="20" opacity="0.5"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#C9A6F2" stroke-width="30"
-    stroke-linecap="round" stroke-dasharray="678.58 942.48" transform="rotate(-90 256 256)"/>
+  <circle cx="256" cy="258" r="190" fill="url(#glow)"/>
+  <path d="M160,388 C127.36,270.1 228.4,157.44 262,126 C292.72,173.16000000000003 371.584,277.96000000000004 352,388 Z" fill="url(#outer)"/>
+  <path d="M200,388 C184.32,307.9 226.4,231.35999999999999 246,210 C263.92,242.04000000000002 321.408,313.24 312,388 Z" fill="url(#inner)"/>
 </svg>
