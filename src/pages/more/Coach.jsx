@@ -6,15 +6,14 @@ import { isSpeechRecognitionSupported, createSpeechRecognizer, micErrorText } fr
 import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech, getSpeechLang, getSpeechAiLanguage, getReadAloud } from '../../utils/speechOutput'
 import DayReplanSheet from '../../components/DayReplanSheet'
 import DictateButton from '../../components/DictateButton'
-import Sheet from '../../components/Sheet'
 import Icon from '../../components/Icon'
 import CoachAvatar from '../../components/CoachAvatar'
 import { coachImage } from '../../utils/coachAvatar'
 import CoachPortrait from '../../components/CoachPortrait'
-import CoachVoicePicker from '../../components/CoachVoicePicker'
 import { coachName, memoryPrompt, memoryIsDue, refreshMemory, HISTORY_FOR_REPLY } from '../../utils/coachMemory'
 import { getSpeechProgress } from '../../utils/speechOutput'
 import CoachSettingsSheet from '../../components/CoachSettingsSheet'
+import CoachTalkView from '../../components/CoachTalkView'
 import { useT } from '../../i18n/useT'
 import { tx } from '../../i18n/tx'
 
@@ -45,7 +44,8 @@ function takeOldChat() {
 // reply to something *spoken* is always read aloud, typed messages only
 // when the speaker toggle is on. "Praat met je coach" opens a hands-free
 // conversation (listen → reply → speak → listen again).
-export default function Coach({ setView }) {
+// openSettings: open straight into "Coach instellen" (from the menu item).
+export default function Coach({ setView, openSettings = false }) {
   const { data, addCoachMessages, setCoachMemory } = useApp()
   const { t, locale } = useT()
   const coachSettings = getCoachSettings()
@@ -54,11 +54,12 @@ export default function Coach({ setView }) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [replanOpen, setReplanOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(openSettings)
   const [speakingNow, setSpeakingNow] = useState(false)
   const [talkOpen, setTalkOpen] = useState(false)
   const [talkState, setTalkState] = useState('idle') // idle | listening | thinking | speaking
   const [heard, setHeard] = useState('')
+  const [talkReply, setTalkReply] = useState('') // the reply being spoken in the talk view
   const talkRef = useRef(false)
   const recognizerRef = useRef(null)
   const messagesRef = useRef(messages)
@@ -182,6 +183,7 @@ export default function Coach({ setView }) {
         const reply = await sendText(said, { voice: true })
         if (!talkRef.current) return
         if (!reply) { setTalkState('idle'); return }
+        setTalkReply(reply)
         setTalkState('speaking')
         speak(reply, { lang: voiceLang(), onError: voiceError, onEnd: () => { if (talkRef.current) listen() } })
       },
@@ -252,7 +254,6 @@ export default function Coach({ setView }) {
     speaking: t('coach.speaking'),
     idle: face ? tx("Tik op je coach en praat") : t('coach.tapToTalk'),
   }[talkState]
-  const lastReply = [...messages].reverse().find((m) => m.role === 'assistant')
 
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100dvh - var(--tabbar-height) - 40px)' }}>
@@ -331,29 +332,17 @@ export default function Coach({ setView }) {
       <DayReplanSheet open={replanOpen} onClose={() => setReplanOpen(false)} />
       {avatarSheet}
 
-      <Sheet open={talkOpen} onClose={closeTalk} title={t('coach.talk')}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '6px 0 4px', textAlign: 'center' }}>
-          <div style={{ opacity: talkState === 'thinking' ? 0.75 : 1, transition: 'opacity 0.3s' }}>
-            <CoachPortrait
-              avatar={data.settings.coachAvatar}
-              width={face ? 220 : 200}
-              state={talkState}
-              onClick={talkState === 'thinking' ? undefined : tapOrb}
-              label={talkLabel}
-            />
-          </div>
-          <div style={{ fontWeight: 700 }}>{talkLabel}</div>
-          <div className="text-sm muted" style={{ minHeight: 40, maxWidth: 320 }}>
-            {talkState === 'listening' || talkState === 'thinking' ? heard : talkState === 'speaking' ? lastReply?.content : ''}
-          </div>
-          {error && <div className="text-sm" style={{ color: 'var(--danger)' }}>{error}</div>}
-          <button className="btn btn-secondary btn-block" onClick={closeTalk}>{t('coach.stopTalk')}</button>
-          <details style={{ width: '100%', textAlign: 'left' }}>
-            <summary className="text-sm muted" style={{ cursor: 'pointer', textAlign: 'center', padding: '4px 0' }}>{tx("Stem kiezen")}</summary>
-            <div style={{ paddingTop: 10 }}><CoachVoicePicker /></div>
-          </details>
-        </div>
-      </Sheet>
+      <CoachTalkView
+        open={talkOpen}
+        avatar={data.settings.coachAvatar}
+        name={coachName(data)}
+        state={talkState}
+        heard={heard}
+        reply={talkReply}
+        error={error}
+        onTapCoach={tapOrb}
+        onStop={closeTalk}
+      />
     </div>
   )
 }

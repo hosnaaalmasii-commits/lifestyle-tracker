@@ -736,11 +736,20 @@ the browser.
   recent notes and body measurements (`coachContext.js`). Coach page →
   tap the coach (face/name — **no gear or speaker buttons, and no coach
   pickers in Settings: the user wants only the coach on screen**) →
-  "Coach instellen": Claude key (first, while missing), read-aloud switch,
+  "Coach instellen" (also reachable, tucked away, as menu → Account → "Je
+  coach instellen" = More view `coachsettings`): Claude key (first, while
+  missing), read-aloud switch,
   Gezicht & naam / Stem / Geheugen (see
   and delete facts, "Gesprek wissen", "Alles vergeten"). Mic errors
   (`micErrorText()` in speechInput.js) now show a clear message instead of
   failing silently.
+  The spoken conversation is a full-screen view (`CoachTalkView.jsx`,
+  portal): portrait centred with a slow drift/zoom + breathing/glow, and
+  captions typed out underneath — the user's words live, the coach's reply
+  in step with `getSpeechProgress()` (typewriter fallback). The service
+  worker now also checks for updates when the app returns to the
+  foreground and every 30 min (`main.jsx`) — an open pane/PWA kept showing
+  an old build after deploys.
   A second launch config `vite-preview-build` (port 4173) serves the
   production build — use it for anything that might differ once bundled.
 - **Spending guard** (`utils/usageGuard.js` + Settings → Kostenlimieten,

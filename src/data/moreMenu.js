@@ -44,6 +44,7 @@ export const MORE_SECTIONS = [
     title: 'Account',
     items: [
       { id: 'badges', label: 'Badges & Level', desc: 'Achievements, XP, challenges', icon: 'trophy' },
+      { id: 'coachsettings', label: 'Je coach', desc: 'Gezicht, stem en geheugen', icon: 'sparkle' },
       { id: 'settings', label: 'Settings', desc: 'Colors, theme, data', icon: 'gear' },
     ],
   },

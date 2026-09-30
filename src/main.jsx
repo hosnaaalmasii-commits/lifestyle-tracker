@@ -41,6 +41,13 @@ registerSW({
       })
     })
 
+    // An app left open (or an installed PWA resumed from the background)
+    // otherwise only looks for a new version on a full load — so also check
+    // whenever it comes back to the foreground, and every 30 minutes.
+    const checkForUpdate = () => { registration.update().catch(() => {}) }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate() })
+    setInterval(checkForUpdate, 30 * 60 * 1000)
+
     // Either case ends the same way: the new worker takes control, reload
     // once to actually render what it's serving. Guarded against firing
     // twice — controllerchange can otherwise fire more than once.

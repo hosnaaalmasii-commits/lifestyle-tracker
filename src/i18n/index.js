@@ -263,6 +263,7 @@ const S = {
   'menu.schedule': ['Planning', 'Schedule', 'Agenda', 'Termine', 'Agenda'],
   'menu.notes': ['Notities', 'Notes', 'Notes', 'Notizen', 'Notas'],
   'menu.badges': ['Badges & level', 'Badges & level', 'Badges & niveau', 'Abzeichen & Level', 'Insignias y nivel'],
+  'menu.coachsettings': ['Je coach instellen', 'Your coach', 'Ton coach', 'Dein Coach', 'Tu coach'],
   'menu.settings': ['Instellingen', 'Settings', 'Réglages', 'Einstellungen', 'Ajustes'],
 
   // ---- settings

@@ -41,6 +41,7 @@ export default function More({ view, setView }) {
   if (view === 'notes') return <Notes onBack={() => setView(null)} />
   if (view === 'insights') return <Insights onBack={() => setView(null)} />
   if (view === 'coach') return <Coach onBack={() => setView(null)} setView={setView} />
+  if (view === 'coachsettings') return <Coach onBack={() => setView(null)} setView={setView} openSettings />
   if (view === 'contracts') return <HabitContracts onBack={() => setView(null)} />
   if (view === 'gps') return <LifestyleGPS onBack={() => setView(null)} />
   if (view === 'badges') return <Badges onBack={() => setView(null)} />

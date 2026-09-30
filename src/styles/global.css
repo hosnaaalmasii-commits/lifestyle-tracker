@@ -547,3 +547,107 @@ a { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ---------- Live conversation with the coach (CoachTalkView) ---------- */
+.talk-view {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) 24px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  background:
+    radial-gradient(ellipse at 50% 38%, color-mix(in srgb, var(--accent) 30%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 110%, color-mix(in srgb, var(--accent) 35%, transparent) 0%, transparent 55%),
+    var(--bg);
+  animation: talk-in 0.35s ease;
+}
+.talk-top { height: 28px; display: flex; align-items: center; }
+.talk-portrait {
+  position: relative;
+  margin-top: min(6vh, 48px);
+  padding: 0;
+  border: none;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 0 50px color-mix(in srgb, var(--accent) 40%, transparent);
+  animation: photo-breathe 7s ease-in-out infinite;
+}
+.talk-portrait.listening { animation: orb-listen 1.8s ease-out infinite; }
+.talk-portrait.speaking { animation: photo-speak 1.6s ease-in-out infinite; }
+.talk-portrait.thinking { opacity: 0.8; }
+/* a slow drift and zoom so the photo feels present, never still */
+.talk-portrait-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: talk-drift 14s ease-in-out infinite alternate;
+}
+.talk-portrait.speaking .talk-portrait-img { animation-duration: 9s; }
+.talk-portrait-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(160deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 35%, transparent 60%);
+  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.35), inset 0 -50px 70px -30px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.talk-captions {
+  flex: 1;
+  width: 100%;
+  max-width: 440px;
+  margin-top: 28px;
+  overflow-y: auto;
+  text-align: center;
+}
+.talk-captions p { margin: 0; line-height: 1.55; }
+.talk-coach { font-size: 18px; font-weight: 600; color: var(--text); }
+.talk-you { font-size: 16px; font-style: italic; color: var(--text-soft); }
+.talk-status { font-size: 15px; }
+.talk-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--accent);
+  animation: talk-blink 1s steps(1) infinite;
+}
+.talk-dots { display: inline-flex; gap: 6px; }
+.talk-dots i {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent);
+  animation: talk-dot 1.2s ease-in-out infinite;
+}
+.talk-dots i:nth-child(2) { animation-delay: 0.15s; }
+.talk-dots i:nth-child(3) { animation-delay: 0.3s; }
+.talk-stop {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--danger) 85%, #000);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+}
+@keyframes talk-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes talk-drift {
+  from { transform: scale(1.02) translate(0, 0); }
+  to { transform: scale(1.08) translate(-1.5%, 1%); }
+}
+@keyframes talk-blink { 50% { opacity: 0; } }
+@keyframes talk-dot {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(-5px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .talk-view, .talk-portrait, .talk-portrait-img, .talk-caret, .talk-dots i { animation: none !important; }
+}
