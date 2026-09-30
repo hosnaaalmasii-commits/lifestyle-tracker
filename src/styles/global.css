@@ -198,6 +198,28 @@ a { color: inherit; }
   pointer-events: auto;
 }
 
+/* Round icon button in a page header — same look as the menu button
+   (.menu-fab) so they sit together as one quiet set. .on = toggled on. */
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  cursor: pointer;
+}
+.icon-btn.on {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-contrast);
+}
+
 /* ---------- Buttons ---------- */
 
 .btn {

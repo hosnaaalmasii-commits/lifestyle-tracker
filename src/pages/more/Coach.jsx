@@ -245,12 +245,7 @@ export default function Coach({ setView }) {
         onClick={() => setSettingsOpen(true)}
         aria-label={tx("Coach instellen")}
         title={tx("Coach instellen: gezicht, naam, stem en geheugen")}
-        style={{
-          width: 38, height: 38, borderRadius: '50%', flexShrink: 0, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'transparent', color: 'var(--second)',
-          border: '1.2px solid color-mix(in srgb, var(--second) 70%, transparent)',
-        }}
+        className="icon-btn"
       >
         <Icon name="gear" size={18} />
       </button>
@@ -260,13 +255,7 @@ export default function Coach({ setView }) {
           onClick={toggleSpeak}
           aria-label={speakOn ? t('coach.voiceOn') : t('coach.voiceOff')}
           title={speakOn ? t('coach.voiceOn') : t('coach.voiceOff')}
-          style={{
-            width: 38, height: 38, borderRadius: '50%', flexShrink: 0, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: speakOn ? 'var(--accent)' : 'transparent',
-            color: speakOn ? 'var(--accent-contrast)' : 'var(--second)',
-            border: speakOn ? 'none' : '1.2px solid color-mix(in srgb, var(--second) 70%, transparent)',
-          }}
+          className={speakOn ? 'icon-btn on' : 'icon-btn'}
         >
           <Icon name={speakOn ? 'speaker' : 'speakerOff'} size={18} />
         </button>
