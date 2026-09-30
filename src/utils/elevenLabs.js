@@ -5,6 +5,8 @@
 // straight from the browser (ElevenLabs allows CORS). Optional: without a
 // key the coach uses the device's own voices (speechOutput.js).
 
+import { checkAndRecordSpeech } from './usageGuard'
+
 const KEY_STORAGE = 'lifestyle-tracker-elevenlabs-key'
 const VOICE_STORAGE = 'lifestyle-tracker-elevenlabs-voice'
 const MODEL_STORAGE = 'lifestyle-tracker-elevenlabs-model'
@@ -68,8 +70,10 @@ export async function fetchElevenVoices() {
 // Returns an audio Blob (mp3). rate: 0.7–1.2 (ElevenLabs' own range).
 export async function synthesize(text, { lang = 'nl-NL', rate = 1, signal } = {}) {
   const model = getElevenModel()
+  const input = text.slice(0, 4500)
+  checkAndRecordSpeech('elevenlabs', input.length) // throws once the monthly limit is reached
   const body = {
-    text: text.slice(0, 4500),
+    text: input,
     model_id: model,
     voice_settings: {
       stability: 0.45,

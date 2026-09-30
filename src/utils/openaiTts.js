@@ -4,6 +4,8 @@
 // in `data`/export/cloud sync, wiped by "Clear everything". Called
 // straight from the browser.
 
+import { checkAndRecordSpeech } from './usageGuard'
+
 const KEY_STORAGE = 'lifestyle-tracker-openai-key'
 const VOICE_STORAGE = 'lifestyle-tracker-openai-voice'
 const MODEL = 'gpt-4o-mini-tts'
@@ -59,13 +61,15 @@ function instructionsFor(lang, rate) {
 
 // Returns an audio Blob (mp3).
 export async function synthesizeOpenAi(text, { lang = 'nl-NL', rate = 1, signal } = {}) {
+  const input = text.slice(0, 4000)
+  checkAndRecordSpeech('openai', input.length) // throws once the monthly limit is reached
   const res = await fetch('https://api.openai.com/v1/audio/speech', {
     method: 'POST',
     headers: { Authorization: `Bearer ${getOpenAiKey()}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: MODEL,
       voice: getOpenAiVoice(),
-      input: text.slice(0, 4000),
+      input,
       instructions: instructionsFor(lang, rate),
       response_format: 'mp3',
     }),

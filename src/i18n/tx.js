@@ -18,6 +18,11 @@ import { languageInfo } from './index'
 let state = { lang: 'nl', cache: {} }
 const pending = new Map() // lang -> Set
 const inflight = new Map() // lang -> Set
+// How often each string was sent, per language. Capped so a string Claude
+// keeps leaving out (or a failing call) can never turn into an endless,
+// billed retry loop — it just stays untranslated this session.
+const attempts = new Map() // `${lang}|${text}` -> count
+const MAX_ATTEMPTS = 2
 
 export function setTxState(lang, cache) {
   state = { lang, cache: cache || {} }
@@ -27,7 +32,7 @@ export function tx(text) {
   if (typeof text !== 'string' || !/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(text)) return text
   const hit = state.cache[text]
   if (hit) return hit
-  if (hasApiKey() && !inflight.get(state.lang)?.has(text)) {
+  if (hasApiKey() && !inflight.get(state.lang)?.has(text) && (attempts.get(`${state.lang}|${text}`) || 0) < MAX_ATTEMPTS) {
     if (!pending.has(state.lang)) pending.set(state.lang, new Set())
     pending.get(state.lang).add(text)
   }
@@ -44,7 +49,7 @@ export async function flushTx(addTranslations) {
   batch.forEach((s) => queue.delete(s))
   if (!inflight.has(lang)) inflight.set(lang, new Set())
   const busy = inflight.get(lang)
-  batch.forEach((s) => busy.add(s))
+  batch.forEach((s) => { busy.add(s); attempts.set(`${lang}|${s}`, (attempts.get(`${lang}|${s}`) || 0) + 1) })
   flushing = true
   try {
     const result = await translateTexts(batch, languageInfo(lang).aiName)

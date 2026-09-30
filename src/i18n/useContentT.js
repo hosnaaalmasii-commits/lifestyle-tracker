@@ -10,6 +10,10 @@ import { TASK_LABELS, STAGE_NAMES } from './content'
 const pending = {}
 const inflight = {}
 let flushTimer = null
+// Sends per string, capped so a string that never comes back translated
+// (or a failing call) can't become an endless, billed retry loop.
+const attempts = {}
+const MAX_ATTEMPTS = 2
 
 // tc(text) → the text in the app language. Known plan labels come from a
 // fixed table; anything else is looked up in the translation cache
@@ -26,7 +30,7 @@ export function useContentT() {
     const fixed = TASK_LABELS[text]
     if (fixed) return pick(fixed, lang)
     if (cache[text]) return cache[text]
-    if (hasApiKey() && !inflight[lang]?.has(text)) {
+    if (hasApiKey() && !inflight[lang]?.has(text) && (attempts[`${lang}|${text}`] || 0) < MAX_ATTEMPTS) {
       ;(pending[lang] ||= new Set()).add(text)
     }
     return text
@@ -46,7 +50,7 @@ export function useContentT() {
       if (!batch.length) return
       batch.forEach((s) => pending[lang].delete(s))
       const busy = (inflight[lang] ||= new Set())
-      batch.forEach((s) => busy.add(s))
+      batch.forEach((s) => { busy.add(s); attempts[`${lang}|${s}`] = (attempts[`${lang}|${s}`] || 0) + 1 })
       try {
         const result = await translateTexts(batch, languageInfo(lang).aiName)
         addContentTranslations(lang, result)

@@ -4,6 +4,8 @@
 // sent straight to Anthropic on each request — this app has no backend to
 // route through, by design.
 
+import { checkClaudeAllowed, recordClaudeUsage } from './usageGuard'
+
 const KEY_STORAGE = 'lifestyle-tracker-anthropic-key'
 const SETTINGS_STORAGE = 'lifestyle-tracker-coach-settings'
 
@@ -96,6 +98,12 @@ export async function sendToClaude({ system, messages, maxTokens = 1024, model, 
   const maxTokensSent = isHaiku ? maxTokens : Math.max(maxTokens, 2048)
   const apiKey = getApiKey()
   if (!apiKey) throw new ClaudeApiError('No API key set. Add one in Settings → AI Coach.')
+  // Monthly $ limit + per-day/per-minute call caps (Settings → Kostenlimieten).
+  try {
+    checkClaudeAllowed()
+  } catch (e) {
+    throw new ClaudeApiError(e.message)
+  }
 
   let response
   try {
@@ -133,6 +141,7 @@ export async function sendToClaude({ system, messages, maxTokens = 1024, model, 
   }
 
   const data = await response.json()
+  recordClaudeUsage(data?.model || chosenModel, data?.usage)
   if (data?.stop_reason === 'refusal') throw new ClaudeApiError('Claude declined this request — try rephrasing it.')
   if (data?.stop_reason === 'max_tokens' && schema) throw new ClaudeApiError('The answer got cut off — try again.')
   const text = data?.content?.find((c) => c.type === 'text')?.text

@@ -4,6 +4,7 @@ import { COLOR_THEMES } from '../../utils/colorThemes'
 import { LANGUAGES } from '../../i18n'
 import { useT } from '../../i18n/useT'
 import CoachVoicePicker from '../../components/CoachVoicePicker'
+import UsageLimitsCard from '../../components/UsageLimitsCard'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
 import { getOuraApiKey, setOuraApiKey } from '../../utils/ouraApi'
 import { isValidGoogleClientId } from '../../utils/googleCalendar'
@@ -339,6 +340,9 @@ export default function Settings({ onBack }) {
         {testStatus === 'ok' && <div className="text-sm" style={{ color: 'var(--success)' }}>{tx("Connected — your coach is ready.")}</div>}
         {testStatus === 'error' && <div className="text-sm" style={{ color: 'var(--danger)' }}>{testMessage}</div>}
       </div>
+
+      <div className="section-title">{tx("Kostenlimieten")}</div>
+      <UsageLimitsCard />
 
       <div className="section-title">{tx("Google Calendar")}</div>
       <div className="card stack">

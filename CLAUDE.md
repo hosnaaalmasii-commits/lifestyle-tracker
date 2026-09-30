@@ -688,6 +688,19 @@ the browser.
   (`lifestyle-tracker-coach-voice-provider`; unset + ElevenLabs key =
   ElevenLabs for backward compat). A cloud provider without a key or
   with a failing call falls back to the device voice.
+- **Spending guard** (`utils/usageGuard.js` + Settings → Kostenlimieten,
+  2026-09-30, user asked for "absoluut nergens onverwachte kosten"):
+  per-device monthly ceilings checked *before* every paid call — Claude
+  $ (from response `usage` × list price, default $2), OpenAI TTS $
+  (default $1), ElevenLabs characters (default 10k) — plus Claude caps of
+  150 calls/day and 20/minute against runaway loops. Limit 0 = blocked.
+  The automatic translation calls (`tx.js`, `useContentT.js`) now try
+  each string at most twice per session instead of re-queuing forever.
+  Automatic (non-tap) Claude calls in the app: those translations and
+  Voeding's one-time kcal estimate per dish; everything else is user-
+  initiated. `sendToClaude` defaults to effort `low` and ≥2048
+  max_tokens (Sonnet/Opus 5.5 always think; a tiny cap returned only a
+  thinking block → "empty response").
 - **Motion** (`src/styles/motion.css`, `utils/useCountUp.js`): staggered
   `.page > *` rise-in, breathing bottom glow, bar-grow on `.xp-bar-fill`,
   ring sweep from 0 (Ring uses setTimeout, not rAF — rAF is paused in a
