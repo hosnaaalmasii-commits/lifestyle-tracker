@@ -32,6 +32,14 @@ export const CATEGORY_META = {
   note: { label: 'Note', icon: 'chat', color: 'var(--text-soft)' },
 }
 
+// Where each category ends up in the app — shown after a voice log is
+// saved so the user sees it landed in the right place.
+export const CATEGORY_DESTINATION = {
+  drink: 'Water', alcohol: 'Alcohol', meal: 'Voeding', food: 'Voeding', mood: 'Stemming',
+  workout: 'Training', cycle: 'Cyclus', schedule: 'Agenda', budget: 'Budget', sleep: 'Slaap',
+  weight: 'Gewicht', appointment: 'Vandaag', place: 'Plaatsen', task_done: 'Vandaag', note: 'Notities',
+}
+
 // Only these field/category combinations are allowed to trigger a
 // follow-up question — the field has to actually feed a downstream number
 // (water ml total, a PR log, an expense total). Everything else (mood

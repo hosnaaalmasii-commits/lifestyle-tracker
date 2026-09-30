@@ -649,6 +649,23 @@ the browser.
   `task_done` (matched against today's task ids sent in the prompt) and
   `note`. "Praat met de coach" hands the text to Coach via
   sessionStorage `COACH_PREFILL`.
+  **Saving is direct (2026-09-30)**: parsed entries are written straight
+  away and the sheet shows where each landed (`CATEGORY_DESTINATION`);
+  the review list only appears when a follow-up question is needed.
+  Without an API key (or when the call fails) `utils/localVoiceParser.js`
+  does the parsing rule-based: a ~60-item Dutch/English food table with
+  per-portion kcal/macros (quantities and grams scale it), water/coffee,
+  alcohol, sleep, weight, mood, workout/PR, expenses, task-done matching;
+  anything unplaced becomes a note.
+- **Coach voice** (`utils/speechOutput.js`, browser `speechSynthesis`,
+  no key/service): mic in the input bar (sends on stop), a speaker toggle
+  in the header (read typed replies aloud), "Voorlezen" per reply, and
+  "Praat met je coach" — a hands-free loop (listen → reply → speak →
+  listen) in a Sheet. Anything spoken gets a short spoken-style reply
+  (`SPOKEN_STYLE` prompt suffix). `unlockSpeech()` must run inside a tap
+  for iOS to allow the later async speech. The loop needs
+  SpeechRecognition, so it's hidden on Safari/iOS; read-aloud still works
+  there.
 - **Motion** (`src/styles/motion.css`, `utils/useCountUp.js`): staggered
   `.page > *` rise-in, breathing bottom glow, bar-grow on `.xp-bar-fill`,
   ring sweep from 0 (Ring uses setTimeout, not rAF — rAF is paused in a

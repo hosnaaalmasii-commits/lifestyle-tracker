@@ -102,9 +102,22 @@ button.card:active { transform: scale(0.985); }
 /* ---- Chips and pill buttons: a little bounce when pressed ---- */
 .chip, .btn { transition: transform 0.18s cubic-bezier(.34, 1.56, .64, 1), background 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
 
+/* Coach conversation orb: rings out while listening, breathes while speaking. */
+.coach-orb { transition: transform 0.3s ease; }
+.coach-orb.listening { animation: orb-listen 1.4s ease-out infinite; }
+.coach-orb.speaking { animation: orb-speak 0.9s ease-in-out infinite alternate; }
+@keyframes orb-listen {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent), 0 0 40px color-mix(in srgb, var(--accent) 55%, transparent); }
+  100% { box-shadow: 0 0 0 26px color-mix(in srgb, var(--accent) 0%, transparent), 0 0 40px color-mix(in srgb, var(--accent) 55%, transparent); }
+}
+@keyframes orb-speak {
+  from { transform: scale(0.96); }
+  to { transform: scale(1.06); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page > *, body::before, .xp-bar-fill, .speak-btn::after, .float-soft, .flame-flicker,
-  .check-dot.done, .check-dot.done svg *, .tab-btn.active .tab-dot, .sheet {
+  .check-dot.done, .check-dot.done svg *, .tab-btn.active .tab-dot, .sheet, .coach-orb {
     animation: none !important;
   }
 }

@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { hasApiKey, ClaudeApiError } from '../utils/claudeApi'
-import { parseVoiceTranscript, applyVoiceIntent, CATEGORY_META } from '../utils/voiceLogging'
+import { parseVoiceTranscript, applyVoiceIntent, CATEGORY_META, CATEGORY_DESTINATION } from '../utils/voiceLogging'
+import { parseTranscriptLocally } from '../utils/localVoiceParser'
+import { unlockSpeech } from '../utils/speechOutput'
 import { isSpeechRecognitionSupported, createSpeechRecognizer } from '../utils/speechInput'
 import Sheet from './Sheet'
 import Icon from './Icon'
@@ -44,7 +46,8 @@ export default function VoiceLogSheet({ open, onClose, onOpenCoach }) {
   const [intents, setIntents] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [saved, setSaved] = useState(false)
+  // What was just written, and where — shown instead of the form after saving.
+  const [saved, setSaved] = useState(null)
   const [listening, setListening] = useState(false)
   const { locale } = useT()
   const savingRef = useRef(false)
@@ -57,7 +60,7 @@ export default function VoiceLogSheet({ open, onClose, onOpenCoach }) {
     setTranscript('')
     setIntents(null)
     setError('')
-    setSaved(false)
+    setSaved(null)
     savingRef.current = false
   }
 
@@ -87,9 +90,22 @@ export default function VoiceLogSheet({ open, onClose, onOpenCoach }) {
       const done = app.data.taskCompletions[today] || {}
       const tasks = getTasksForDate(app.data.taskSchedule, today, app.data.dayOverrides)
         .map((t) => ({ id: t.id, time: t.time, label: t.label, done: !!done[t.id] }))
-      const result = await parseVoiceTranscript(text, { tasks, places: app.data.places || [] })
-      setIntents(result)
-      if (result.length === 0) setError('Didn\'t catch anything to log — try rephrasing.')
+      // Claude when a key is set (better estimates, more categories); the
+      // rule-based parser otherwise, or when the API call fails.
+      let result
+      if (hasApiKey()) {
+        try {
+          result = await parseVoiceTranscript(text, { tasks, places: app.data.places || [] })
+        } catch (e) {
+          console.warn('AI parse failed, using the offline parser', e)
+          result = parseTranscriptLocally(text, { tasks })
+        }
+      } else {
+        result = parseTranscriptLocally(text, { tasks })
+      }
+      if (result.length === 0) setError(tx("Didn't catch anything to log — try rephrasing."))
+      else if (result.some((i) => i.followUp)) setIntents(result) // only ask when an amount really matters
+      else commit(result)
     } catch (e) {
       setError(e instanceof ClaudeApiError ? e.message : 'Something went wrong understanding that.')
     } finally {
@@ -107,7 +123,7 @@ export default function VoiceLogSheet({ open, onClose, onOpenCoach }) {
     // Without a key there's nothing to auto-parse into — leave the
     // transcript sitting in the box so "Save as note" can pick it up.
     const triggerParseOnce = (text) => {
-      if (parseTriggeredRef.current || !hasApiKey()) return
+      if (parseTriggeredRef.current) return
       parseTriggeredRef.current = true
       parse(text)
     }
@@ -163,13 +179,16 @@ export default function VoiceLogSheet({ open, onClose, onOpenCoach }) {
 
   const pendingCount = intents ? intents.filter((i) => i.followUp).length : 0
 
-  const saveAll = () => {
+  // Writes straight into the matching parts of the app (Voeding, Water,
+  // Slaap, …) — no extra confirm step unless a follow-up question was needed.
+  const commit = (list) => {
     if (savingRef.current) return
     savingRef.current = true
-    intents.forEach((intent) => applyVoiceIntent(app, intent))
-    setSaved(true)
-    setTimeout(handleClose, 900)
+    list.forEach((intent) => applyVoiceIntent(app, intent))
+    setIntents(null)
+    setSaved(list)
   }
+  const saveAll = () => commit(intents)
 
   // No AI required — the transcript itself (from the native speech API or
   // typed text) is the thing being logged, saved as a plain dated note.
@@ -178,16 +197,33 @@ export default function VoiceLogSheet({ open, onClose, onOpenCoach }) {
     if (!text || savingRef.current) return
     savingRef.current = true
     app.addNote(text)
-    setSaved(true)
-    setTimeout(handleClose, 900)
+    setSaved([{ id: 'note', category: 'note', summary: text, when: 'today' }])
   }
 
   return (
     <Sheet open={open} onClose={handleClose} title={tx("Inspreken")}>
       {saved ? (
-        <div className="empty-state">
-          <div className="icon"><Icon name="check" size={26} /></div>
-          <p>{tx("Logged.")}</p>
+        <div className="stack" style={{ gap: 12 }}>
+          <div className="row" style={{ gap: 10, justifyContent: 'flex-start' }}>
+            <span style={{ color: 'var(--accent)' }}><Icon name="check" size={22} /></span>
+            <div style={{ fontWeight: 700 }}>{tx("Opgeslagen")}</div>
+          </div>
+          <div className="card">
+            {saved.map((intent, i) => {
+              const meta = CATEGORY_META[intent.category] || CATEGORY_META.note
+              return (
+                <div key={intent.id || i} className="row" style={{ gap: 10, justifyContent: 'flex-start', padding: '8px 0', borderTop: i ? '1px solid var(--border-soft)' : 'none' }}>
+                  <span style={{ color: meta.color }}><Icon name={meta.icon} size={18} /></span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{intent.summary}</div>
+                    <div className="text-sm faint">→ {tx(CATEGORY_DESTINATION[intent.category] || 'Notities')}{intent.when === 'yesterday' ? ` · ${tx("Yesterday")}` : ''}</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <button className="btn btn-primary btn-block" onClick={handleClose}>{tx("Klaar")}</button>
+          <button className="btn btn-ghost btn-block" onClick={reset}>{tx("Nog iets inspreken")}</button>
         </div>
       ) : (
         <>
@@ -233,16 +269,14 @@ export default function VoiceLogSheet({ open, onClose, onOpenCoach }) {
 
           {!intents && (
             <div className="stack" style={{ gap: 8 }}>
-              {hasApiKey() && (
-                <button className="btn btn-primary btn-block" disabled={!transcript.trim() || loading} onClick={() => parse()}>
-                  {loading ? tx("Thinking…") : tx("Verwerken")}
-                </button>
-              )}
+              <button className="btn btn-primary btn-block" disabled={!transcript.trim() || loading} onClick={() => parse()}>
+                {loading ? tx("Thinking…") : tx("Opslaan")}
+              </button>
               {onOpenCoach && hasApiKey() && (
                 <button
                   className="btn btn-secondary btn-block"
                   disabled={loading}
-                  onClick={() => { const text = transcript.trim(); handleClose(); onOpenCoach(text) }}
+                  onClick={() => { const text = transcript.trim(); unlockSpeech(); handleClose(); onOpenCoach(text) }}
                 >
                   {tx("Praat met de coach")}
                 </button>
@@ -252,7 +286,7 @@ export default function VoiceLogSheet({ open, onClose, onOpenCoach }) {
               </button>
               {!hasApiKey() && (
                 <p className="text-sm faint" style={{ margin: '2px 4px 0' }}>
-                  {tx("Add a Claude API key in More → Settings → AI Coach to auto-categorize this into water, meals, workouts, and more instead of a plain note.")}
+                  {tx("Eten, water, slaap, gewicht, stemming, training en uitgaven worden automatisch herkend. Met een Claude API-sleutel (Instellingen → AI Coach) worden de schattingen nauwkeuriger en herkent de app ook afspraken en plaatsen.")}
                 </p>
               )}
             </div>

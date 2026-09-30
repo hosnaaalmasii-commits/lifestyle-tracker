@@ -288,6 +288,18 @@ const ICONS = {
       <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6" />
     </g>
   ),
+  speaker: (
+    <g {...stroke}>
+      <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4v-5Z" />
+      <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+    </g>
+  ),
+  speakerOff: (
+    <g {...stroke}>
+      <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4v-5Z" />
+      <path d="M16 9.5l5 5M21 9.5l-5 5" />
+    </g>
+  ),
   menu: <path {...stroke} d="M4 6.5h16M4 12h16M4 17.5h16" />,
   close: <path {...stroke} d="M5.5 5.5 18.5 18.5M18.5 5.5 5.5 18.5" />,
 }

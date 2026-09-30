@@ -184,6 +184,14 @@ const S = {
   'coach.q.snackAsk': ['Welke snack past vandaag bij mijn doel en wat ik in huis heb?', 'Which snack fits my goal today with what I have at home?', "Quelle collation correspond à mon objectif avec ce que j'ai ?", 'Welcher Snack passt heute zu meinem Ziel und meinem Vorrat?', '¿Qué snack encaja hoy con mi objetivo y lo que tengo en casa?'],
   'coach.placeholder': ['Typ of spreek je bericht…', 'Type or speak your message…', 'Écris ou dicte ton message…', 'Nachricht tippen oder sprechen…', 'Escribe o dicta tu mensaje…'],
   'coach.send': ['Stuur', 'Send', 'Envoyer', 'Senden', 'Enviar'],
+  'coach.talk': ['Praat met je coach', 'Talk to your coach', 'Parler à ton coach', 'Mit dem Coach sprechen', 'Habla con tu coach'],
+  'coach.voiceOn': ['Coach praat terug: aan', 'Coach speaks replies: on', 'Le coach répond à voix haute : activé', 'Coach spricht Antworten: an', 'El coach responde en voz alta: activado'],
+  'coach.voiceOff': ['Coach praat terug: uit', 'Coach speaks replies: off', 'Le coach répond à voix haute : désactivé', 'Coach spricht Antworten: aus', 'El coach responde en voz alta: desactivado'],
+  'coach.readAloud': ['Voorlezen', 'Read aloud', 'Lire à voix haute', 'Vorlesen', 'Leer en voz alta'],
+  'coach.listening': ['Ik luister…', "I'm listening…", "J'écoute…", 'Ich höre zu…', 'Te escucho…'],
+  'coach.speaking': ['Coach praat… tik om te onderbreken', 'Coach is speaking… tap to interrupt', 'Le coach parle… touche pour interrompre', 'Coach spricht… tippen zum Unterbrechen', 'El coach habla… toca para interrumpir'],
+  'coach.tapToTalk': ['Tik op de bol en praat', 'Tap the orb and talk', 'Touche la bulle et parle', 'Tippe auf die Kugel und sprich', 'Toca la esfera y habla'],
+  'coach.stopTalk': ['Gesprek stoppen', 'End conversation', 'Terminer la conversation', 'Gespräch beenden', 'Terminar conversación'],
 
   // ---- water
   'water.title': ['Blijf gehydrateerd', 'Stay hydrated', 'Reste hydraté·e', 'Bleib hydriert', 'Mantente hidratado'],
