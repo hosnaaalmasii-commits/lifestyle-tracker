@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../../context/AppContext'
-import { hasApiKey, sendToClaude, getCoachSettings, ClaudeApiError } from '../../utils/claudeApi'
+import { hasApiKey, setApiKey, sendToClaude, getCoachSettings, ClaudeApiError } from '../../utils/claudeApi'
 import { buildSystemPrompt } from '../../utils/coachContext'
 import { isSpeechRecognitionSupported, createSpeechRecognizer, micErrorText } from '../../utils/speechInput'
 import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech, getSpeechLang, getSpeechAiLanguage, getReadAloud } from '../../utils/speechOutput'
@@ -71,6 +71,8 @@ export default function Coach({ setView, openSettings = false }) {
   const memoryBusy = useRef(false)
   const scrollRef = useRef(null)
 
+  // Re-read after the key is pasted on this page (it lives in localStorage).
+  const [, setKeyTick] = useState(0)
   const keyPresent = hasApiKey()
 
   useEffect(() => {
@@ -233,11 +235,33 @@ export default function Coach({ setView, openSettings = false }) {
 
   const avatarSheet = <CoachSettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
+  // No key yet: paste it right here (with where to find it) — as soon as
+  // it's in, the chat and the talk button appear.
   if (!keyPresent) {
     return (
       <div className="page">
         {header}
         <Bubble role="assistant">{t('coach.noKey')}</Bubble>
+        <div className="card stack" style={{ marginTop: 16, gap: 10 }}>
+          <label style={{ fontWeight: 700, fontSize: 14 }}>{tx("Plak hier je Claude-sleutel")}</label>
+          <input
+            className="input"
+            type="password"
+            placeholder="sk-ant-…"
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(e) => { const k = e.target.value.trim(); if (/^sk-ant-/.test(k) && k.length > 30) { setApiKey(k); setKeyTick((n) => n + 1) } }}
+          />
+          <div className="text-sm muted">
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>{tx("Waar vind ik die?")}</div>
+            <ol style={{ margin: 0, paddingLeft: 18, lineHeight: 1.6 }}>
+              <li>{tx("Ga naar console.anthropic.com en log in.")}</li>
+              <li>{tx("Klik links op API Keys → Create Key.")}</li>
+              <li>{tx("Kopieer de sleutel (begint met sk-ant-) en plak hem hierboven.")}</li>
+            </ol>
+            <div style={{ marginTop: 6 }}>{tx("Hij blijft alleen op dit apparaat bewaard.")}</div>
+          </div>
+        </div>
         {avatarSheet}
       </div>
     )
