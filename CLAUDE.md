@@ -734,7 +734,10 @@ the browser.
   `settings.coachName` or the preset's name) + the data snapshot, which
   now also covers today's plan tasks, food vs. calorie/protein targets,
   recent notes and body measurements (`coachContext.js`). Coach page →
-  gear or face → "Coach instellen": Gezicht & naam / Stem / Geheugen (see
+  tap the coach (face/name — **no gear or speaker buttons, and no coach
+  pickers in Settings: the user wants only the coach on screen**) →
+  "Coach instellen": Claude key (first, while missing), read-aloud switch,
+  Gezicht & naam / Stem / Geheugen (see
   and delete facts, "Gesprek wissen", "Alles vergeten"). Mic errors
   (`micErrorText()` in speechInput.js) now show a clear message instead of
   failing silently.
