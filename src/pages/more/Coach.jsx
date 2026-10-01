@@ -21,6 +21,20 @@ const CHAT_STORAGE = 'lifestyle-tracker-coach-chat'
 export const COACH_PREFILL = 'lifestyle-tracker-coach-prefill'
 
 const CAN_LISTEN = isSpeechRecognitionSupported()
+// iOS's speech recognition only hears you when it's started from a tap:
+// started on its own after the coach speaks, it "listens" but never gets
+// any audio (worked once, then silent — 2026-10-01). So on iOS each turn
+// starts with a tap on the coach; elsewhere the loop stays hands-free.
+const IS_IOS = typeof navigator !== 'undefined'
+  && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+// Spoken replies are 1–3 sentences: Haiku answers several times faster
+// than Sonnet (which always thinks first), and speed is what a conversation
+// needs.
+const VOICE_MODEL = 'claude-haiku-4-5'
+// Stop listening this long after the last word instead of waiting for the
+// browser's own (slow, on iOS several seconds) end-of-speech detection.
+const SILENCE_MS = 1300
+const NOTHING_HEARD_MS = 8000
 const CAN_SPEAK = isSpeechSynthesisSupported()
 
 // Appended to the system prompt when the reply will be read out loud.
@@ -63,6 +77,7 @@ export default function Coach({ setView, openSettings = false }) {
   const talkRef = useRef(false)
   const unheardRef = useRef(false) // the last reply was never heard — a tap replays it
   const recognizerRef = useRef(null)
+  const wrapUpRef = useRef(null) // ends the current listening turn now
   const messagesRef = useRef(messages)
   messagesRef.current = messages
   const coachRef = useRef(data.coach)
@@ -146,6 +161,7 @@ export default function Coach({ setView, openSettings = false }) {
         system,
         messages: history,
         maxTokens: voice ? 400 : 700,
+        ...(voice ? { model: VOICE_MODEL } : {}),
         // A conversation language picked in the voice settings overrides the app language.
         language: getSpeechAiLanguage() || undefined,
       })
@@ -173,28 +189,65 @@ export default function Coach({ setView, openSettings = false }) {
     setHeard('')
     setTalkState('listening')
     let said = ''
+    let done = false
+    let silenceTimer = null
+    let fallbackTimer = null
+    // Runs once per turn, whichever comes first: the recognizer's own end,
+    // our silence timer, or a watchdog (iOS sometimes never fires onend).
+    const finish = async () => {
+      if (done) return
+      done = true
+      clearTimeout(silenceTimer)
+      clearTimeout(fallbackTimer)
+      clearTimeout(nothingTimer)
+      if (recognizerRef.current === recognizer) {
+        recognizerRef.current = null
+        try { recognizer.abort() } catch { /* already ended */ }
+      }
+      if (!talkRef.current) { setTalkState('idle'); return }
+      if (!said.trim()) { setError(tx("Ik hoorde niets. Tik op de coach en praat opnieuw.")); setTalkState('idle'); return }
+      setTalkState('thinking')
+      const reply = await sendText(said, { voice: true })
+      if (!talkRef.current) return
+      if (!reply) { setTalkState('idle'); return }
+      setTalkReply(reply)
+      setTalkState('speaking')
+      speakInLoop(reply)
+    }
+    // Ask the recognizer to wrap up, but don't wait on it for long.
+    const wrapUp = () => {
+      try { recognizer.stop() } catch { /* already ended */ }
+      clearTimeout(fallbackTimer)
+      fallbackTimer = setTimeout(finish, 1500)
+    }
     const recognizer = createSpeechRecognizer({
       lang: voiceLang(),
-      onResult: ({ text }) => { said = text; setHeard(text) },
+      onResult: ({ text }) => {
+        said = text
+        setHeard(text)
+        clearTimeout(nothingTimer)
+        clearTimeout(silenceTimer)
+        silenceTimer = setTimeout(wrapUp, SILENCE_MS)
+      },
       onError: (err) => {
         const msg = micErrorText(err)
-        if (msg) { setError(msg); talkRef.current = false; setTalkState('idle') }
+        if (msg) { done = true; setError(msg); talkRef.current = false; setTalkState('idle'); recognizerRef.current = null }
       },
-      onEnd: async () => {
-        recognizerRef.current = null
-        if (!talkRef.current) { setTalkState('idle'); return }
-        if (!said.trim()) { setError(tx("Ik hoorde niets. Tik op de coach en praat opnieuw.")); setTalkState('idle'); return }
-        setTalkState('thinking')
-        const reply = await sendText(said, { voice: true })
-        if (!talkRef.current) return
-        if (!reply) { setTalkState('idle'); return }
-        setTalkReply(reply)
-        setTalkState('speaking')
-        speakInLoop(reply)
-      },
+      onEnd: finish,
     })
+    const nothingTimer = setTimeout(wrapUp, NOTHING_HEARD_MS)
+    wrapUpRef.current = wrapUp
     recognizerRef.current = recognizer
-    recognizer.start()
+    try {
+      recognizer.start()
+    } catch {
+      // iOS throws when the previous session hasn't fully let go yet.
+      done = true
+      clearTimeout(nothingTimer)
+      recognizerRef.current = null
+      setError(tx("De microfoon was nog bezig. Tik op de coach en probeer het opnieuw."))
+      setTalkState('idle')
+    }
   }
 
   // Speak a reply, then listen again — unless nothing could be heard: then
@@ -205,7 +258,8 @@ export default function Coach({ setView, openSettings = false }) {
     speak(reply, {
       lang: voiceLang(),
       onError: (e) => { if (e instanceof DeviceSpeechError) { silent = true; unheardRef.current = true } voiceError(e) },
-      onEnd: () => { if (talkRef.current && !silent) listen() },
+      // iOS: wait for a tap (see IS_IOS) instead of listening on our own.
+      onEnd: () => { if (talkRef.current && !silent) { if (IS_IOS) setTalkState('idle'); else listen() } },
     })
   }
 
@@ -227,7 +281,7 @@ export default function Coach({ setView, openSettings = false }) {
     updateMemory(true)
   }
   const tapOrb = () => {
-    if (talkState === 'listening') recognizerRef.current?.stop()
+    if (talkState === 'listening') wrapUpRef.current?.()
     else if (talkState === 'speaking' || talkState === 'idle') {
       // A reply that couldn't be heard: this tap may play it.
       if (talkState === 'speaking' && unheardRef.current && talkReply) {

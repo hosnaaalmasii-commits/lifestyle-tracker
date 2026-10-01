@@ -687,7 +687,15 @@ the browser.
   Device speech that never starts within 6 s, or errors with anything but
   interrupted/canceled, now reports a `DeviceSpeechError` instead of
   staying silent; the talk loop then stays on the reply and a tap on the
-  coach replays it. Hearing nothing also shows a hint now. The loop needs
+  coach replays it. Hearing nothing also shows a hint now.
+  **iOS talk loop (2026-10-01, "één keer gewerkt, daarna luistert hij
+  maar neemt niks op")**: iOS SpeechRecognition only gets audio when
+  started from a tap, so on iOS (`IS_IOS` in Coach.jsx) each turn starts
+  with a tap on the coach; other platforms stay hands-free. Listening
+  ends 1.3 s after the last word (own silence timer, not the browser's),
+  after 8 s with nothing heard, and never waits more than 1.5 s on
+  `onend` (iOS sometimes never fires it). Spoken replies use Haiku 4.5
+  (`VOICE_MODEL`) for speed; typed chat keeps the chosen model. The loop needs
   SpeechRecognition, so it's hidden on Safari/iOS; read-aloud still works
   there. **Voice choice** (`CoachVoicePicker.jsx`, Settings → AI Coach
   and "Stem kiezen" in the talk sheet): device voice + speed, per device.
