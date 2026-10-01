@@ -728,7 +728,20 @@ the browser.
   write) — the error says so. The Claude loop remains for other
   providers. Untested against the real service (api.elevenlabs.io is
   blocked from the dev sandbox); request bodies were taken from the
-  official `@elevenlabs/elevenlabs-js` serializers. The loop needs
+  official `@elevenlabs/elevenlabs-js` serializers.
+  **OpenAI live (`utils/openaiRealtime.js`, same day)** — the user wants
+  to compare: voice provider ElevenLabs → ElevenLabs Agents live; OpenAI
+  → OpenAI Realtime live (`liveService()` in Coach.jsx picks; device
+  voice keeps the Claude loop). The user's key mints a client secret
+  (`/v1/realtime/client_secrets`, session: `gpt-realtime-mini`, coach
+  prompt as instructions, chosen voice — TTS-only voices fall back to
+  marin — speed, `gpt-4o-mini-transcribe`, semantic_vad), then WebRTC
+  with SDP to `/v1/realtime/calls` and the `oai-events` data channel
+  (output_audio_buffer.started/stopped → mode, input transcription
+  completed / response.output_audio_transcript.done → chat). Mic stream
+  and <audio> are created inside the tap. Verified end to end in
+  Chromium against a local WebRTC peer standing in for OpenAI; not yet
+  against the real service. The loop needs
   SpeechRecognition, so it's hidden on Safari/iOS; read-aloud still works
   there. **Voice choice** (`CoachVoicePicker.jsx`, Settings → AI Coach
   and "Stem kiezen" in the talk sheet): device voice + speed, per device.

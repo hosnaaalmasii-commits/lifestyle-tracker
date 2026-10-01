@@ -42,11 +42,18 @@ const NOTHING_HEARD_MS = 8000
 // browser's recognition: on iOS whenever an OpenAI/ElevenLabs key is
 // there (its own recognition often hears nothing), elsewhere only when the
 // browser has no recognition at all.
-// With ElevenLabs as the coach's voice, "Praat met je coach" is a real live
-// conversation through ElevenLabs Agents (elevenAgent.js): just talk, the
-// coach answers in that voice, and you can interrupt it. Otherwise the
-// listen → Claude → speak loop below.
-const useLiveCoach = () => getVoiceProvider() === 'elevenlabs' && hasElevenKey()
+// With ElevenLabs or OpenAI as the coach's voice (and its key), "Praat met
+// je coach" is a real live conversation — ElevenLabs Agents
+// (elevenAgent.js) or the OpenAI Realtime API (openaiRealtime.js): just
+// talk, the coach answers in that voice, and you can interrupt it. The
+// device voice keeps the listen → Claude → speak loop below.
+const liveService = () => {
+  const provider = getVoiceProvider()
+  if (provider === 'elevenlabs' && hasElevenKey()) return 'ElevenLabs'
+  if (provider === 'openai' && hasOpenAiKey()) return 'OpenAI'
+  return null
+}
+const useLiveCoach = () => !!liveService()
 const useCloudEars = () => cloudEarsAvailable() && (IS_IOS || !CAN_LISTEN)
 const NOTHING_HEARD = "Ik hoorde niets. Tik op de coach en praat opnieuw."
 const IOS_NOTHING_HEARD = "Je iPhone gaf geen geluid door aan de spraakherkenning. Tik bovenaan op je coach → Stem → OpenAI of ElevenLabs en vul daar een sleutel in, dan neemt de app zelf op — of typ en gebruik de microfoon van je toetsenbord."
@@ -334,12 +341,18 @@ export default function Coach({ setView, openSettings = false }) {
   // Called straight from a tap: the microphone is asked for before any
   // await, which iOS wants; the SDK (loaded only now — it's big) reuses it.
   const startLive = async () => {
+    const service = liveService()
     const micAsk = navigator.mediaDevices?.getUserMedia?.({ audio: true })
+    // OpenAI's reply audio plays through this element; made in the tap so
+    // iOS allows it.
+    const audioEl = service === 'OpenAI' ? new Audio() : null
+    audioEl?.play?.().catch(() => {})
+    const label = `${tx("live via")} ${service}`
     setError('')
     setHeard('')
     setTalkReply('')
     setTalkState('thinking')
-    setDiag(tx("live via ElevenLabs · verbinden…"))
+    setDiag(`${label} · ${tx("verbinden…")}`)
     const d = dataRef.current
     const recent = messagesRef.current.slice(-HISTORY_FOR_REPLY)
       .map((m) => `${m.role === 'user' ? 'Gebruiker' : 'Coach'}: ${m.content}`).join('\n')
@@ -350,9 +363,16 @@ export default function Coach({ setView, openSettings = false }) {
     let mic = null
     try {
       mic = await micAsk
-      const { startLiveCoach } = await import('../../utils/elevenAgent')
-      const conversation = await startLiveCoach({
+      const start = service === 'OpenAI'
+        ? (await import('../../utils/openaiRealtime')).startOpenAiLive
+        : (await import('../../utils/elevenAgent')).startLiveCoach
+      // The OpenAI session takes over the microphone stream (and stops it).
+      const micStream = service === 'OpenAI' ? mic : undefined
+      if (micStream) mic = null
+      const conversation = await start({
         prompt,
+        micStream,
+        audioEl,
         firstMessage: tx("Hoi! Ik luister, zeg het maar."),
         lang: voiceLang(),
         speed: getSpeechRate(),
@@ -366,18 +386,18 @@ export default function Coach({ setView, openSettings = false }) {
           setTalkState('idle')
           setDiag(tx("live-gesprek beëindigd — tik op de coach om opnieuw te beginnen"))
         },
-        onError: (message) => setDiag(`${tx("live via ElevenLabs")} · ${message}`),
+        onError: (message) => setDiag(`${label} · ${message}`),
       })
       if (!talkRef.current) { conversation.endSession(); return }
       liveRef.current = conversation
-      setDiag(tx("live via ElevenLabs"))
+      setDiag(label)
       setTalkState('listening')
     } catch (e) {
       const message = e?.name === 'NotAllowedError'
         ? tx("De microfoon is geblokkeerd. Zet hem aan via Instellingen → Safari (of de app) → Microfoon.")
         : e.message
       setError(message)
-      setDiag(tx("live via ElevenLabs"))
+      setDiag(label)
       setTalkState('idle')
     } finally {
       mic?.getTracks().forEach((t) => t.stop())
