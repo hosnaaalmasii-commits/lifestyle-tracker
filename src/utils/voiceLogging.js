@@ -8,6 +8,7 @@ import { todayKey, addDaysToKey } from './dates'
 import { MOOD_SCALE } from './moodActions'
 import { getTasksForDate, getAppointmentsForDate } from './taskSchedule'
 import { replanDay, toMin, toHHMM } from './dayReplan'
+import { hasOrsKey, fillRouteTravel, DEFAULT_TRAVEL_MODE } from './routing'
 
 export const BUDGET_CATEGORIES = ['food', 'transport', 'shopping', 'bills', 'entertainment', 'health', 'other']
 export const CYCLE_FLOW_OPTIONS = ['spotting', 'light', 'medium', 'heavy']
@@ -256,14 +257,31 @@ export function applyVoiceIntent(actions, intent) {
       const data = actions.data
       const appointments = [
         ...getAppointmentsForDate(data.dayOverrides, dateKey),
-        { id: `appt-voice-${Date.now().toString(36)}`, title: fv(f, 'title') || 'Afspraak', start, end, location: fv(f, 'location') || '', travelBefore: travel, travelAfter: travel },
+        {
+          id: `appt-voice-${Date.now().toString(36)}`, title: fv(f, 'title') || 'Afspraak', start, end, location: fv(f, 'location') || '',
+          travelBefore: travel, travelAfter: travel,
+          // The parser estimates travel itself, so a real route may replace it.
+          travelEstimated: !!fv(f, 'location'),
+        },
       ]
-      const now = new Date()
-      const { tasks } = replanDay(getTasksForDate(data.taskSchedule, dateKey), appointments, {
-        completed: data.taskCompletions[dateKey] || {},
-        nowMin: dateKey === todayKey() ? now.getHours() * 60 + now.getMinutes() : null,
-      })
-      actions.applyDayReplan(dateKey, tasks, appointments)
+      const replanWith = (appts) => {
+        const now = new Date()
+        const { tasks } = replanDay(getTasksForDate(data.taskSchedule, dateKey), appts, {
+          completed: data.taskCompletions[dateKey] || {},
+          nowMin: dateKey === todayKey() ? now.getHours() * 60 + now.getMinutes() : null,
+        })
+        actions.applyDayReplan(dateKey, tasks, appts)
+      }
+      replanWith(appointments)
+      // Travel not mentioned: apply now, then again once the real route is
+      // known (routing.js) — a second, silent replan of the same day.
+      if (hasOrsKey() && appointments.some((a) => a.location?.trim())) {
+        fillRouteTravel(appointments, {
+          home: data.settings.homeLocation || '',
+          places: data.places || [],
+          mode: data.settings.travelMode || DEFAULT_TRAVEL_MODE,
+        }).then((r) => { if (r.changed) replanWith(r.appointments) })
+      }
       break
     }
     case 'place': {

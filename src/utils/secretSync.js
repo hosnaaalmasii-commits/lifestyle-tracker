@@ -14,6 +14,7 @@ export const SECRET_SLOTS = {
   elevenlabs: 'lifestyle-tracker-elevenlabs-key',
   openai: 'lifestyle-tracker-openai-key',
   oura: 'lifestyle-tracker-oura-key',
+  ors: 'lifestyle-tracker-ors-key',
 }
 
 // Set by AppContext while signed in: (name, value|null) → Promise.

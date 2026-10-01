@@ -61,6 +61,7 @@ const REPLAN_SYSTEM = `Je bent de dagplanner in een persoonlijke leefstijl-app. 
 
 Regels:
 - Neem alle afspraken op die je krijgt (bestaande + nieuwe uit de tekst). Tijden altijd als HH:MM (24 uur). "om 3 uur" overdag = 15:00. Geen eindtijd genoemd: schat een redelijke duur.
+- Reistijd die bij een bekende afspraak als "berekend via route" staat, neem je exact over (travelEstimated false).
 - Reistijd: gebruik wat de gebruiker noemt. Anders schat je zelf een realistische reistijd (enkele reis) vanaf het vertrekpunt of de vorige afspraak, met het genoemde vervoer of anders met de auto, en zet travelEstimated op true. Zonder locatie: 0 minuten.
 - Een afspraak blokkeert zijn tijd plus de reistijd ervoor en erna. Geen taak mag in een geblokkeerde periode vallen.
 - Taken die al gedaan zijn of al voorbij zijn, laat je ongewijzigd.
@@ -80,7 +81,7 @@ function describeTasks(tasks, completed) {
 function describeAppointments(appointments) {
   if (!appointments.length) return '(nog geen)'
   return appointments
-    .map((a) => `- ${a.start}–${a.end} ${a.title}${a.location ? ` @ ${a.location}` : ''} (reistijd heen ${a.travelBefore || 0} min, terug ${a.travelAfter || 0} min)`)
+    .map((a) => `- ${a.start}–${a.end} ${a.title}${a.location ? ` @ ${a.location}` : ''} (reistijd heen ${a.travelBefore || 0} min, terug ${a.travelAfter || 0} min${a.travelSource === 'route' ? ', berekend via route' : ''})`)
     .join('\n')
 }
 

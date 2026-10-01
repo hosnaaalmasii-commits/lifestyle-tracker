@@ -17,11 +17,17 @@
 
 create table if not exists public.user_secrets (
   user_id uuid not null references auth.users(id) on delete cascade,
-  name text not null check (name in ('anthropic', 'elevenlabs', 'openai', 'oura')),
+  name text not null check (name in ('anthropic', 'elevenlabs', 'openai', 'oura', 'ors')),
   value_encrypted bytea not null,
   updated_at timestamptz not null default now(),
   primary key (user_id, name)
 );
+
+-- Widen the allowed names on a table created before 'ors' (OpenRouteService,
+-- 2026-10-01) was added — `create table if not exists` won't touch it.
+alter table public.user_secrets drop constraint if exists user_secrets_name_check;
+alter table public.user_secrets add constraint user_secrets_name_check
+  check (name in ('anthropic', 'elevenlabs', 'openai', 'oura', 'ors'));
 
 alter table public.user_secrets enable row level security;
 drop policy if exists "delete own secrets" on public.user_secrets;

@@ -98,6 +98,9 @@ const DEFAULT_DATA = {
     // travel time to an appointment — a free-text place ("Utrecht", an
     // address). Not sent anywhere except inside that one Claude request.
     homeLocation: '',
+    // How appointments are travelled to when travel time comes from real
+    // routes (utils/routing.js): driving-car | cycling-regular | foot-walking.
+    travelMode: 'driving-car',
     pushEnabled: false,
   },
   taskSchedule: seedTaskSchedule(),
@@ -659,6 +662,7 @@ export function AppProvider({ children }) {
       return { ...d, places: [...rest, { id: makeId(), name, address }] }
     }),
     setHomeLocation: (place) => setData((d) => ({ ...d, settings: { ...d.settings, homeLocation: place } })),
+    setTravelMode: (mode) => setData((d) => ({ ...d, settings: { ...d.settings, travelMode: mode } })),
     addPantryItems: (items) => {
       setData((d) => ({ ...d, pantry: [...d.pantry, ...items.map((it) => ({ id: makeId(), addedAt: todayKey(), ...it }))] }))
     },

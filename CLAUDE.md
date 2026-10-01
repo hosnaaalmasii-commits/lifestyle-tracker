@@ -441,9 +441,26 @@ fully rule-based:
   it) and refusal / max_tokens handling. Model picker moved to Sonnet 5.5
   (default) / Haiku 4.5 / Opus 5.5, with old saved values mapped forward
   (`LEGACY_MODELS`).
-- **Still not built**: real routing-based travel time (OpenRouteService
-  recommended over Google Maps to avoid a billing account) — Claude's
-  estimate is the interim.
+- **Real route travel time (built 2026-10-01)**: `utils/routing.js`,
+  OpenRouteService, BYOK (`lifestyle-tracker-ors-key`, secret-sync slot
+  `ors`; Settings → "Reistijd (route)" with key, vertrekpunt and
+  `settings.travelMode` auto/fiets/lopen). `fillRouteTravel()` chains
+  home → appt → … → home (direct between appointments < 2 h apart, else
+  via home), resolves saved place names/"thuis", caches geocodes in
+  localStorage, rounds up to 5 min, never throws (returns `error`).
+  It only overwrites travel that is empty/0, `travelEstimated`, or
+  `travelSource: 'route'` — anything typed/edited is `travelSource:
+  'manual'` and left alone. Wired into DayReplanSheet (auto after add /
+  agenda import, a "Reistijd berekenen via route" button; in AI mode
+  known appointments are routed before the call, new ones after, and if a
+  route is *longer* than the AI guess the AI replans once more with the
+  route numbers marked fixed) and into voice appointments (applied at
+  once, re-applied silently when the route returns). Tested with mocked
+  fetch + a Playwright smoke test only — the sandbox can't reach
+  api.openrouteservice.org and there's no real key yet. ORS has no public
+  transport profile. **Needs once in Supabase**: re-run
+  `supabase/user_secrets.sql` (widens the name check to allow `ors`),
+  otherwise key sync for this one key just logs a warning.
 
 ## Push notifications
 
@@ -1011,6 +1028,13 @@ rather than a bare `git` command. Also true in this harness:
   fix didn't take.
 
 ## Current status (as of this note)
+
+**Latest (2026-10-01 session)**: OpenRouteService route travel time
+(see "Real route travel time" under the smart day planner), on branch
+`claude/gifted-fermi-c120i6`. Still open: redeploy the two Edge
+Functions via the Supabase Dashboard (no CLI auth here), re-run
+`user_secrets.sql`, and a real-key test of auto-translation, voice
+parsing and routing.
 
 **Latest (2026-09-29 session)**: day replanning + pantry (rule-based and
 AI layers), the Google Calendar Client-ID and `freeBusy` fixes, and a

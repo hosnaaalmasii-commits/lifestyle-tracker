@@ -7,6 +7,7 @@ import UsageLimitsCard from '../../components/UsageLimitsCard'
 import { forgetSyncedSecrets } from '../../utils/secretSync'
 import { getApiKey, setApiKey, getCoachSettings, setCoachSettings, sendToClaude, ClaudeApiError, MODEL_OPTIONS } from '../../utils/claudeApi'
 import { getOuraApiKey, setOuraApiKey } from '../../utils/ouraApi'
+import { getOrsKey, setOrsKey, geocode, TRAVEL_MODES, DEFAULT_TRAVEL_MODE } from '../../utils/routing'
 import { isValidGoogleClientId } from '../../utils/googleCalendar'
 import { PERSONALITIES } from '../../utils/coachContext'
 import { isCloudSyncConfigured } from '../../utils/supabaseClient'
@@ -23,7 +24,7 @@ export default function Settings({ onBack }) {
     enableCalendarAutoSync, disableCalendarAutoSync,
     setSupabaseConfig, disconnectSupabase, cloudSignUp, cloudSignIn, cloudSignOut, syncNow,
     backfillNormalizedTables,
-    refreshOura,
+    refreshOura, setHomeLocation, setTravelMode,
   } = useApp()
   const importRef = useRef(null)
   const [confirmClear, setConfirmClear] = useState(false)
@@ -68,6 +69,8 @@ export default function Settings({ onBack }) {
   const [autoSyncError, setAutoSyncError] = useState('')
 
   const [ouraKeyInput, setOuraKeyInput] = useState(getOuraApiKey())
+  const [orsKeyInput, setOrsKeyInput] = useState(getOrsKey())
+  const [orsStatus, setOrsStatus] = useState({ state: 'idle', message: '' }) // idle | testing | ok | error
   const [ouraStatus, setOuraStatusMsg] = useState('idle') // idle | testing | ok | error
   const [ouraMessage, setOuraMessage] = useState('')
 
@@ -153,6 +156,25 @@ export default function Settings({ onBack }) {
     setOuraKeyInput(value)
     setOuraApiKey(value)
     setOuraStatusMsg('idle')
+  }
+
+  const saveOrsKey = (value) => {
+    setOrsKeyInput(value)
+    setOrsKey(value)
+    setOrsStatus({ state: 'idle', message: '' })
+  }
+
+  // One address lookup — proves the key works without spending a route.
+  const testOrs = async () => {
+    setOrsStatus({ state: 'testing', message: '' })
+    try {
+      const point = await geocode(data.settings.homeLocation || 'Utrecht')
+      setOrsStatus(point
+        ? { state: 'ok', message: '' }
+        : { state: 'error', message: tx("Sleutel werkt, maar je vertrekpunt werd niet gevonden — probeer een volledig adres.") })
+    } catch (e) {
+      setOrsStatus({ state: 'error', message: e.message })
+    }
   }
 
   const testOuraConnection = async () => {
@@ -419,6 +441,45 @@ export default function Settings({ onBack }) {
         )}
       </div>
 
+      <div className="section-title">{tx("Reistijd (route)")}</div>
+      <div className="card stack">
+        <p className="text-sm muted" style={{ margin: 0 }}>
+          {tx("Met een gratis OpenRouteService-sleutel berekent de dagplanner echte reistijden naar je afspraken, in plaats van een schatting. Maak er een aan op openrouteservice.org (account → Dashboard → API key). Gratis: 2000 routes per dag, geen betaalgegevens nodig.")}
+        </p>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>{tx("OpenRouteService-sleutel")}</label>
+          <input
+            className="input"
+            type="password"
+            placeholder={tx("Plak je sleutel")}
+            value={orsKeyInput}
+            onChange={(e) => saveOrsKey(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </div>
+        <div className="row" style={{ gap: 8 }}>
+          <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+            <label>{tx("Vertrekpunt")}</label>
+            <input className="input" key={data.settings.homeLocation || ''} placeholder={tx("bv. je woonplaats of adres")} defaultValue={data.settings.homeLocation || ''} onBlur={(e) => setHomeLocation(e.target.value.trim())} />
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>{tx("Vervoer")}</label>
+            <select className="input" value={data.settings.travelMode || DEFAULT_TRAVEL_MODE} onChange={(e) => setTravelMode(e.target.value)}>
+              {TRAVEL_MODES.map((m) => <option key={m.value} value={m.value}>{tx(m.label)}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="row">
+          <button className="btn btn-secondary btn-sm" disabled={!orsKeyInput || orsStatus.state === 'testing'} onClick={testOrs}>
+            {orsStatus.state === 'testing' ? tx("Testing…") : tx("Test connection")}
+          </button>
+          {orsKeyInput && <button className="btn btn-ghost btn-sm" onClick={() => saveOrsKey('')}>{tx("Sleutel verwijderen")}</button>}
+        </div>
+        {orsStatus.state === 'ok' && <div className="text-sm" style={{ color: 'var(--success)' }}>{tx("Werkt — reistijden worden voortaan via de route berekend.")}</div>}
+        {orsStatus.state === 'error' && <div className="text-sm" style={{ color: 'var(--danger)' }}>{orsStatus.message}</div>}
+      </div>
+
       <div className="section-title">{tx("Oura Ring")}</div>
       <div className="card stack">
         <p className="text-sm muted" style={{ margin: 0 }}>
@@ -597,6 +658,7 @@ export default function Settings({ onBack }) {
               || k.startsWith('lifestyle-tracker-coach-')
               || k.startsWith('lifestyle-tracker-elevenlabs-')
               || k.startsWith('lifestyle-tracker-openai-')
+              || k.startsWith('lifestyle-tracker-ors-')
               || k === 'lifestyle-tracker-eod-report-cache')
             .forEach((k) => localStorage.removeItem(k))
           setConfirmClear(false)

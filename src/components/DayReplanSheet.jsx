@@ -5,6 +5,7 @@ import { getTasksForDate, getAppointmentsForDate } from '../utils/taskSchedule'
 import { replanDay, parseAppointmentText, toMin, toHHMM } from '../utils/dayReplan'
 import { hasApiKey } from '../utils/claudeApi'
 import { aiReplanDay } from '../utils/smartDay'
+import { hasOrsKey, fillRouteTravel, TRAVEL_MODES, DEFAULT_TRAVEL_MODE } from '../utils/routing'
 import Sheet from './Sheet'
 import DictateButton, { DICTATION_SUPPORTED } from './DictateButton'
 import { tx } from '../i18n/tx'
@@ -66,12 +67,19 @@ const KIND_TEXT = { moved: 'verschoven', shortened: 'ingekort', dropped: 'verval
 // which also estimates travel time. Its proposal replaces the rule-based
 // one until the user edits the appointments by hand — then the rule-based
 // planner takes over again, so the preview always matches what's listed.
+//
+// With an OpenRouteService key (routing.js) travel time comes from real
+// routes instead: filled in for new/imported appointments, and after an AI
+// plan — when a route turns out longer than the AI's guess, the AI replans
+// once more around the real numbers.
 export default function DayReplanSheet({ open, onClose }) {
   const {
     data, calendarStatus, applyDayReplan, resetDayPlan,
-    fetchCalendarEventsForDate, syncTasksToGoogleCalendar, setHomeLocation,
+    fetchCalendarEventsForDate, syncTasksToGoogleCalendar, setHomeLocation, setTravelMode,
   } = useApp()
   const aiAvailable = hasApiKey()
+  const routeAvailable = hasOrsKey()
+  const travelMode = data.settings.travelMode || DEFAULT_TRAVEL_MODE
   const dateKey = todayKey()
 
   const [spoken, setSpoken] = useState('')
@@ -85,6 +93,8 @@ export default function DayReplanSheet({ open, onClose }) {
   const [aiBusy, setAiBusy] = useState(false)
   const [aiError, setAiError] = useState(null)
   const [home, setHome] = useState(data.settings.homeLocation || '')
+  const [routeBusy, setRouteBusy] = useState(false)
+  const [routeNote, setRouteNote] = useState(null)
 
   const hasOverride = !!data.dayOverrides?.[dateKey]?.tasks
 
@@ -100,6 +110,7 @@ export default function DayReplanSheet({ open, onClose }) {
     setAiResult(null)
     setAiError(null)
     setHome(data.settings.homeLocation || '')
+    setRouteNote(null)
     // Only on open — re-running on every data change would wipe the form.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -137,22 +148,59 @@ export default function DayReplanSheet({ open, onClose }) {
 
   const formValid = form.start && form.end && toMin(form.end) > toMin(form.start)
 
+  const routeOptions = () => ({ home: home.trim(), places: data.places || [], mode: travelMode })
+
+  // Route travel for `list`, merged into whatever the list is by the time
+  // the routes come back (matched by id + location, so an appointment the
+  // user removed or changed meanwhile is left alone).
+  const routeInBackground = async (list) => {
+    if (!routeAvailable || !list.some((a) => a.location?.trim())) return
+    setRouteBusy(true)
+    const r = await fillRouteTravel(list, routeOptions())
+    setRouteBusy(false)
+    setRouteNote(r.error)
+    if (!r.changed) return
+    const byId = new Map(r.appointments.map((a) => [a.id, a]))
+    setAiResult(null)
+    setTimeEdits({})
+    setAppointments((cur) => cur.map((a) => {
+      const routed = byId.get(a.id)
+      if (!routed || routed.location !== a.location || a.travelSource === 'manual') return a
+      const { travelBefore, travelAfter, travelEstimated, travelSource } = routed
+      return { ...a, travelBefore, travelAfter, travelEstimated, travelSource }
+    }))
+  }
+
   const runAi = async (text) => {
     setAiError(null)
+    setRouteNote(null)
     setAiBusy(true)
     try {
       if (home !== (data.settings.homeLocation || '')) setHomeLocation(home.trim())
-      const result = await aiReplanDay({
-        text,
+      const plan = (extraText, appts) => aiReplanDay({
+        text: extraText,
         templateTasks,
-        appointments,
+        appointments: appts,
         completed: data.taskCompletions[dateKey] || {},
         nowHHMM: toHHMM(nowMin),
         home: home.trim(),
         targets: data.settings.calorieTargets,
         places: data.places || [],
       })
-      setAppointments(result.appointments)
+      // Known appointments go in with real routes already, new ones the AI
+      // finds in the text get theirs afterwards.
+      const known = routeAvailable ? (await fillRouteTravel(appointments, routeOptions())).appointments : appointments
+      let result = await plan(text, known)
+      let finalAppointments = result.appointments
+      if (routeAvailable) {
+        const routed = await fillRouteTravel(result.appointments, routeOptions())
+        setRouteNote(routed.error)
+        finalAppointments = routed.appointments
+        // Shorter than guessed: the plan still fits. Longer: replan once
+        // around the real numbers (they're passed as fixed).
+        if (routed.longer) result = await plan('', routed.appointments)
+      }
+      setAppointments(finalAppointments)
       setAiResult({ tasks: result.tasks, changes: result.changes, summary: result.summary })
       setTimeEdits({})
       setSpoken('')
@@ -166,7 +214,11 @@ export default function DayReplanSheet({ open, onClose }) {
   const addAppointment = () => {
     if (!formValid) return
     setAiResult(null)
-    setAppointments((list) => [...list, { id: newApptId(), ...form, title: form.title.trim() || 'Afspraak' }])
+    const typedTravel = form.travelBefore.trim() !== '' || form.travelAfter.trim() !== ''
+    const appt = { id: newApptId(), ...form, title: form.title.trim() || 'Afspraak', ...(typedTravel ? { travelSource: 'manual' } : {}) }
+    const next = [...appointments, appt]
+    setAppointments(next)
+    if (!typedTravel) routeInBackground(next)
     setForm(emptyForm())
     setSpoken('')
     setTimeEdits({})
@@ -180,7 +232,7 @@ export default function DayReplanSheet({ open, onClose }) {
 
   const updateTravel = (id, field, value) => {
     setAiResult(null)
-    setAppointments((list) => list.map((a) => (a.id === id ? { ...a, [field]: value } : a)))
+    setAppointments((list) => list.map((a) => (a.id === id ? { ...a, [field]: value, travelEstimated: false, travelSource: 'manual' } : a)))
   }
 
   const importAgenda = async () => {
@@ -191,9 +243,12 @@ export default function DayReplanSheet({ open, onClose }) {
       const known = new Set(appointments.map((a) => a.calendarEventId).filter(Boolean))
       const fresh = events.filter((e) => !known.has(e.calendarEventId))
       setAiResult(null)
-      setAppointments((list) => [...list, ...fresh.map((e) => ({ id: newApptId(), travelBefore: '', travelAfter: '', ...e }))])
+      const next = [...appointments, ...fresh.map((e) => ({ id: newApptId(), travelBefore: '', travelAfter: '', ...e }))]
+      setAppointments(next)
       setTimeEdits({})
-      setAgendaStatus(fresh.length ? `${fresh.length} afspra${fresh.length === 1 ? 'ak' : 'ken'} toegevoegd — vul de reistijd in.` : 'Geen nieuwe afspraken in je agenda vandaag.')
+      const willRoute = routeAvailable && fresh.some((e) => e.location?.trim())
+      setAgendaStatus(fresh.length ? `${fresh.length} afspra${fresh.length === 1 ? 'ak' : 'ken'} toegevoegd${willRoute ? '' : ' — vul de reistijd in'}.` : 'Geen nieuwe afspraken in je agenda vandaag.')
+      if (willRoute) routeInBackground(next)
     } catch (e) {
       setAgendaStatus(e.message)
     }
@@ -222,6 +277,23 @@ export default function DayReplanSheet({ open, onClose }) {
   }
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+
+  const departureField = (
+    <div className="row" style={{ gap: 8, marginTop: 8, alignItems: 'flex-end' }}>
+      <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+        <label>{tx("Vertrekpunt (voor reistijd)")}</label>
+        <input className="input" placeholder={tx("bv. je woonplaats of adres")} value={home} onChange={(e) => setHome(e.target.value)} onBlur={() => setHomeLocation(home.trim())} />
+      </div>
+      {routeAvailable && (
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>{tx("Vervoer")}</label>
+          <select className="input" value={travelMode} onChange={(e) => setTravelMode(e.target.value)}>
+            {TRAVEL_MODES.map((m) => <option key={m.value} value={m.value}>{tx(m.label)}</option>)}
+          </select>
+        </div>
+      )}
+    </div>
+  )
 
   if (applied) {
     return (
@@ -261,10 +333,7 @@ export default function DayReplanSheet({ open, onClose }) {
               {tx("Vertel het gewoon, bv. \"ik moet om 3 uur naar de tandarts in Utrecht en vanavond eet ik bij mijn moeder\". Reistijd wordt geschat als je die niet noemt.")}
               {!DICTATION_SUPPORTED && tx(" Inspreken kan via de microfoon van je toetsenbord.")}
             </p>
-            <div className="field" style={{ marginTop: 8 }}>
-              <label>{tx("Vertrekpunt (voor reistijd)")}</label>
-              <input className="input" placeholder={tx("bv. je woonplaats of adres")} value={home} onChange={(e) => setHome(e.target.value)} onBlur={() => setHomeLocation(home.trim())} />
-            </div>
+            {departureField}
             {aiError && <p className="text-sm" style={{ color: 'var(--danger)' }}>{aiError}</p>}
             <details style={{ marginTop: 4 }}>
               <summary className="text-sm faint" style={{ cursor: 'pointer' }}>{tx("Of vul een afspraak zelf in")}</summary>
@@ -283,6 +352,7 @@ export default function DayReplanSheet({ open, onClose }) {
               <button className="btn btn-secondary btn-sm" disabled={!spoken.trim()} onClick={() => fillFromText(spoken)}>{tx("Invullen")}</button>
             </div>
             <ManualForm form={form} setField={setField} formValid={formValid} onAdd={addAppointment} />
+            {routeAvailable && departureField}
           </>
         )}
       </div>
@@ -307,6 +377,7 @@ export default function DayReplanSheet({ open, onClose }) {
                     <div className="text-sm faint">
                       <span className="mono">{a.start}–{a.end}</span>{a.location ? ` · ${a.location}` : ''}
                       {a.travelEstimated && <span> {tx("· reistijd geschat")}</span>}
+                      {a.travelSource === 'route' && <span> {tx("· reistijd via route")}</span>}
                     </div>
                   </div>
                   <button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }} onClick={() => removeAppointment(a.id)}>{tx("Verwijder")}</button>
@@ -321,6 +392,12 @@ export default function DayReplanSheet({ open, onClose }) {
               </div>
             ))}
           </div>
+          {routeAvailable && appointments.some((a) => a.location?.trim()) && (
+            <button className="btn btn-ghost btn-block" disabled={routeBusy || aiBusy} onClick={() => routeInBackground(appointments)}>
+              {routeBusy ? tx("Route berekenen…") : tx("Reistijd berekenen via route")}
+            </button>
+          )}
+          {routeNote && <p className="text-sm faint" style={{ marginTop: 6 }}>{routeNote}</p>}
 
           <div className="row" style={{ alignItems: 'baseline' }}>
             <div className="section-title">{aiResult ? tx("Voorstel (AI)") : tx("Voorstel")}</div>
