@@ -695,7 +695,16 @@ the browser.
   ends 1.3 s after the last word (own silence timer, not the browser's),
   after 8 s with nothing heard, and never waits more than 1.5 s on
   `onend` (iOS sometimes never fires it). Spoken replies use Haiku 4.5
-  (`VOICE_MODEL`) for speed; typed chat keeps the chosen model. The loop needs
+  (`VOICE_MODEL`) for speed; typed chat keeps the chosen model.
+  **Own recording (`utils/voiceRecorder.js`, same day)**: on the user's
+  iPhone the built-in recognition heard nothing at all even from a tap.
+  So on iOS with an OpenAI or ElevenLabs key (the coach-voice keys), the
+  talk loop records with MediaRecorder (level-based end of speech: noise
+  floor ×2.5, 1.3 s silence, 8 s no speech) and transcribes via OpenAI
+  `gpt-4o-mini-transcribe` (preferred) or ElevenLabs `scribe_v1`. Without
+  such a key iOS falls back to built-in recognition and, when it hears
+  nothing, says where to add a key. Tested in Chromium with a fake mic
+  file + mocked transcription only. The loop needs
   SpeechRecognition, so it's hidden on Safari/iOS; read-aloud still works
   there. **Voice choice** (`CoachVoicePicker.jsx`, Settings → AI Coach
   and "Stem kiezen" in the talk sheet): device voice + speed, per device.

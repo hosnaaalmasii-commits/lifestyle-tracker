@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext'
 import { hasApiKey, setApiKey, sendToClaude, getCoachSettings, ClaudeApiError } from '../../utils/claudeApi'
 import { buildSystemPrompt } from '../../utils/coachContext'
 import { isSpeechRecognitionSupported, createSpeechRecognizer, micErrorText } from '../../utils/speechInput'
+import { cloudEarsAvailable, startRecording, transcribe } from '../../utils/voiceRecorder'
 import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech, getSpeechLang, getSpeechAiLanguage, getReadAloud, DeviceSpeechError } from '../../utils/speechOutput'
 import DayReplanSheet from '../../components/DayReplanSheet'
 import DictateButton from '../../components/DictateButton'
@@ -35,6 +36,13 @@ const VOICE_MODEL = 'claude-haiku-4-5'
 // browser's own (slow, on iOS several seconds) end-of-speech detection.
 const SILENCE_MS = 1300
 const NOTHING_HEARD_MS = 8000
+// Record + transcribe ourselves (voiceRecorder.js) instead of the
+// browser's recognition: on iOS whenever an OpenAI/ElevenLabs key is
+// there (its own recognition often hears nothing), elsewhere only when the
+// browser has no recognition at all.
+const useCloudEars = () => cloudEarsAvailable() && (IS_IOS || !CAN_LISTEN)
+const NOTHING_HEARD = "Ik hoorde niets. Tik op de coach en praat opnieuw."
+const IOS_NOTHING_HEARD = "Je iPhone gaf geen geluid door aan de spraakherkenning. Tik bovenaan op je coach → Stem → OpenAI of ElevenLabs en vul daar een sleutel in, dan neemt de app zelf op — of typ en gebruik de microfoon van je toetsenbord."
 const CAN_SPEAK = isSpeechSynthesisSupported()
 
 // Appended to the system prompt when the reply will be read out loud.
@@ -183,11 +191,50 @@ export default function Coach({ setView, openSettings = false }) {
   // ---- hands-free conversation ----
   // stop = false when the caller just stopped and unlocked speech in the
   // same tap — stopping again would undo the iOS unlock.
+  // What was said → the coach's spoken reply.
+  const respond = async (said) => {
+    if (!talkRef.current) { setTalkState('idle'); return }
+    if (!said.trim()) { setError(tx(IS_IOS && !useCloudEars() ? IOS_NOTHING_HEARD : NOTHING_HEARD)); setTalkState('idle'); return }
+    setTalkState('thinking')
+    const reply = await sendText(said, { voice: true })
+    if (!talkRef.current) return
+    if (!reply) { setTalkState('idle'); return }
+    setTalkReply(reply)
+    setTalkState('speaking')
+    speakInLoop(reply)
+  }
+
+  const listenWithRecorder = () => {
+    let rec
+    try {
+      rec = startRecording({ onSpeech: () => setHeard('…') })
+    } catch {
+      setError(tx("Kon de microfoon niet starten."))
+      setTalkState('idle')
+      return
+    }
+    wrapUpRef.current = rec.stop
+    const handle = { stop: rec.stop, abort: rec.stop }
+    recognizerRef.current = handle
+    rec.done
+      .then(async (blob) => {
+        if (recognizerRef.current === handle) recognizerRef.current = null
+        if (!talkRef.current) { setTalkState('idle'); return }
+        if (!blob) { respond(''); return }
+        setTalkState('thinking')
+        const said = await transcribe(blob, voiceLang())
+        setHeard(said)
+        respond(said)
+      })
+      .catch((e) => { setError(e.message); setTalkState('idle') })
+  }
+
   const listen = (stop = true) => {
     if (!talkRef.current) return
     if (stop) stopSpeaking()
     setHeard('')
     setTalkState('listening')
+    if (useCloudEars()) { listenWithRecorder(); return }
     let said = ''
     let done = false
     let silenceTimer = null
@@ -204,15 +251,7 @@ export default function Coach({ setView, openSettings = false }) {
         recognizerRef.current = null
         try { recognizer.abort() } catch { /* already ended */ }
       }
-      if (!talkRef.current) { setTalkState('idle'); return }
-      if (!said.trim()) { setError(tx("Ik hoorde niets. Tik op de coach en praat opnieuw.")); setTalkState('idle'); return }
-      setTalkState('thinking')
-      const reply = await sendText(said, { voice: true })
-      if (!talkRef.current) return
-      if (!reply) { setTalkState('idle'); return }
-      setTalkReply(reply)
-      setTalkState('speaking')
-      speakInLoop(reply)
+      respond(said)
     }
     // Ask the recognizer to wrap up, but don't wait on it for long.
     const wrapUp = () => {
@@ -356,6 +395,7 @@ export default function Coach({ setView, openSettings = false }) {
   // glass arch above the chat; tapping it starts a spoken conversation.
   // It can't move its lips, so it breathes and glows (motion.css .coach-arch).
   const face = coachImage(data.settings.coachAvatar)
+  const canTalk = CAN_LISTEN || cloudEarsAvailable()
   const talkLabel = {
     listening: t('coach.listening'),
     thinking: t('coach.thinking'),
@@ -373,10 +413,10 @@ export default function Coach({ setView, openSettings = false }) {
             avatar={data.settings.coachAvatar}
             width={170}
             state={speakingNow ? 'speaking' : 'idle'}
-            onClick={CAN_LISTEN ? openTalk : undefined}
+            onClick={canTalk ? openTalk : undefined}
             label={t('coach.talk')}
           />
-          {CAN_LISTEN && <div className="text-sm muted">{coachName(data) ? `${tx("Tik op")} ${coachName(data)} ${tx("om te praten")}` : tx("Tik op je coach om te praten")}</div>}
+          {canTalk && <div className="text-sm muted">{coachName(data) ? `${tx("Tik op")} ${coachName(data)} ${tx("om te praten")}` : tx("Tik op je coach om te praten")}</div>}
         </div>
       )}
 
@@ -406,7 +446,7 @@ export default function Coach({ setView, openSettings = false }) {
         }}
       >
         <div className="scroll-x" style={{ marginBottom: 10 }}>
-          {CAN_LISTEN && (
+          {canTalk && (
             <button className="chip" onClick={openTalk} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <Icon name="mic" size={14} />{t('coach.talk')}
             </button>
