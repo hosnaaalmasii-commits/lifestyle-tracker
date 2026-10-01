@@ -220,10 +220,32 @@ function getAudio() {
   return audioEl
 }
 
-function speakWithDevice(parts, lang, id, onEnd) {
+// Thrown (via onError) when the device voice never got going — iOS blocks
+// speech that wasn't started from a tap, Chrome sometimes swallows an
+// utterance right after cancel(). Without this the coach just stayed
+// silent with no explanation.
+export class DeviceSpeechError extends Error {}
+const DEVICE_START_TIMEOUT_MS = 6000
+
+function speakWithDevice(parts, lang, id, onEnd, onError) {
   if (!isSpeechSynthesisSupported()) { onEnd?.(); return }
   const voice = pickVoice(lang)
   Object.assign(tracker, { active: false, text: parts.join(' '), audio: null, offset: 0, at: performance.now(), cps: 14 * getSpeechRate() })
+  let started = false
+  let finished = false
+  const finish = (err) => {
+    if (finished || id !== session) return
+    finished = true
+    tracker.active = false
+    if (err) onError?.(err)
+    onEnd?.()
+  }
+  setTimeout(() => {
+    if (!started) finish(new DeviceSpeechError('Je toestel speelde het antwoord niet af. Tik op de coach om het te horen.'))
+  }, DEVICE_START_TIMEOUT_MS)
+  // Chrome can get stuck "paused" after a cancel(), silently queueing
+  // everything after it.
+  window.speechSynthesis.resume()
   let offset = 0
   parts.forEach((part, i) => {
     const u = new SpeechSynthesisUtterance(part)
@@ -232,13 +254,18 @@ function speakWithDevice(parts, lang, id, onEnd) {
     u.rate = getSpeechRate()
     const partOffset = offset
     offset += part.length + 1
-    u.onstart = () => { if (id === session) Object.assign(tracker, { active: true, offset: partOffset, at: performance.now() }) }
+    u.onstart = () => { started = true; if (id === session) Object.assign(tracker, { active: true, offset: partOffset, at: performance.now() }) }
     u.onboundary = (e) => { if (id === session) Object.assign(tracker, { offset: partOffset + (e.charIndex || 0), at: performance.now() }) }
-    if (i === parts.length - 1) {
-      const done = () => { if (id === session) { tracker.active = false; onEnd?.() } }
-      u.onend = done
-      u.onerror = done
+    // 'interrupted'/'canceled' are just stopSpeaking(); anything else
+    // (e.g. iOS 'not-allowed') means nothing will be heard.
+    u.onerror = (e) => {
+      if (e?.error === 'interrupted' || e?.error === 'canceled') { if (i === parts.length - 1) finish(); return }
+      started = true
+      finish(new DeviceSpeechError(e?.error === 'not-allowed'
+        ? 'Je toestel blokkeerde de stem. Tik op de coach om het antwoord te horen.'
+        : `De stem van je toestel gaf een fout (${e?.error || 'onbekend'}).`))
     }
+    if (i === parts.length - 1) u.onend = () => finish()
     window.speechSynthesis.speak(u)
   })
 }
@@ -269,7 +296,7 @@ async function speakWithCloud(cloud, text, parts, lang, id, onEnd, onError) {
     // rather than staying silent, and let the caller show why.
     console.warn(`${cloud.name} failed, using the device voice`, e)
     onError?.(e)
-    speakWithDevice(parts, lang, id, onEnd)
+    speakWithDevice(parts, lang, id, onEnd, onError)
   }
 }
 
@@ -283,7 +310,7 @@ export function speak(text, { lang = 'nl-NL', onEnd, onError } = {}) {
   if (!parts.length) { onEnd?.(); return }
   const cloud = activeCloud()
   if (cloud) speakWithCloud(cloud, clean, parts, lang, id, onEnd, onError)
-  else speakWithDevice(parts, lang, id, onEnd)
+  else speakWithDevice(parts, lang, id, onEnd, onError)
 }
 
 export function stopSpeaking() {
@@ -291,13 +318,17 @@ export function stopSpeaking() {
   tracker.active = false
   abort?.abort()
   abort = null
-  if (audioEl) { audioEl.pause(); audioEl.onended = null; audioEl.onerror = null }
+  // Leave the silent unlock clip alone: pausing it in the same tap undoes
+  // the iOS unlock that later replies depend on.
+  if (audioEl) { if (audioEl.src !== SILENT_WAV) audioEl.pause(); audioEl.onended = null; audioEl.onerror = null }
   if (isSpeechSynthesisSupported()) window.speechSynthesis.cancel()
 }
 
 // iOS only allows audio/speech that starts from a tap. Calling this inside
 // a click handler unlocks later, asynchronous speak() calls (e.g. once the
 // coach's reply arrives) — for both the device voice and cloud audio.
+// Call it *after* any stopSpeaking() in the same tap: stopping pauses the
+// <audio> and cancels speech, which undid the unlock.
 export function unlockSpeech() {
   const audio = getAudio()
   if (audio && activeCloud()) {

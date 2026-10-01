@@ -681,7 +681,13 @@ the browser.
   "Praat met je coach" — a hands-free loop (listen → reply → speak →
   listen) in a Sheet. Anything spoken gets a short spoken-style reply
   (`SPOKEN_STYLE` prompt suffix). `unlockSpeech()` must run inside a tap
-  for iOS to allow the later async speech. The loop needs
+  for iOS to allow the later async speech — and *after* any
+  `stopSpeaking()` in the same tap (stopping used to run after it and
+  undo the unlock; fixed 2026-10-01 after "de coach praat niet terug").
+  Device speech that never starts within 6 s, or errors with anything but
+  interrupted/canceled, now reports a `DeviceSpeechError` instead of
+  staying silent; the talk loop then stays on the reply and a tap on the
+  coach replays it. Hearing nothing also shows a hint now. The loop needs
   SpeechRecognition, so it's hidden on Safari/iOS; read-aloud still works
   there. **Voice choice** (`CoachVoicePicker.jsx`, Settings → AI Coach
   and "Stem kiezen" in the talk sheet): device voice + speed, per device.

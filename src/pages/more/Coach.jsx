@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext'
 import { hasApiKey, setApiKey, sendToClaude, getCoachSettings, ClaudeApiError } from '../../utils/claudeApi'
 import { buildSystemPrompt } from '../../utils/coachContext'
 import { isSpeechRecognitionSupported, createSpeechRecognizer, micErrorText } from '../../utils/speechInput'
-import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech, getSpeechLang, getSpeechAiLanguage, getReadAloud } from '../../utils/speechOutput'
+import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech, getSpeechLang, getSpeechAiLanguage, getReadAloud, DeviceSpeechError } from '../../utils/speechOutput'
 import DayReplanSheet from '../../components/DayReplanSheet'
 import DictateButton from '../../components/DictateButton'
 import Icon from '../../components/Icon'
@@ -61,6 +61,7 @@ export default function Coach({ setView, openSettings = false }) {
   const [heard, setHeard] = useState('')
   const [talkReply, setTalkReply] = useState('') // the reply being spoken in the talk view
   const talkRef = useRef(false)
+  const unheardRef = useRef(false) // the last reply was never heard — a tap replays it
   const recognizerRef = useRef(null)
   const messagesRef = useRef(messages)
   messagesRef.current = messages
@@ -105,7 +106,7 @@ export default function Coach({ setView, openSettings = false }) {
   const voiceLang = () => getSpeechLang(locale)
   // OpenAI/ElevenLabs failed (credit used up, bad key…) — it already fell back
   // to the device voice; just say why it sounds different.
-  const voiceError = (e) => setError(`${e.message} ${tx("De stem van je apparaat wordt nu gebruikt.")}`)
+  const voiceError = (e) => setError(e instanceof DeviceSpeechError ? tx(e.message) : `${e.message} ${tx("De stem van je apparaat wordt nu gebruikt.")}`)
 
   // voice: the message was spoken → short spoken-style reply, read aloud
   // (in the conversation sheet the loop does the speaking itself).
@@ -164,9 +165,11 @@ export default function Coach({ setView, openSettings = false }) {
 
 
   // ---- hands-free conversation ----
-  const listen = () => {
+  // stop = false when the caller just stopped and unlocked speech in the
+  // same tap — stopping again would undo the iOS unlock.
+  const listen = (stop = true) => {
     if (!talkRef.current) return
-    stopSpeaking()
+    if (stop) stopSpeaking()
     setHeard('')
     setTalkState('listening')
     let said = ''
@@ -180,26 +183,39 @@ export default function Coach({ setView, openSettings = false }) {
       onEnd: async () => {
         recognizerRef.current = null
         if (!talkRef.current) { setTalkState('idle'); return }
-        if (!said.trim()) { setTalkState('idle'); return }
+        if (!said.trim()) { setError(tx("Ik hoorde niets. Tik op de coach en praat opnieuw.")); setTalkState('idle'); return }
         setTalkState('thinking')
         const reply = await sendText(said, { voice: true })
         if (!talkRef.current) return
         if (!reply) { setTalkState('idle'); return }
         setTalkReply(reply)
         setTalkState('speaking')
-        speak(reply, { lang: voiceLang(), onError: voiceError, onEnd: () => { if (talkRef.current) listen() } })
+        speakInLoop(reply)
       },
     })
     recognizerRef.current = recognizer
     recognizer.start()
   }
 
+  // Speak a reply, then listen again — unless nothing could be heard: then
+  // stay on the reply with the error, so a tap on the coach can replay it.
+  const speakInLoop = (reply) => {
+    let silent = false
+    unheardRef.current = false
+    speak(reply, {
+      lang: voiceLang(),
+      onError: (e) => { if (e instanceof DeviceSpeechError) { silent = true; unheardRef.current = true } voiceError(e) },
+      onEnd: () => { if (talkRef.current && !silent) listen() },
+    })
+  }
+
   const openTalk = () => {
-    unlockSpeech()
     stopSpeaking()
+    unlockSpeech()
+    setError('')
     talkRef.current = true
     setTalkOpen(true)
-    listen()
+    listen(false)
   }
   const closeTalk = () => {
     talkRef.current = false
@@ -212,7 +228,21 @@ export default function Coach({ setView, openSettings = false }) {
   }
   const tapOrb = () => {
     if (talkState === 'listening') recognizerRef.current?.stop()
-    else if (talkState === 'speaking' || talkState === 'idle') { setError(''); talkRef.current = true; listen() }
+    else if (talkState === 'speaking' || talkState === 'idle') {
+      // A reply that couldn't be heard: this tap may play it.
+      if (talkState === 'speaking' && unheardRef.current && talkReply) {
+        setError('')
+        stopSpeaking()
+        unlockSpeech()
+        speakInLoop(talkReply)
+        return
+      }
+      setError('')
+      stopSpeaking()
+      unlockSpeech()
+      talkRef.current = true
+      listen(false)
+    }
   }
 
   // Just the coach at the top: tap the face or name to set it up (face,
