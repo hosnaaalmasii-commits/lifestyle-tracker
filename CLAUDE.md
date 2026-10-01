@@ -704,7 +704,13 @@ the browser.
   `gpt-4o-mini-transcribe` (preferred) or ElevenLabs `scribe_v1`. Without
   such a key iOS falls back to built-in recognition and, when it hears
   nothing, says where to add a key. Tested in Chromium with a fake mic
-  file + mocked transcription only. The loop needs
+  file + mocked transcription only. Follow-up the same day ("het werkt
+  niet", no details): the clip is now always sent (≥ 0.8 s) — the level
+  meter only decides auto-stop, and a meter reading ~0 never ends the
+  turn (tap the coach = done, or 20 s). The talk view shows a small
+  diagnostics line (ears mode, clip length, peak level, kB, transcript
+  or error, iOS, build stamp `__BUILD_ID__` from vite.config.js) — ask
+  the user to read it out when voice fails. The loop needs
   SpeechRecognition, so it's hidden on Safari/iOS; read-aloud still works
   there. **Voice choice** (`CoachVoicePicker.jsx`, Settings → AI Coach
   and "Stem kiezen" in the talk sheet): device voice + speed, per device.

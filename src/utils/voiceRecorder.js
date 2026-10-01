@@ -38,7 +38,7 @@ function pickMime() {
  * null when no speech was detected; stop() ends it now (keeping what was
  * said). onSpeech() fires once, when talking is first detected.
  */
-export function startRecording({ onSpeech, silenceMs = 1300, noSpeechMs = 8000, maxMs = 30000 } = {}) {
+export function startRecording({ onSpeech, onLevel, onInfo, silenceMs = 1300, noSpeechMs = 8000, maxMs = 20000 } = {}) {
   const Ctx = window.AudioContext || window.webkitAudioContext
   const audioCtx = Ctx ? new Ctx() : null
   audioCtx?.resume?.()
@@ -62,10 +62,15 @@ export function startRecording({ onSpeech, silenceMs = 1300, noSpeechMs = 8000, 
     recorder.ondataavailable = (e) => { if (e.data?.size) chunks.push(e.data) }
 
     // Voice activity from the input level: a noise floor measured in the
-    // first moments, "talking" well above it.
+    // first moments, "talking" well above it. The meter is only used to
+    // stop automatically — the clip is always sent (if long enough), since
+    // on some iPhones the meter reads near-silence while the mic works
+    // fine. A meter that reads (almost) nothing never ends the turn; then
+    // a tap does, or maxMs.
     let heardSpeech = false
     let lastLoud = 0
     let floor = null
+    let peak = 0
     const started = performance.now()
     let analyser = null
     let buf = null
@@ -88,8 +93,10 @@ export function startRecording({ onSpeech, silenceMs = 1300, noSpeechMs = 8000, 
         stream.getTracks().forEach((t) => t.stop()) // gives the speaker back on iOS
         audioCtx?.close?.()
         const type = recorder.mimeType || mime || 'audio/mp4'
-        // Without a level meter we can't tell; send it anyway.
-        resolve((heardSpeech || !analyser) && chunks.length ? new Blob(chunks, { type }) : null)
+        const seconds = (performance.now() - started) / 1000
+        const blob = chunks.length && seconds > 0.8 ? new Blob(chunks, { type }) : null
+        onInfo?.({ seconds, peak, heardSpeech, bytes: blob?.size || 0, type })
+        resolve(blob)
       }
       stopNow = finish
       recorder.start(250)
@@ -101,14 +108,17 @@ export function startRecording({ onSpeech, silenceMs = 1300, noSpeechMs = 8000, 
           let sum = 0
           for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i]
           const rms = Math.sqrt(sum / buf.length)
-          if (now - started < 300) { floor = floor === null ? rms : Math.max(floor, rms); return }
-          const threshold = Math.max(0.015, (floor || 0) * 2.5)
+          peak = Math.max(peak, rms)
+          onLevel?.(rms)
+          if (now - started < 300) { floor = floor === null ? rms : Math.min(floor, rms); return }
+          const threshold = Math.min(0.04, Math.max(0.008, (floor || 0) * 3))
           if (rms > threshold) {
             if (!heardSpeech) { heardSpeech = true; onSpeech?.() }
             lastLoud = now
           }
+          const meterWorks = peak > 0.002
           if (heardSpeech && now - lastLoud > silenceMs) return finish()
-          if (!heardSpeech && now - started > noSpeechMs) return finish()
+          if (!heardSpeech && meterWorks && now - started > noSpeechMs) return finish()
         }
         if (now - started > maxMs) finish()
       }, 100)

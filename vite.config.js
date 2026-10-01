@@ -6,6 +6,11 @@ import { VitePWA } from 'vite-plugin-pwa'
 // (https://<user>.github.io/<repo>/) without hardcoding the repo name.
 export default defineConfig({
   base: './',
+  // Shown small in the coach's talk view, so a test on the phone can tell
+  // which build it is actually running (the PWA can hold on to old ones).
+  define: {
+    __BUILD_ID__: JSON.stringify(new Date().toISOString().slice(5, 16).replace('T', ' ')),
+  },
   plugins: [
     react(),
     VitePWA({

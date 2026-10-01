@@ -13,13 +13,13 @@ import { tx } from '../i18n/tx'
 // with its voice (speechOutput's progress; a steady typewriter otherwise).
 // Rendered through a portal to <body> like every overlay here (Sheet.jsx
 // explains why position:fixed can't live inside .page).
-export default function CoachTalkView({ open, avatar, name, state, heard, reply, error, onTapCoach, onStop }) {
+export default function CoachTalkView({ open, avatar, name, state, heard, reply, error, diag, tapToFinish, onTapCoach, onStop }) {
   const img = coachImage(avatar)
   const shown = useTypedReply(reply, state === 'speaking' && open)
   if (!open) return null
 
   const status = {
-    listening: tx("Ik luister…"),
+    listening: tapToFinish ? tx("Ik luister… tik op mij als je klaar bent") : tx("Ik luister…"),
     thinking: tx("Even denken…"),
     speaking: '',
     idle: name ? `${tx("Tik op")} ${name} ${tx("om te praten")}` : tx("Tik op je coach om te praten"),
@@ -58,6 +58,7 @@ export default function CoachTalkView({ open, avatar, name, state, heard, reply,
         {state === 'speaking' && <p className="talk-coach">{shown}<span className="talk-caret" /></p>}
         {state === 'idle' && <p className="talk-status muted">{status}</p>}
         {error && <p className="text-sm" style={{ color: 'var(--danger)', margin: '10px 0 0' }}>{error}</p>}
+        {diag && <p className="faint" style={{ fontSize: 11, margin: '10px 0 0', opacity: 0.7 }}>{diag}</p>}
       </div>
 
       <button type="button" className="talk-stop" onClick={onStop} aria-label={tx("Gesprek stoppen")}>

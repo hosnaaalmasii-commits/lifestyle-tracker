@@ -4,6 +4,7 @@ import { hasApiKey, setApiKey, sendToClaude, getCoachSettings, ClaudeApiError } 
 import { buildSystemPrompt } from '../../utils/coachContext'
 import { isSpeechRecognitionSupported, createSpeechRecognizer, micErrorText } from '../../utils/speechInput'
 import { cloudEarsAvailable, startRecording, transcribe } from '../../utils/voiceRecorder'
+import { hasOpenAiKey } from '../../utils/openaiTts'
 import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech, getSpeechLang, getSpeechAiLanguage, getReadAloud, DeviceSpeechError } from '../../utils/speechOutput'
 import DayReplanSheet from '../../components/DayReplanSheet'
 import DictateButton from '../../components/DictateButton'
@@ -81,6 +82,9 @@ export default function Coach({ setView, openSettings = false }) {
   const [talkOpen, setTalkOpen] = useState(false)
   const [talkState, setTalkState] = useState('idle') // idle | listening | thinking | speaking
   const [heard, setHeard] = useState('')
+  // One small line in the talk view saying what the ears did (mode, clip
+  // length, level, transcript) — so a test on the phone can be reported.
+  const [diag, setDiag] = useState('')
   const [talkReply, setTalkReply] = useState('') // the reply being spoken in the talk view
   const talkRef = useRef(false)
   const unheardRef = useRef(false) // the last reply was never heard — a tap replays it
@@ -206,8 +210,17 @@ export default function Coach({ setView, openSettings = false }) {
 
   const listenWithRecorder = () => {
     let rec
+    const via = hasOpenAiKey() ? 'OpenAI' : 'ElevenLabs'
+    setDiag(`${tx("opname via")} ${via}`)
+    let info = ''
     try {
-      rec = startRecording({ onSpeech: () => setHeard('…') })
+      rec = startRecording({
+        onSpeech: () => setHeard('…'),
+        onInfo: ({ seconds, peak, bytes }) => {
+          info = `${tx("opname via")} ${via} · ${seconds.toFixed(1)} s · ${tx("niveau")} ${peak.toFixed(3)} · ${Math.round(bytes / 1024)} kB`
+          setDiag(info)
+        },
+      })
     } catch {
       setError(tx("Kon de microfoon niet starten."))
       setTalkState('idle')
@@ -223,10 +236,11 @@ export default function Coach({ setView, openSettings = false }) {
         if (!blob) { respond(''); return }
         setTalkState('thinking')
         const said = await transcribe(blob, voiceLang())
+        setDiag(`${info} · ${said ? `"${said.slice(0, 60)}"` : tx("lege tekst terug")}`)
         setHeard(said)
         respond(said)
       })
-      .catch((e) => { setError(e.message); setTalkState('idle') })
+      .catch((e) => { setError(e.message); setDiag(`${info || via} · ${e.message}`); setTalkState('idle') })
   }
 
   const listen = (stop = true) => {
@@ -235,6 +249,7 @@ export default function Coach({ setView, openSettings = false }) {
     setHeard('')
     setTalkState('listening')
     if (useCloudEars()) { listenWithRecorder(); return }
+    setDiag(tx("ingebouwde spraakherkenning"))
     let said = ''
     let done = false
     let silenceTimer = null
@@ -488,6 +503,8 @@ export default function Coach({ setView, openSettings = false }) {
         heard={heard}
         reply={talkReply}
         error={error}
+        diag={`${diag ? `${diag} · ` : ''}${IS_IOS ? 'iOS · ' : ''}${tx("versie")} ${__BUILD_ID__}`}
+        tapToFinish={useCloudEars()}
         onTapCoach={tapOrb}
         onStop={closeTalk}
       />
