@@ -13,13 +13,13 @@ import { tx } from '../i18n/tx'
 // with its voice (speechOutput's progress; a steady typewriter otherwise).
 // Rendered through a portal to <body> like every overlay here (Sheet.jsx
 // explains why position:fixed can't live inside .page).
-export default function CoachTalkView({ open, avatar, name, state, heard, reply, error, diag, tapToFinish, onTapCoach, onStop }) {
+export default function CoachTalkView({ open, avatar, name, state, heard, reply, error, diag, tapToFinish, live, onTapCoach, onStop }) {
   const img = coachImage(avatar)
   const shown = useTypedReply(reply, state === 'speaking' && open)
   if (!open) return null
 
   const status = {
-    listening: tapToFinish ? tx("Ik luister… tik op mij als je klaar bent") : tx("Ik luister…"),
+    listening: live ? tx("Ik luister… praat gewoon, je mag me ook onderbreken") : tapToFinish ? tx("Ik luister… tik op mij als je klaar bent") : tx("Ik luister…"),
     thinking: tx("Even denken…"),
     speaking: '',
     idle: name ? `${tx("Tik op")} ${name} ${tx("om te praten")}` : tx("Tik op je coach om te praten"),

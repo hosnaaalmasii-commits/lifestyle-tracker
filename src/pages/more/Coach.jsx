@@ -5,7 +5,8 @@ import { buildSystemPrompt } from '../../utils/coachContext'
 import { isSpeechRecognitionSupported, createSpeechRecognizer, micErrorText } from '../../utils/speechInput'
 import { cloudEarsAvailable, startRecording, transcribe } from '../../utils/voiceRecorder'
 import { hasOpenAiKey } from '../../utils/openaiTts'
-import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech, getSpeechLang, getSpeechAiLanguage, getReadAloud, DeviceSpeechError } from '../../utils/speechOutput'
+import { isSpeechSynthesisSupported, speak, stopSpeaking, unlockSpeech, getSpeechLang, getSpeechAiLanguage, getReadAloud, DeviceSpeechError, getVoiceProvider, getSpeechRate } from '../../utils/speechOutput'
+import { hasElevenKey } from '../../utils/elevenLabs'
 import DayReplanSheet from '../../components/DayReplanSheet'
 import DictateButton from '../../components/DictateButton'
 import Icon from '../../components/Icon'
@@ -41,6 +42,11 @@ const NOTHING_HEARD_MS = 8000
 // browser's recognition: on iOS whenever an OpenAI/ElevenLabs key is
 // there (its own recognition often hears nothing), elsewhere only when the
 // browser has no recognition at all.
+// With ElevenLabs as the coach's voice, "Praat met je coach" is a real live
+// conversation through ElevenLabs Agents (elevenAgent.js): just talk, the
+// coach answers in that voice, and you can interrupt it. Otherwise the
+// listen → Claude → speak loop below.
+const useLiveCoach = () => getVoiceProvider() === 'elevenlabs' && hasElevenKey()
 const useCloudEars = () => cloudEarsAvailable() && (IS_IOS || !CAN_LISTEN)
 const NOTHING_HEARD = "Ik hoorde niets. Tik op de coach en praat opnieuw."
 const IOS_NOTHING_HEARD = "Je iPhone gaf geen geluid door aan de spraakherkenning. Tik bovenaan op je coach → Stem → OpenAI of ElevenLabs en vul daar een sleutel in, dan neemt de app zelf op — of typ en gebruik de microfoon van je toetsenbord."
@@ -126,7 +132,8 @@ export default function Coach({ setView, openSettings = false }) {
   useEffect(() => {
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
   }, [messages, sending])
-  useEffect(() => () => { talkRef.current = false; recognizerRef.current?.abort(); stopSpeaking() }, [])
+  const liveRef = useRef(null) // the ElevenLabs live conversation, while one is open
+  useEffect(() => () => { talkRef.current = false; recognizerRef.current?.abort(); stopSpeaking(); liveRef.current?.endSession() }, [])
 
   const send = () => sendText(input)
   // The language to listen and speak in (voice settings; default the app's).
@@ -317,7 +324,74 @@ export default function Coach({ setView, openSettings = false }) {
     })
   }
 
+  // ---- live conversation (ElevenLabs) ----
+  const recordLive = (role, content) => {
+    const msg = { role, content, at: Date.now() }
+    messagesRef.current = [...messagesRef.current, msg]
+    addCoachMessages([msg])
+  }
+
+  // Called straight from a tap: the microphone is asked for before any
+  // await, which iOS wants; the SDK (loaded only now — it's big) reuses it.
+  const startLive = async () => {
+    const micAsk = navigator.mediaDevices?.getUserMedia?.({ audio: true })
+    setError('')
+    setHeard('')
+    setTalkReply('')
+    setTalkState('thinking')
+    setDiag(tx("live via ElevenLabs · verbinden…"))
+    const d = dataRef.current
+    const recent = messagesRef.current.slice(-HISTORY_FOR_REPLY)
+      .map((m) => `${m.role === 'user' ? 'Gebruiker' : 'Coach'}: ${m.content}`).join('\n')
+    const language = getSpeechAiLanguage()
+    const prompt = buildSystemPrompt(coachSettings.personality, d) + memoryPrompt(d) + SPOKEN_STYLE
+      + (recent ? `\n\nRecent conversation, for context:\n${recent}` : '')
+      + (language ? `\n\nAlways reply in ${language}.` : '')
+    let mic = null
+    try {
+      mic = await micAsk
+      const { startLiveCoach } = await import('../../utils/elevenAgent')
+      const conversation = await startLiveCoach({
+        prompt,
+        firstMessage: tx("Hoi! Ik luister, zeg het maar."),
+        lang: voiceLang(),
+        speed: getSpeechRate(),
+        onMode: (mode) => { if (talkRef.current) setTalkState(mode === 'speaking' ? 'speaking' : 'listening') },
+        onUserText: (text) => { setHeard(text); recordLive('user', text) },
+        onAgentText: (text) => { setTalkReply(text); recordLive('assistant', text) },
+        onEnd: (reason) => {
+          liveRef.current = null
+          if (!talkRef.current) return
+          if (reason) setError(reason)
+          setTalkState('idle')
+          setDiag(tx("live-gesprek beëindigd — tik op de coach om opnieuw te beginnen"))
+        },
+        onError: (message) => setDiag(`${tx("live via ElevenLabs")} · ${message}`),
+      })
+      if (!talkRef.current) { conversation.endSession(); return }
+      liveRef.current = conversation
+      setDiag(tx("live via ElevenLabs"))
+      setTalkState('listening')
+    } catch (e) {
+      const message = e?.name === 'NotAllowedError'
+        ? tx("De microfoon is geblokkeerd. Zet hem aan via Instellingen → Safari (of de app) → Microfoon.")
+        : e.message
+      setError(message)
+      setDiag(tx("live via ElevenLabs"))
+      setTalkState('idle')
+    } finally {
+      mic?.getTracks().forEach((t) => t.stop())
+    }
+  }
+
   const openTalk = () => {
+    if (useLiveCoach()) {
+      stopSpeaking()
+      talkRef.current = true
+      setTalkOpen(true)
+      startLive()
+      return
+    }
     stopSpeaking()
     unlockSpeech()
     setError('')
@@ -327,6 +401,8 @@ export default function Coach({ setView, openSettings = false }) {
   }
   const closeTalk = () => {
     talkRef.current = false
+    liveRef.current?.endSession()
+    liveRef.current = null
     recognizerRef.current?.abort()
     recognizerRef.current = null
     stopSpeaking()
@@ -335,6 +411,11 @@ export default function Coach({ setView, openSettings = false }) {
     updateMemory(true)
   }
   const tapOrb = () => {
+    // Live: the conversation runs by itself; a tap only restarts one that ended.
+    if (useLiveCoach()) {
+      if (!liveRef.current && talkState === 'idle') { talkRef.current = true; startLive() }
+      return
+    }
     if (talkState === 'listening') wrapUpRef.current?.()
     else if (talkState === 'speaking' || talkState === 'idle') {
       // A reply that couldn't be heard: this tap may play it.
@@ -504,7 +585,8 @@ export default function Coach({ setView, openSettings = false }) {
         reply={talkReply}
         error={error}
         diag={`${diag ? `${diag} · ` : ''}${IS_IOS ? 'iOS · ' : ''}${tx("versie")} ${__BUILD_ID__}`}
-        tapToFinish={useCloudEars()}
+        tapToFinish={!useLiveCoach() && useCloudEars()}
+        live={useLiveCoach()}
         onTapCoach={tapOrb}
         onStop={closeTalk}
       />

@@ -710,7 +710,25 @@ the browser.
   turn (tap the coach = done, or 20 s). The talk view shows a small
   diagnostics line (ears mode, clip length, peak level, kB, transcript
   or error, iOS, build stamp `__BUILD_ID__` from vite.config.js) — ask
-  the user to read it out when voice fails. The loop needs
+  the user to read it out when voice fails.
+  **Live coach via ElevenLabs Agents (`utils/elevenAgent.js`, same day)**:
+  the user wants "tik op de coach → groot scherm → gewoon praten" with
+  ElevenLabs voices. When the coach voice provider is ElevenLabs and a
+  key is set, "Praat met je coach" starts a live, interruptible
+  conversation with `@elevenlabs/client` (lazy-loaded chunk, ~165 kB
+  gzip). First use creates one agent in the user's own ElevenLabs
+  account (`/v1/convai/agents/create`, LLM `claude-haiku-4-5`, TTS
+  `eleven_flash_v2_5`, overrides enabled for prompt/llm/first message/
+  language/voice/speed; id cached per key in
+  `lifestyle-tracker-elevenlabs-agent`, recreated on 404). Each session
+  overrides the prompt with buildSystemPrompt + memory + SPOKEN_STYLE +
+  recent messages, voice and speed; WebRTC via `/conversation/token`,
+  WebSocket fallback via `/get-signed-url`. Transcripts are saved into
+  the coach chat. Needs the key's "ElevenLabs Agents" permission (read +
+  write) — the error says so. The Claude loop remains for other
+  providers. Untested against the real service (api.elevenlabs.io is
+  blocked from the dev sandbox); request bodies were taken from the
+  official `@elevenlabs/elevenlabs-js` serializers. The loop needs
   SpeechRecognition, so it's hidden on Safari/iOS; read-aloud still works
   there. **Voice choice** (`CoachVoicePicker.jsx`, Settings → AI Coach
   and "Stem kiezen" in the talk sheet): device voice + speed, per device.
