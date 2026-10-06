@@ -741,7 +741,17 @@ the browser.
   completed / response.output_audio_transcript.done → chat). Mic stream
   and <audio> are created inside the tap. Verified end to end in
   Chromium against a local WebRTC peer standing in for OpenAI; not yet
-  against the real service. The loop needs
+  against the real service.
+  **Upgrade 2026-10-06** (user: the new GPT live voices are "really,
+  really good … much cheaper"): live model is now selectable in Coach
+  instellen → Stem → OpenAI → "Live-gesprek" (`LIVE_MODELS`,
+  localStorage `lifestyle-tracker-openai-live-model`):
+  `gpt-realtime-2.1-mini` (default) or `gpt-realtime-2.1` (sent with
+  `reasoning: { effort: 'low' }`). A 400/404 mentioning model/reasoning
+  retries once with `gpt-realtime-mini`. The voice list marks TTS-only
+  voices "(niet live)". Prices from third-party summaries (OpenAI's own
+  pages are blocked from the sandbox): 2.1-mini $10/$20 per 1M audio
+  tokens in/out (≈ $0.024 per minute spoken), 2.1 $32/$64 (≈ $0.077). The loop needs
   SpeechRecognition, so it's hidden on Safari/iOS; read-aloud still works
   there. **Voice choice** (`CoachVoicePicker.jsx`, Settings → AI Coach
   and "Stem kiezen" in the talk sheet): device voice + speed, per device.

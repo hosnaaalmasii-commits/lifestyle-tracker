@@ -10,6 +10,7 @@ import {
   fetchElevenVoices, ELEVEN_MODELS,
 } from '../utils/elevenLabs'
 import { getOpenAiKey, setOpenAiKey, getOpenAiVoice, setOpenAiVoice, OPENAI_VOICES } from '../utils/openaiTts'
+import { LIVE_MODELS, getLiveModel, setLiveModel, REALTIME_VOICES } from '../utils/openaiRealtime'
 import Icon from './Icon'
 import { tx } from '../i18n/tx'
 import { useT } from '../i18n/useT'
@@ -170,8 +171,10 @@ function DeviceSection({ locale, previewButton, onPicked }) {
 function OpenAiSection({ previewButton, onPicked }) {
   const [key, setKey] = useState(getOpenAiKey)
   const [voice, setVoice] = useState(getOpenAiVoice)
+  const [liveModel, setLiveModelState] = useState(getLiveModel)
   const saveKey = (value) => { setKey(value.trim()); setOpenAiKey(value) }
   const choose = (id) => { setVoice(id); setOpenAiVoice(id); onPicked() }
+  const chooseModel = (m) => { setLiveModelState(m); setLiveModel(m) }
 
   return (
     <>
@@ -179,7 +182,7 @@ function OpenAiSection({ previewButton, onPicked }) {
         <label>{tx("OpenAI API-sleutel")}</label>
         {!key && (
           <p className="text-sm faint" style={{ margin: '0 0 8px' }}>
-            {tx("Maak een account op platform.openai.com, zet er wat tegoed op (Billing — vanaf $5) en maak een sleutel onder API keys. Je betaalt per gebruik: ongeveer 1,5 cent per minuut spraak, geen abonnement.")}
+            {tx("Maak een account op platform.openai.com, zet er wat tegoed op (Billing — vanaf $5) en maak een sleutel onder API keys. Je betaalt per gebruik, geen abonnement: voorlezen ongeveer 1,5 cent per minuut, live praten (Snel & voordelig) een paar cent per minuut.")}
           </p>
         )}
         <KeyInput value={key} onChange={saveKey} placeholder="sk-…" />
@@ -190,10 +193,24 @@ function OpenAiSection({ previewButton, onPicked }) {
           <label>{tx("Stem van de coach")}</label>
           <div className="row" style={{ gap: 8 }}>
             <select className="input" style={{ flex: 1, minWidth: 0 }} value={voice} onChange={(e) => choose(e.target.value)}>
-              {OPENAI_VOICES.map((v) => <option key={v.id} value={v.id}>{v.name} — {tx(v.description)}</option>)}
+              {OPENAI_VOICES.map((v) => <option key={v.id} value={v.id}>{v.name} — {tx(v.description)}{REALTIME_VOICES.has(v.id) ? '' : ` (${tx("niet live")})`}</option>)}
             </select>
             {previewButton}
           </div>
+          <p className="text-sm faint" style={{ margin: '6px 0 0' }}>
+            {tx("Live klinken Marin en Cedar het meest menselijk. Stemmen met \"niet live\" praten in een live-gesprek als Marin.")}
+          </p>
+        </div>
+      )}
+      {key && (
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>{tx("Live-gesprek")}</label>
+          <select className="input" value={liveModel} onChange={(e) => chooseModel(e.target.value)}>
+            {LIVE_MODELS.map((m) => <option key={m.value} value={m.value}>{tx(m.label)}</option>)}
+          </select>
+          <p className="text-sm faint" style={{ margin: '6px 0 0' }}>
+            {tx("Tik op je coach en praat gewoon: hij antwoordt meteen, je kunt hem onderbreken of van onderwerp veranderen.")}
+          </p>
         </div>
       )}
     </>

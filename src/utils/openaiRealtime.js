@@ -12,11 +12,27 @@
 import { getOpenAiKey, getOpenAiVoice } from './openaiTts'
 
 const API = 'https://api.openai.com/v1'
-// The smaller realtime model: a fraction of gpt-realtime's price and quick
-// enough for short spoken coaching answers.
-export const REALTIME_MODEL = 'gpt-realtime-mini'
+const MODEL_STORAGE = 'lifestyle-tracker-openai-live-model'
+// The current realtime generation (2026-10-06, user: "GPT live voices …
+// really good and responsive … much cheaper"). Mini is the default: quick
+// and roughly a quarter of the full model's price; the full one reasons
+// a little before answering (kept at low effort so it stays snappy).
+export const LIVE_MODELS = [
+  { value: 'gpt-realtime-2.1-mini', label: 'Snel & voordelig (aanbevolen)' },
+  { value: 'gpt-realtime-2.1', label: 'Slimste antwoorden (duurder)' },
+]
+// If a newer model isn't available to the user's key yet.
+const FALLBACK_MODEL = 'gpt-realtime-mini'
+export function getLiveModel() {
+  let saved = ''
+  try { saved = localStorage.getItem(MODEL_STORAGE) || '' } catch { /* private mode */ }
+  return LIVE_MODELS.some((m) => m.value === saved) ? saved : LIVE_MODELS[0].value
+}
+export function setLiveModel(model) {
+  try { localStorage.setItem(MODEL_STORAGE, model) } catch { /* private mode */ }
+}
 // Voices the realtime models offer (the TTS-only ones fall back to marin).
-const REALTIME_VOICES = new Set(['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin', 'cedar'])
+export const REALTIME_VOICES = new Set(['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin', 'cedar'])
 
 export class OpenAiLiveError extends Error {}
 
@@ -40,9 +56,11 @@ async function explain(res, what) {
 export async function startOpenAiLive({ prompt, firstMessage = '', speed = 1, micStream, audioEl, onMode, onUserText, onAgentText, onEnd, onError }) {
   const chosen = getOpenAiVoice()
   const voice = REALTIME_VOICES.has(chosen) ? chosen : 'marin'
+  const model = getLiveModel()
   const session = {
     type: 'realtime',
-    model: REALTIME_MODEL,
+    model,
+    ...(model === 'gpt-realtime-2.1' ? { reasoning: { effort: 'low' } } : {}),
     instructions: prompt,
     audio: {
       input: {
@@ -56,13 +74,25 @@ export async function startOpenAiLive({ prompt, firstMessage = '', speed = 1, mi
   }
 
   const releaseMic = () => micStream?.getTracks().forEach((t) => t.stop())
+  const mint = (body) => fetch(`${API}/realtime/client_secrets`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${getOpenAiKey()}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ session: body }),
+  })
   let res
   try {
-    res = await fetch(`${API}/realtime/client_secrets`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${getOpenAiKey()}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ session }),
-    })
+    res = await mint(session)
+    // A model (or its reasoning setting) this key can't use yet: try the
+    // previous generation once rather than not talking at all.
+    if (res.status === 400 || res.status === 404) {
+      let detail = ''
+      try { detail = (await res.clone().json())?.error?.message || '' } catch { /* not JSON */ }
+      if (/model|reasoning/i.test(detail)) {
+        console.warn(`Live coach: ${model} refused (${detail}), using ${FALLBACK_MODEL}`)
+        const { reasoning: _unused, ...rest } = session
+        res = await mint({ ...rest, model: FALLBACK_MODEL })
+      }
+    }
   } catch {
     releaseMic()
     throw new OpenAiLiveError('Kon OpenAI niet bereiken — ben je online?')
