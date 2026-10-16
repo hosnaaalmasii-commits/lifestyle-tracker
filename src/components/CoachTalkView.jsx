@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import TalkingFace from './TalkingFace'
 import { coachImage } from '../utils/coachAvatar'
 import { getSpeechProgress } from '../utils/speechOutput'
 import { ORB_BACKGROUND } from './CoachAvatar'
@@ -45,7 +44,7 @@ export default function CoachTalkView({ open, avatar, name, state, heard, reply,
           background: img ? 'radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--accent) 45%, #2a1f5c) 0%, #1c1640 70%)' : ORB_BACKGROUND,
         }}
       >
-        {img && <div className="talk-portrait-img"><TalkingFace img={img} /></div>}
+        {img && <img src={img.src} alt="" className="talk-portrait-img" style={{ objectPosition: img.pos }} />}
         {img && <span aria-hidden className="talk-portrait-glass" />}
       </button>
 

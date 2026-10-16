@@ -100,11 +100,12 @@ export async function startOpenAiLive({ prompt, firstMessage = '', speed = 1, mi
   if (!res.ok) { releaseMic(); throw new OpenAiLiveError(await explain(res, 'het starten van het gesprek')) }
   const { value: secret } = await res.json()
 
-  const stream = micStream || await navigator.mediaDevices.getUserMedia({ audio: true })
+  const stream = micStream || await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
   const player = audioEl || new Audio()
   player.autoplay = true
   player.setAttribute?.('playsinline', '')
 
+  if (!stream.getAudioTracks().length) throw new OpenAiLiveError('Geen microfoon gevonden — geef de app toegang tot je microfoon.')
   const pc = new RTCPeerConnection()
   let ended = false
   const end = (reason) => {
@@ -121,7 +122,14 @@ export async function startOpenAiLive({ prompt, firstMessage = '', speed = 1, mi
     player.srcObject = e.streams[0]
     player.play?.().catch(() => {})
   }
-  stream.getAudioTracks().forEach((track) => pc.addTrack(track, stream))
+  stream.getAudioTracks().forEach((track) => {
+    pc.addTrack(track, stream)
+    // iOS can mute or stop the microphone mid-call (another app, Siri, a
+    // phone call, the app going to the background) — say so instead of the
+    // coach silently not hearing anything.
+    track.onmute = () => onError?.('Je iPhone heeft de microfoon even stilgelegd — praat gewoon verder; blijft het stil, stop en start het gesprek opnieuw.')
+    track.onended = () => end('De microfoon is gestopt. Tik op de coach om opnieuw te beginnen.')
+  })
   pc.onconnectionstatechange = () => {
     if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') end('De verbinding met OpenAI viel weg.')
   }

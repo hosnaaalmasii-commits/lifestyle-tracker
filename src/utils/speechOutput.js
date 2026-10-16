@@ -6,7 +6,6 @@
 // Chrome silently stops a single utterance after ~15 seconds.
 import { hasElevenKey, synthesize } from './elevenLabs'
 import { hasOpenAiKey, synthesizeOpenAi } from './openaiTts'
-import { unlockLipSync } from './lipSync'
 
 export function isSpeechSynthesisSupported() {
   return typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
@@ -216,11 +215,6 @@ export function getSpeechProgress() {
   return { text: tracker.text, pos: Math.min(len - 1, Math.max(0, pos)) }
 }
 
-// The <audio> element playing a cloud voice right now (for lip sync), or null.
-export function getSpeechAudio() {
-  return tracker.active ? tracker.audio : null
-}
-
 function getAudio() {
   if (!audioEl && typeof Audio !== 'undefined') audioEl = new Audio()
   return audioEl
@@ -336,7 +330,6 @@ export function stopSpeaking() {
 // Call it *after* any stopSpeaking() in the same tap: stopping pauses the
 // <audio> and cancels speech, which undid the unlock.
 export function unlockSpeech() {
-  unlockLipSync()
   const audio = getAudio()
   if (audio && activeCloud()) {
     audio.src = SILENT_WAV
