@@ -1,8 +1,8 @@
 import './TabBar.css'
 import { useT } from '../i18n/useT'
 
-// Same five tabs and look as the Richting E design: a small dot above a
-// word — no icons. The active tab gets an accent dot and bright label.
+// The Richting E tab bar: a small dot above a word — no icons. Six tabs
+// since 2026-10-16 (Coach joined at the user's request). The active tab gets an accent dot and bright label.
 // Progress photos live in the side menu (More → Voortgangsfoto's).
 const TABS = [
   { id: 'overview', label: 'Vandaag' },
@@ -10,6 +10,7 @@ const TABS = [
   { id: 'sleep', label: 'Slaap' },
   { id: 'workouts', label: 'Training' },
   { id: 'voeding', label: 'Voeding' },
+  { id: 'coach', label: 'Coach' },
 ]
 
 export default function TabBar({ active, onChange }) {

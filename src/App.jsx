@@ -11,6 +11,7 @@ import Sleep from './pages/Sleep'
 import Workouts from './pages/Workouts'
 import Voeding from './pages/Voeding'
 import More from './pages/More'
+import Coach from './pages/more/Coach'
 
 function Shell() {
   const { data } = useApp()
@@ -39,7 +40,8 @@ function Shell() {
   }
 
   const handleSidebarSelect = (itemId) => {
-    navigate('more', itemId)
+    if (itemId === 'coach') navigate('coach')
+    else navigate('more', itemId)
     setSidebarOpen(false)
   }
 
@@ -70,6 +72,7 @@ function Shell() {
       {activeTab === 'sleep' && <Sleep />}
       {activeTab === 'workouts' && <Workouts />}
       {activeTab === 'voeding' && <Voeding onNavigate={navigate} />}
+      {activeTab === 'coach' && <Coach setView={(v) => navigate('more', v)} />}
       {activeTab === 'more' && <More view={moreView} setView={setMoreView} />}
       <TabBar active={activeTab} onChange={handleTabChange} />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onSelect={handleSidebarSelect} />

@@ -846,6 +846,13 @@ the browser.
   an old build after deploys.
   A second launch config `vite-preview-build` (port 4173) serves the
   production build — use it for anything that might differ once bundled.
+- **Navigation (2026-10-16 cleanup)**: the user reviewed every part of the
+  app and kept **all** of it — the problem was order and look, not amount.
+  Coach is now the 6th tab (App.jsx renders pages/more/Coach.jsx for tab
+  `coach`; the old More view still works for links), and the side menu is
+  grouped Mijn plan / Lichaam / Gevoel & leven / Motivatie / Instellingen
+  (`data/moreMenu.js`). Agreed next step: bring the menu pages to the
+  Richting E look one group at a time, checked at iPhone size.
 - **Coach cleanup (2026-10-16, user: "super rommelig")**:
   - "Coach instellen" (`CoachSettingsSheet.jsx`) has one **Opslaan /
     Annuleren** bar. Device settings (voice, speed, language, keys) are

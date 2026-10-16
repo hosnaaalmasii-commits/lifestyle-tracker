@@ -82,7 +82,7 @@ export default function Overview({ onNavigate }) {
   const gps = getGPSStatus(data)
   const openCoachWith = (text) => {
     sessionStorage.setItem(COACH_PREFILL, text || '')
-    onNavigate('more', 'coach')
+    onNavigate('coach')
   }
   const dateLabel = keyToDate(today).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })
 
@@ -161,7 +161,7 @@ export default function Overview({ onNavigate }) {
       </div>
 
       <button
-        onClick={() => onNavigate('more', 'coach')}
+        onClick={() => onNavigate('coach')}
         className="row"
         style={{
           width: '100%', marginTop: 14, padding: '6px 6px 6px 18px', borderRadius: 999, cursor: 'pointer',

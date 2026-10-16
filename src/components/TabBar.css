@@ -17,7 +17,7 @@
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-top: 1px solid var(--border-soft);
-  padding: 16px 16px calc(14px + var(--safe-bottom));
+  padding: 16px 8px calc(14px + var(--safe-bottom));
 }
 
 .tab-btn {

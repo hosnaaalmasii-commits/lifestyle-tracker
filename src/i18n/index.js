@@ -33,6 +33,7 @@ const S = {
   'tab.sleep': ['Slaap', 'Sleep', 'Sommeil', 'Schlaf', 'Sueño'],
   'tab.workouts': ['Training', 'Training', 'Sport', 'Training', 'Entreno'],
   'tab.voeding': ['Voeding', 'Food', 'Repas', 'Essen', 'Comida'],
+  'tab.coach': ['Coach', 'Coach', 'Coach', 'Coach', 'Coach'],
 
   // ---- greeting / overview
   'greet.morning': ['Goedemorgen', 'Good morning', 'Bonjour', 'Guten Morgen', 'Buenos días'],
@@ -239,11 +240,11 @@ const S = {
   'streak.days': ['op rij', 'day streak', 'jours de suite', 'Tage in Folge', 'días seguidos'],
 
   // ---- menu
-  'menuSection.0': ['Coach & begeleiding', 'Coach & guidance', 'Coach & conseils', 'Coach & Begleitung', 'Coach y guía'],
-  'menuSection.1': ['Transformatieplan', 'Transformation plan', 'Plan de transformation', 'Transformationsplan', 'Plan de transformación'],
-  'menuSection.2': ['Gezondheid & lichaam', 'Health & body', 'Santé & corps', 'Gesundheit & Körper', 'Salud y cuerpo'],
-  'menuSection.3': ['Leven', 'Life', 'Vie', 'Leben', 'Vida'],
-  'menuSection.4': ['Account', 'Account', 'Compte', 'Konto', 'Cuenta'],
+  'menuSection.0': ['Mijn plan', 'My plan', 'Mon plan', 'Mein Plan', 'Mi plan'],
+  'menuSection.1': ['Lichaam', 'Body', 'Corps', 'Körper', 'Cuerpo'],
+  'menuSection.2': ['Gevoel & leven', 'Mood & life', 'Humeur & vie', 'Gefühl & Leben', 'Ánimo y vida'],
+  'menuSection.3': ['Motivatie', 'Motivation', 'Motivation', 'Motivation', 'Motivación'],
+  'menuSection.4': ['Instellingen', 'Settings', 'Réglages', 'Einstellungen', 'Ajustes'],
   'menu.coach': ['Coach', 'Coach', 'Coach', 'Coach', 'Coach'],
   'menu.gps': ['Lifestyle GPS', 'Lifestyle GPS', 'GPS lifestyle', 'Lifestyle-GPS', 'GPS de estilo de vida'],
   'menu.contracts': ['Gewoontecontracten', 'Habit contracts', "Contrats d'habitudes", 'Gewohnheitsverträge', 'Contratos de hábitos'],
