@@ -10,7 +10,8 @@ import { setTxState, flushTx } from '../i18n/tx'
 import { requestGoogleToken, requestGoogleAuthCode, fetchTodayBusyMinutes, syncTasksToCalendar, fetchEventsForDate, DEFAULT_GOOGLE_CLIENT_ID, resolveGoogleClientId } from '../utils/googleCalendar'
 import { hasOuraApiKey, getOuraApiKey, fetchOuraToday } from '../utils/ouraApi'
 import { isCloudSyncConfigured, getSupabaseClient } from '../utils/supabaseClient'
-import { setSecretPusher, pullSecrets } from '../utils/secretSync'
+import { setSecretPusher, pullSecrets, secretDraftActive } from '../utils/secretSync'
+import { readLocalPrefs, applyPrefs, samePrefs } from '../utils/prefSync'
 import { subscribeToPush, unsubscribeFromPush } from '../utils/push'
 import {
   signUp as cloudSignUpApi, signIn as cloudSignInApi, signOut as cloudSignOutApi,
@@ -143,6 +144,8 @@ const DEFAULT_DATA = {
   // threads: earlier conversations ({ id, title, at, messages }), newest
   // first — "Nieuw gesprek" moves the current one there (max COACH_MAX_THREADS).
   coach: { messages: [], memory: [], memoryUpTo: 0, threads: [] },
+  // Device settings mirrored for Cloud Sync (utils/prefSync.js).
+  prefs: {},
   measurements: [],
   googleCalendarEventIds: {},
   water: {},
@@ -262,10 +265,36 @@ export function AppProvider({ children }) {
     }
   }, [])
 
+  // Saving on load is not a change: marking it "modified" made every device
+  // look newest on opening, so a stale phone could overwrite newer data
+  // from the pc on its next push (fixed 2026-10-16).
+  const firstSaveRef = useRef(true)
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    if (firstSaveRef.current) { firstSaveRef.current = false; return }
     if (!suppressSyncRef.current) markLocalModified()
   }, [data])
+
+  // ---- device settings → data.prefs (and back) ----
+  // Only once this device knows the cloud's version (or isn't syncing), so
+  // a stale device never pushes its old settings over newer ones.
+  const prefsReadyRef = useRef(false)
+  const dataRef = useRef(data)
+  dataRef.current = data
+  useEffect(() => {
+    // A new device: take the settings the blob already carries.
+    applyPrefs(data.prefs)
+    const tick = () => {
+      if (!prefsReadyRef.current || secretDraftActive()) return
+      const local = readLocalPrefs()
+      if (!samePrefs(local, dataRef.current.prefs || {})) setData((d) => ({ ...d, prefs: local }))
+    }
+    const id = setInterval(tick, 3000)
+    const onVis = () => { if (document.visibilityState === 'hidden') tick() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const doReconcile = useCallback(async (userId) => {
     setSync((s) => ({ ...s, status: 'syncing', error: null }))
@@ -275,7 +304,9 @@ export function AppProvider({ children }) {
       if (result.direction === 'pulled') {
         suppressSyncRef.current = true
         setData(mergeWithDefaults(result.blob))
+        applyPrefs(result.blob?.prefs)
       }
+      prefsReadyRef.current = true
       setSync((s) => ({ ...s, status: 'synced', lastSyncedAt: new Date().toISOString(), error: null }))
     } catch (e) {
       setSync((s) => ({ ...s, status: 'error', error: e.message }))
@@ -287,10 +318,11 @@ export function AppProvider({ children }) {
   // reconcile once against the cloud; keep sign-in state current after that.
   useEffect(() => {
     const { supabaseUrl: url, supabaseAnonKey: anonKey } = data.settings
-    if (!isCloudSyncConfigured(data.settings)) return
+    if (!isCloudSyncConfigured(data.settings)) { prefsReadyRef.current = true; return }
     let cancelled = false
 
     getSession(url, anonKey).then(async (session) => {
+      if (!session) prefsReadyRef.current = true
       if (cancelled || !session) return
       sessionUserRef.current = session.user
       setSync((s) => ({ ...s, signedIn: true, email: session.user.email }))

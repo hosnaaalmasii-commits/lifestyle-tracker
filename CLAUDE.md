@@ -846,6 +846,16 @@ the browser.
   an old build after deploys.
   A second launch config `vite-preview-build` (port 4173) serves the
   production build — use it for anything that might differ once bundled.
+- **Everything saved online (2026-10-16)**: device settings (voice,
+  speed, language, models, limits…) are mirrored into `data.prefs`
+  (`utils/prefSync.js` + a 3 s poller in AppContext, only after the first
+  reconcile and never while Coach instellen has unsaved changes), so they
+  ride Cloud Sync; pulled prefs are written back to localStorage. Keys
+  stay in their encrypted channel; spend counters stay per device.
+  **Sync bug fixed**: the save effect used to `markLocalModified()` on the
+  initial load too, so every device looked newest on opening and a stale
+  device could overwrite newer cloud data — the first run is now skipped.
+  The side menu shows a "Niet ingelogd" card while not signed in.
 - **Navigation (2026-10-16 cleanup)**: the user reviewed every part of the
   app and kept **all** of it — the problem was order and look, not amount.
   Coach is now the 6th tab (App.jsx renders pages/more/Coach.jsx for tab
