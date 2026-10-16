@@ -33,6 +33,8 @@ export default function Pantry({ onBack }) {
   const [confirmClear, setConfirmClear] = useState(false)
   const [showAllShopping, setShowAllShopping] = useState(false)
   const [ideas, setIdeas] = useState({}) // { [slot]: { loading, error, list } }
+  // Three parts instead of one long page (2026-10-16 cleanup).
+  const [part, setPart] = useState('today') // today | home | shopping
   const aiAvailable = hasApiKey()
 
   const today = todayKey()
@@ -75,9 +77,20 @@ export default function Pantry({ onBack }) {
 
   return (
     <div className="page">
-      <BackHeader eyebrow={tx("Transformation plan")} title={tx("Voorraad & Menu")} onBack={onBack} />
+      <BackHeader title={tx("Voorraad & menu")} onBack={onBack} />
 
-      <div className="section-title" style={{ marginTop: 0 }}>{tx("Vandaag koken met wat je hebt")}</div>
+      <div className="scroll-x" style={{ marginBottom: 18 }}>
+        {[
+          ['today', tx("Vandaag")],
+          ['home', `${tx("In huis")}${data.pantry.length ? ` (${data.pantry.length})` : ''}`],
+          ['shopping', `${tx("Boodschappen")}${shopping.length ? ` (${shopping.length})` : ''}`],
+        ].map(([id, label]) => (
+          <button key={id} type="button" className={`chip${part === id ? ' selected' : ''}`} onClick={() => setPart(id)}>{label}</button>
+        ))}
+      </div>
+
+      {part === 'today' && (<>
+      <p className="text-sm muted" style={{ margin: '0 0 12px' }}>{tx("Koken met wat je in huis hebt. Wissels komen uit je eigen menu voor hetzelfde moment, dus je calorie- en eiwitdoel blijft ongeveer gelijk.")}</p>
       {!mealInfo?.meals ? (
         <p className="text-sm faint">{tx("Geen menu gepland voor vandaag.")}</p>
       ) : (
@@ -93,22 +106,23 @@ export default function Pantry({ onBack }) {
               : []
             return (
               <div key={slot} style={{ padding: '12px 0', borderTop: i > 0 ? '1px solid var(--border-soft)' : 'none' }}>
-                <div className="eyebrow">{MEAL_SLOT_LABELS[slot]}{swapped ? tx(" · gewisseld") : ''}</div>
+                <div className="text-sm faint" style={{ fontWeight: 600 }}>{tx(MEAL_SLOT_LABELS[slot])}{swapped ? tx(" · gewisseld") : ''}</div>
                 <div style={{ fontWeight: 600 }}>{text}</div>
                 {data.pantry.length > 0 && <CoverageLine result={current} />}
                 {swapped && (
-                  <button className="btn-ghost text-sm" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '4px 0' }} onClick={() => setDayMealSwap(today, slot, null)}>
+                  <button type="button" className="chip" style={{ marginTop: 8, fontSize: 12.5, padding: '6px 12px' }} onClick={() => setDayMealSwap(today, slot, null)}>
                     {tx("Terug naar plan:")} {mealInfo.planned?.[slot]}
                   </button>
                 )}
                 {aiAvailable && !ideas[slot]?.list && (
                   <button
-                    className="btn-ghost text-sm"
-                    style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '6px 0 0', display: 'block' }}
+                    type="button"
+                    className="chip"
+                    style={{ marginTop: 8, fontSize: 12.5, padding: '6px 12px' }}
                     disabled={ideas[slot]?.loading}
                     onClick={() => fetchIdeas(slot)}
                   >
-                    {ideas[slot]?.loading ? tx("Ideeën bedenken…") : tx("AI: bedenk iets met wat ik in huis heb")}
+                    {ideas[slot]?.loading ? tx("Ideeën bedenken…") : tx("Bedenk iets met wat ik heb")}
                   </button>
                 )}
                 {ideas[slot]?.error && <div className="text-sm" style={{ color: 'var(--danger)' }}>{ideas[slot].error}</div>}
@@ -151,13 +165,14 @@ export default function Pantry({ onBack }) {
         </div>
       )}
       {data.pantry.length === 0 && (
-        <p className="text-sm faint" style={{ marginTop: 8 }}>{tx("Voeg hieronder toe wat je in huis hebt — dan zie je per maaltijd wat je mist en wat je in plaats daarvan kunt maken.")}</p>
+        <div className="card stack" style={{ marginTop: 12, gap: 10 }}>
+          <span className="text-sm">{tx("Vul in wat je in huis hebt — dan zie je per maaltijd wat je mist en wat je in plaats daarvan kunt maken.")}</span>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPart('home')}>{tx("Voorraad invullen")}</button>
+        </div>
       )}
-      <p className="text-sm faint" style={{ marginTop: 8 }}>
-        {tx("Wissels komen uit je eigen menurotatie voor hetzelfde moment, dus je calorie- en eiwitdoel blijft ongeveer gelijk.")}
-      </p>
+      </>)}
 
-      <div className="section-title">{tx("Voorraad toevoegen")}</div>
+      {part === 'home' && (<>
       <div className="card">
         <div className="row" style={{ gap: 8 }}>
           <input
@@ -180,9 +195,9 @@ export default function Pantry({ onBack }) {
 
       {data.pantry.length > 0 && (
         <>
-          <div className="row" style={{ alignItems: 'baseline' }}>
-            <div className="section-title">{tx("In huis (")}{data.pantry.length})</div>
-            <button className="btn-ghost text-sm" style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} onClick={() => setConfirmClear(true)}>{tx("Alles wissen")}</button>
+          <div className="row" style={{ alignItems: 'center', margin: '24px 0 12px' }}>
+            <div style={{ fontSize: 17, fontWeight: 700 }}>{tx("In huis")} ({data.pantry.length})</div>
+            <button type="button" className="chip" style={{ color: 'var(--danger)', borderColor: 'color-mix(in srgb, var(--danger) 60%, transparent)' }} onClick={() => setConfirmClear(true)}>{tx("Alles wissen")}</button>
           </div>
           <div className="card" style={{ padding: '4px 16px' }}>
             {PANTRY_LOCATIONS.map(({ value, label }) => {
@@ -190,7 +205,7 @@ export default function Pantry({ onBack }) {
               if (!items.length) return null
               return (
                 <div key={value} style={{ padding: '10px 0' }}>
-                  <div className="eyebrow" style={{ marginBottom: 6 }}>{label}</div>
+                  <div className="text-sm faint" style={{ marginBottom: 8, fontWeight: 600 }}>{tx(label)}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {items.map((p) => (
                       <button
@@ -212,7 +227,10 @@ export default function Pantry({ onBack }) {
         </>
       )}
 
-      <div className="section-title">{tx("Boodschappenlijst (7 dagen)")}</div>
+      </>)}
+
+      {part === 'shopping' && (<>
+      <p className="text-sm muted" style={{ margin: '0 0 12px' }}>{tx("Wat je nog nodig hebt voor het menu van de komende 7 dagen. Gekocht? Tik erop, dan staat het bij In huis.")}</p>
       {shopping.length === 0 ? (
         <p className="text-sm faint">{tx("Je hebt alles in huis voor het menu van de komende week.")}</p>
       ) : (
@@ -233,6 +251,7 @@ export default function Pantry({ onBack }) {
           )}
         </div>
       )}
+      </>)}
 
       <ConfirmDialog
         open={confirmClear}

@@ -114,7 +114,7 @@ export default function Nutrition({ onBack }) {
   return (
     <div className="page">
       <BackHeader
-        eyebrow={tx("More")}
+       
         title={tx("Nutrition")}
         onBack={onBack}
         action={<button className="btn-ghost" style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13 }} onClick={() => { setDraftGoals(data.settings.macroGoals); setGoalsOpen(true) }}>{tx("Goals")}</button>}

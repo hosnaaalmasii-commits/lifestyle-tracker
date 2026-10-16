@@ -1,7 +1,11 @@
+import { createPortal } from 'react-dom'
 import { tx } from '../i18n/tx'
+
+// Through a portal to <body>, like Sheet.jsx: a position:fixed overlay inside
+// .page sizes against the page, not the screen (see CLAUDE.md).
 export default function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', danger, onConfirm, onCancel }) {
   if (!open) return null
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed', inset: 0, background: 'rgba(20,18,10,0.45)', backdropFilter: 'blur(2px)',
@@ -17,7 +21,7 @@ export default function ConfirmDialog({ open, title, message, confirmLabel = 'Co
         <h3 style={{ fontSize: 18, marginBottom: 8 }}>{title}</h3>
         <p className="muted text-sm" style={{ marginBottom: 20, lineHeight: 1.5 }}>{message}</p>
         <div className="row" style={{ gap: 10 }}>
-          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onCancel}>{tx("Cancel")}</button>
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onCancel}>{tx("Annuleren")}</button>
           <button
             className={danger ? 'btn btn-danger' : 'btn btn-primary'}
             style={{ flex: 1, border: danger ? '1px solid var(--danger)' : 'none', background: danger ? 'var(--danger)' : undefined, color: danger ? '#fff' : undefined }}
@@ -27,6 +31,7 @@ export default function ConfirmDialog({ open, title, message, confirmLabel = 'Co
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

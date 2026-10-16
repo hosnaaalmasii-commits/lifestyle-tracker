@@ -10,7 +10,7 @@ export default function Insights({ onBack }) {
 
   return (
     <div className="page">
-      <BackHeader eyebrow={tx("More")} title={tx("Insights")} onBack={onBack} />
+      <BackHeader title={tx("Insights")} onBack={onBack} />
       <p className="muted text-sm" style={{ marginBottom: 18 }}>
         {tx("Patterns spotted in your own data — computed on your device, nothing sent anywhere.")}
       </p>

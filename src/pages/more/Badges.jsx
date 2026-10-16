@@ -47,7 +47,7 @@ export default function Badges({ onBack }) {
   return (
     <div className="page">
       <Confetti trigger={confettiTick} />
-      <BackHeader eyebrow={tx("More")} title={tx("Badges & Level")} onBack={onBack} />
+      <BackHeader title={tx("Badges & Level")} onBack={onBack} />
 
       <div className="card">
         <LevelBar xp={xp} />

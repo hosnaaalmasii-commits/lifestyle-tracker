@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
-import { WEEKDAY_KEYS, TASK_CATEGORIES } from '../../utils/taskSchedule'
+import { WEEKDAY_KEYS, TASK_CATEGORIES, weekdayKeyForDate } from '../../utils/taskSchedule'
+import { todayKey } from '../../utils/dates'
 import { isPushSupported } from '../../utils/push'
 import BackHeader from '../../components/BackHeader'
 import Sheet from '../../components/Sheet'
@@ -8,14 +9,24 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import Icon from '../../components/Icon'
 import { tx } from '../../i18n/tx'
 
+const DAY_SHORT = { mon: 'Ma', tue: 'Di', wed: 'Wo', thu: 'Do', fri: 'Vr', sat: 'Za', sun: 'Zo' }
 const DAY_LABELS = { mon: 'Maandag', tue: 'Dinsdag', wed: 'Woensdag', thu: 'Donderdag', fri: 'Vrijdag', sat: 'Zaterdag', sun: 'Zondag' }
 const MEAL_KEYS = ['ontbijt', 'lunch', 'diner', 'snack']
 const MEAL_LABELS = { ontbijt: 'Ontbijt', lunch: 'Lunch', diner: 'Diner', snack: 'Snack' }
+const CAT_LABELS = { eten: 'Eten', training: 'Training', supplement: 'Supplement', herstel: 'Herstel', werk: 'Werk', zelfzorg: 'Zelfzorg' }
+const CAT_COLORS = {
+  eten: 'var(--second)', training: 'var(--accent-workout)', supplement: 'var(--accent-sleep)',
+  herstel: 'var(--accent-water)', werk: 'var(--text-faint)', zelfzorg: 'var(--warning)',
+}
+const THRESHOLDS = [60, 70, 80, 90, 100]
 
 function emptyTaskForm() {
   return { time: '07:00', label: '', category: 'eten', notify: true }
 }
 
+// Richting E layout (2026-10-16 cleanup): pick a day, see its tasks as one
+// calm list (tap one to change it), that day's menu below, and the
+// reminder/streak settings last — they used to sit on top.
 export default function DailySchedule({ onBack }) {
   const {
     data, sync, addTaskToDay, updateTaskInDay, removeTaskFromDay,
@@ -23,11 +34,11 @@ export default function DailySchedule({ onBack }) {
     enablePushNotifications, disablePushNotifications,
   } = useApp()
 
-  const [openDay, setOpenDay] = useState('mon')
+  const [day, setDay] = useState(() => weekdayKeyForDate(todayKey()))
   const [mealWeek, setMealWeek] = useState(data.mealRotation?.cycle?.[0] || 'A')
-  const [taskSheet, setTaskSheet] = useState(null) // { day, task | null }
+  const [taskSheet, setTaskSheet] = useState(null) // { task | null }
   const [form, setForm] = useState(emptyTaskForm())
-  const [toDelete, setToDelete] = useState(null) // { day, id }
+  const [toDelete, setToDelete] = useState(null) // task id
   const [pushBusy, setPushBusy] = useState(false)
   const [pushError, setPushError] = useState(null)
 
@@ -44,159 +55,136 @@ export default function DailySchedule({ onBack }) {
     }
   }
 
-  const openAddTask = (day) => {
-    setForm(emptyTaskForm())
-    setTaskSheet({ day, task: null })
-  }
-  const openEditTask = (day, task) => {
+  const openAddTask = () => { setForm(emptyTaskForm()); setTaskSheet({ task: null }) }
+  const openEditTask = (task) => {
     setForm({ time: task.time, label: task.label, category: task.category, notify: task.notify })
-    setTaskSheet({ day, task })
+    setTaskSheet({ task })
   }
   const saveTask = () => {
     if (!form.label.trim()) return
-    if (taskSheet.task) {
-      updateTaskInDay(taskSheet.day, taskSheet.task.id, { ...form, label: form.label.trim() })
-    } else {
-      addTaskToDay(taskSheet.day, { ...form, label: form.label.trim() })
-    }
+    if (taskSheet.task) updateTaskInDay(day, taskSheet.task.id, { ...form, label: form.label.trim() })
+    else addTaskToDay(day, { ...form, label: form.label.trim() })
     setTaskSheet(null)
   }
 
+  const tasks = [...(data.taskSchedule[day] || [])].sort((a, b) => a.time.localeCompare(b.time))
   const mealRotation = data.mealRotation
   const cycle = mealRotation?.cycle || []
 
   return (
     <div className="page">
-      <BackHeader eyebrow={tx("More")} title={tx("Dagschema & Menu")} onBack={onBack} />
+      <BackHeader title={tx("Dagschema & menu")} onBack={onBack} />
 
-      <div className="section-title" style={{ marginTop: 0 }}>{tx("Streak & meldingen")}</div>
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="field">
-          <label>{tx("Streak-drempel (% van taken afgevinkt om te tellen)")}</label>
-          <input
-            className="input" type="number" min={0} max={100}
-            value={data.settings.streakThresholdPct}
-            onChange={(e) => setStreakThreshold(Math.max(0, Math.min(100, Number(e.target.value))))}
+      {/* Day picker, shared by tasks and menu */}
+      <div className="scroll-x" style={{ marginBottom: 18 }}>
+        {WEEKDAY_KEYS.map((d) => (
+          <button key={d} type="button" className={`chip${d === day ? ' selected' : ''}`} onClick={() => setDay(d)} style={{ minWidth: 46, justifyContent: 'center' }}>
+            {tx(DAY_SHORT[d])}
+          </button>
+        ))}
+      </div>
+
+      <div className="row" style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 17, fontWeight: 700 }}>{tx(DAY_LABELS[day])}</div>
+        <span className="text-sm faint">{tasks.length} {tx("taken")}</span>
+      </div>
+      <div className="card list-card">
+        {tasks.length === 0 && <div className="list-row text-sm muted">{tx("Nog geen taken op deze dag.")}</div>}
+        {tasks.map((t) => (
+          <button key={t.id} type="button" className="list-row" onClick={() => openEditTask(t)}>
+            <span aria-hidden style={{ width: 9, height: 9, borderRadius: '50%', background: CAT_COLORS[t.category] || 'var(--text-faint)', flexShrink: 0 }} />
+            <span className="faint" style={{ fontSize: 13, fontWeight: 500, width: 40, flexShrink: 0 }}>{t.time}</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600 }}>{tx(t.label)}</span>
+            {!t.notify && <span className="faint" title={tx("Geen melding")} style={{ fontSize: 12 }}>{tx("stil")}</span>}
+            <Icon name="chevronRight" size={16} />
+          </button>
+        ))}
+      </div>
+      <button type="button" className="btn btn-secondary btn-block" style={{ marginTop: 10 }} onClick={openAddTask}>
+        + {tx("Taak toevoegen")}
+      </button>
+
+      {mealRotation && (
+        <>
+          <div className="section-title">{tx("Menu")}</div>
+          <div className="scroll-x" style={{ marginBottom: 12 }}>
+            {cycle.map((w) => (
+              <button key={w} type="button" className={`chip${mealWeek === w ? ' selected' : ''}`} onClick={() => setMealWeek(w)}>
+                {tx("Week")} {w}
+              </button>
+            ))}
+          </div>
+          <div className="card stack" style={{ gap: 12 }}>
+            <div className="text-sm faint">{tx(DAY_LABELS[day])} · {tx("week")} {mealWeek}</div>
+            {MEAL_KEYS.map((mealKey) => (
+              <div key={mealKey} className="field" style={{ marginBottom: 0 }}>
+                <label>{tx(MEAL_LABELS[mealKey])}</label>
+                <input
+                  className="input"
+                  value={mealRotation.meals_by_week?.[mealWeek]?.[day]?.[mealKey] || ''}
+                  placeholder={tx("Nog niets ingevuld")}
+                  onChange={(e) => setMealForDay(mealWeek, day, mealKey, e.target.value)}
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="section-title">{tx("Meldingen & reeks")}</div>
+      <div className="card list-card">
+        <div className="list-row">
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>{tx("Meldingen op dit toestel")}</div>
+            <div className="text-sm faint">
+              {!isPushSupported()
+                ? tx("Deze browser kan geen meldingen ontvangen. Op iPhone: open de app via het icoon op je beginscherm.")
+                : !sync.signedIn
+                  ? tx("Log eerst in bij Cloud Sync (menu → Instellingen).")
+                  : tx("Een melding op het tijdstip van elke taak.")}
+            </div>
+            {pushError && <div className="text-sm" style={{ color: 'var(--danger)', marginTop: 4 }}>{pushError}</div>}
+          </div>
+          <button
+            type="button"
+            className={`switch${data.settings.pushEnabled ? ' on' : ''}`}
+            aria-pressed={!!data.settings.pushEnabled}
+            aria-label={tx("Meldingen op dit toestel")}
+            disabled={!isPushSupported() || !sync.signedIn || pushBusy}
+            onClick={handlePushToggle}
           />
         </div>
-        <div className="field">
-          <label>{tx("Pushmeldingen op dit apparaat")}</label>
-          {!isPushSupported() ? (
-            <p className="text-sm faint">{tx("Niet ondersteund in deze browser.")}</p>
-          ) : !sync.signedIn ? (
-            <p className="text-sm faint">{tx("Log eerst in bij Cloud Sync (More → Settings) — pushmeldingen hebben een account nodig.")}</p>
-          ) : (
-            <>
-              <button className={`btn btn-sm ${data.settings.pushEnabled ? 'btn-secondary' : 'btn-primary'}`} onClick={handlePushToggle} disabled={pushBusy}>
-                {pushBusy ? tx("Bezig…") : data.settings.pushEnabled ? tx("Meldingen uitschakelen op dit apparaat") : tx("Meldingen inschakelen op dit apparaat")}
-              </button>
-              {pushError && <p className="text-sm" style={{ color: 'var(--danger)', marginTop: 6 }}>{pushError}</p>}
-            </>
-          )}
+        <div className="list-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>{tx("Waarvoor wil je een melding?")}</div>
+          </div>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 8, justifyContent: 'flex-start' }}>
+            {TASK_CATEGORIES.map((cat) => {
+              const on = !!data.settings.notifyCategories[cat]
+              return (
+                <button key={cat} type="button" className={`chip${on ? ' selected' : ''}`} aria-pressed={on} onClick={() => setNotifyCategory(cat, !on)}>
+                  {tx(CAT_LABELS[cat] || cat)}
+                </button>
+              )
+            })}
+          </div>
         </div>
-        <div className="field">
-          <label>{tx("Meldingen per categorie")}</label>
-          <div className="stack" style={{ gap: 8 }}>
-            {TASK_CATEGORIES.map((cat) => (
-              <label key={cat} className="row" style={{ justifyContent: 'flex-start', gap: 10, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={!!data.settings.notifyCategories[cat]}
-                  onChange={(e) => setNotifyCategory(cat, e.target.checked)}
-                  style={{ width: 17, height: 17, accentColor: 'var(--accent)' }}
-                />
-                <span style={{ textTransform: 'capitalize' }}>{cat}</span>
-              </label>
+        <div className="list-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>{tx("Wanneer telt een dag voor je reeks?")}</div>
+            <div className="text-sm faint">{tx("Als je minstens dit deel van je taken hebt afgevinkt.")}</div>
+          </div>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 8, justifyContent: 'flex-start' }}>
+            {THRESHOLDS.map((p) => (
+              <button key={p} type="button" className={`chip${data.settings.streakThresholdPct === p ? ' selected' : ''}`} onClick={() => setStreakThreshold(p)}>
+                {p}%
+              </button>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="section-title">{tx("Dagschema")}</div>
-      <div className="stack" style={{ gap: 10, marginBottom: 16 }}>
-        {WEEKDAY_KEYS.map((day) => {
-          const tasks = [...(data.taskSchedule[day] || [])].sort((a, b) => a.time.localeCompare(b.time))
-          const isOpen = openDay === day
-          return (
-            <div key={day} className="card">
-              <button
-                className="row"
-                style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
-                onClick={() => setOpenDay(isOpen ? null : day)}
-              >
-                <div style={{ fontWeight: 600 }}>{DAY_LABELS[day]}</div>
-                <div className="row" style={{ gap: 8, justifyContent: 'flex-end' }}>
-                  <span className="text-sm faint">{tasks.length} {tx("taken")}</span>
-                  <span style={{ transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>
-                    <Icon name="chevronRight" size={16} />
-                  </span>
-                </div>
-              </button>
-
-              {isOpen && (
-                <div style={{ marginTop: 12 }}>
-                  <div className="stack" style={{ gap: 6 }}>
-                    {tasks.map((t) => (
-                      <div key={t.id} className="row" style={{ padding: '8px 10px', borderRadius: 10, background: 'var(--surface-soft)' }}>
-                        <div>
-                          <span className="mono text-sm faint" style={{ marginRight: 8 }}>{t.time}</span>
-                          <span>{tx(t.label)}</span>
-                          <span className="text-sm faint" style={{ marginLeft: 8 }}>· {t.category}{t.notify ? '' : tx(" · geen melding")}</span>
-                        </div>
-                        <div className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
-                          <button className="btn-ghost" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)' }} onClick={() => openEditTask(day, t)}>{tx("Bewerk")}</button>
-                          <button className="btn-ghost" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }} onClick={() => setToDelete({ day, id: t.id })}>{tx("Verwijder")}</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <button className="btn btn-secondary btn-sm" style={{ marginTop: 10 }} onClick={() => openAddTask(day)}>{tx("+ Taak toevoegen")}</button>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-
-      {mealRotation && (
-        <>
-          <div className="section-title">{tx("Menurotatie")}</div>
-          <div className="card" style={{ marginBottom: 16 }}>
-            <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-              {cycle.map((w) => (
-                <button
-                  key={w}
-                  className={`btn btn-sm ${mealWeek === w ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setMealWeek(w)}
-                >
-                  {tx("Week")} {w}
-                </button>
-              ))}
-            </div>
-            <div className="stack" style={{ gap: 12 }}>
-              {WEEKDAY_KEYS.map((day) => (
-                <div key={day}>
-                  <div className="text-sm faint" style={{ marginBottom: 6, fontWeight: 600 }}>{DAY_LABELS[day]}</div>
-                  <div className="stack" style={{ gap: 6 }}>
-                    {MEAL_KEYS.map((mealKey) => (
-                      <div key={mealKey} className="field" style={{ marginBottom: 0 }}>
-                        <label className="text-sm faint">{MEAL_LABELS[mealKey]}</label>
-                        <input
-                          className="input"
-                          value={mealRotation.meals_by_week?.[mealWeek]?.[day]?.[mealKey] || ''}
-                          onChange={(e) => setMealForDay(mealWeek, day, mealKey, e.target.value)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-
-      <Sheet open={!!taskSheet} onClose={() => setTaskSheet(null)} title={taskSheet?.task ? tx("Taak bewerken") : tx("Taak toevoegen")}>
+      <Sheet open={!!taskSheet} onClose={() => setTaskSheet(null)} title={taskSheet?.task ? tx("Taak bewerken") : `${tx("Taak toevoegen")} · ${tx(DAY_LABELS[day])}`}>
         <div className="field">
           <label>{tx("Tijdstip")}</label>
           <input className="input" type="time" value={form.time} onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))} />
@@ -206,31 +194,35 @@ export default function DailySchedule({ onBack }) {
           <input className="input" type="text" placeholder={tx("bv. Ontbijt")} value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
         </div>
         <div className="field">
-          <label>{tx("Categorie")}</label>
-          <select className="input" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
-            {TASK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <label>{tx("Soort")}</label>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 8, justifyContent: 'flex-start' }}>
+            {TASK_CATEGORIES.map((c) => (
+              <button key={c} type="button" className={`chip${form.category === c ? ' selected' : ''}`} onClick={() => setForm((f) => ({ ...f, category: c }))}>
+                {tx(CAT_LABELS[c] || c)}
+              </button>
+            ))}
+          </div>
         </div>
-        <label className="row" style={{ justifyContent: 'flex-start', gap: 10, cursor: 'pointer', marginBottom: 16 }}>
-          <input
-            type="checkbox"
-            checked={form.notify}
-            onChange={(e) => setForm((f) => ({ ...f, notify: e.target.checked }))}
-            style={{ width: 17, height: 17, accentColor: 'var(--accent)' }}
-          />
-          <span>{tx("Melding sturen op dit tijdstip")}</span>
-        </label>
+        <div className="row" style={{ gap: 12, marginBottom: 18 }}>
+          <span style={{ flex: 1, fontWeight: 600 }}>{tx("Melding op dit tijdstip")}</span>
+          <button type="button" className={`switch${form.notify ? ' on' : ''}`} aria-pressed={form.notify} aria-label={tx("Melding op dit tijdstip")} onClick={() => setForm((f) => ({ ...f, notify: !f.notify }))} />
+        </div>
         <button className="btn btn-primary btn-block" disabled={!form.label.trim()} onClick={saveTask}>{tx("Opslaan")}</button>
+        {taskSheet?.task && (
+          <button type="button" className="btn btn-ghost btn-block" style={{ marginTop: 8, color: 'var(--danger)' }} onClick={() => { setToDelete(taskSheet.task.id); setTaskSheet(null) }}>
+            {tx("Taak verwijderen")}
+          </button>
+        )}
       </Sheet>
 
       <ConfirmDialog
         open={!!toDelete}
         title={tx("Taak verwijderen?")}
-        message={tx("Deze taak wordt permanent verwijderd uit het weekschema.")}
-        confirmLabel={tx("Verwijder")}
+        message={tx("Deze taak verdwijnt elke week van deze dag.")}
+        confirmLabel={tx("Verwijderen")}
         danger
         onCancel={() => setToDelete(null)}
-        onConfirm={() => { removeTaskFromDay(toDelete.day, toDelete.id); setToDelete(null) }}
+        onConfirm={() => { removeTaskFromDay(day, toDelete); setToDelete(null) }}
       />
     </div>
   )

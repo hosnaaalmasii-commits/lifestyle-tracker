@@ -10,7 +10,7 @@ export default function LifestyleGPS({ onBack }) {
 
   return (
     <div className="page">
-      <BackHeader eyebrow={tx("More")} title={tx("Lifestyle GPS")} onBack={onBack} />
+      <BackHeader title={tx("Lifestyle GPS")} onBack={onBack} />
       <p className="muted text-sm" style={{ marginBottom: 4 }}>
         {tx("A roadmap, not a race — your phase is based on your Consistency Score (")}{score}{tx("/100), which weighs the last 30 days.")}
       </p>

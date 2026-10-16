@@ -29,7 +29,7 @@ export default function Weight({ onBack }) {
   return (
     <div className="page">
       <BackHeader
-        eyebrow={tx("More")}
+       
         title={tx("Weight")}
         onBack={onBack}
         action={<button className="btn btn-primary btn-sm" onClick={() => { setValue(latest?.kg ?? 70); setDate(todayKey()); setLogOpen(true) }}>{tx("+ Log")}</button>}

@@ -30,7 +30,7 @@ export default function Budget({ onBack }) {
   return (
     <div className="page">
       <BackHeader
-        eyebrow={tx("More")}
+       
         title={tx("Budget")}
         onBack={onBack}
         action={<button className="btn btn-primary btn-sm" onClick={openLog}>{tx("+ Log")}</button>}

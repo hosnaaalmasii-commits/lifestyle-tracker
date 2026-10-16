@@ -97,7 +97,7 @@ export default function WeeklyProgress({ onBack }) {
 
   return (
     <div className="page">
-      <BackHeader eyebrow={tx("More")} title={tx("Voortgang")} onBack={onBack} />
+      <BackHeader title={tx("Voortgang")} onBack={onBack} />
 
       <div className="section-title" style={{ marginTop: 0 }}>{tx("Deze week")}</div>
       <div className="card" style={{ marginBottom: 16 }}>

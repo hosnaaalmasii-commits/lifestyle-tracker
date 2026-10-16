@@ -23,7 +23,7 @@ export default function Alcohol({ onBack }) {
   return (
     <div className="page">
       <BackHeader
-        eyebrow={tx("More")}
+       
         title={tx("Alcohol")}
         onBack={onBack}
         action={<button className="btn btn-primary btn-sm" onClick={openLog}>{tx("+ Log")}</button>}

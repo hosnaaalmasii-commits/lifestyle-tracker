@@ -13,7 +13,7 @@ export default function BackHeader({ eyebrow, title, onBack, action }) {
       </button>
       <div className="row" style={{ alignItems: 'flex-end' }}>
         <div>
-          <div className="eyebrow">{eyebrow}</div>
+          {eyebrow ? <div className="eyebrow">{eyebrow}</div> : null}
           <h1>{title}</h1>
         </div>
         {action}

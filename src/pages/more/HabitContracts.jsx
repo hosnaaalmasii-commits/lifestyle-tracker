@@ -18,7 +18,7 @@ export default function HabitContracts({ onBack }) {
   return (
     <div className="page">
       <BackHeader
-        eyebrow={tx("More")}
+       
         title={tx("Habit Contracts")}
         onBack={onBack}
         action={<button className="btn btn-primary btn-sm" onClick={() => setAddOpen(true)}>{tx("+ New")}</button>}

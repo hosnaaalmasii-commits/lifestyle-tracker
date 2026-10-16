@@ -31,7 +31,7 @@ export default function Mood({ onBack }) {
   return (
     <div className="page">
       <BackHeader
-        eyebrow={tx("More")}
+       
         title={tx("Mood")}
         onBack={onBack}
         action={<button className="btn btn-primary btn-sm" onClick={() => { setEmoji(todaysEntry?.emoji || '🙂'); setNote(''); setLogOpen(true) }}>{tx("+ Log")}</button>}

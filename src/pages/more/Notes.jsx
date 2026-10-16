@@ -23,7 +23,7 @@ export default function Notes({ onBack }) {
   return (
     <div className="page">
       <BackHeader
-        eyebrow={tx("More")}
+       
         title={tx("Notes")}
         onBack={onBack}
         action={<button className="btn btn-primary btn-sm" onClick={openLog}>{tx("+ Add")}</button>}
