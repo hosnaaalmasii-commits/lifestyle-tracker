@@ -7,8 +7,8 @@
 // cartoon"), a free talking 3D person ("niet mooi") and a round-cropped
 // photo ("te koud"). What stuck came from the user's own reference image:
 // a realistic person, waist-up, in warm clothes, standing in a glass arch
-// on a deep purple backdrop (CoachPortrait.jsx). Nothing paid, so the face
-// doesn't move its lips — it breathes and glows while speaking instead.
+// on a deep purple backdrop (CoachPortrait.jsx). The presets talk: lips,
+// blinks and a slow sway from pre-rendered frames (TalkingFace.jsx).
 //
 // Presets are AI-generated people (no real person's likeness) from
 // Pixabay, free under the Pixabay Content License — no attribution needed.

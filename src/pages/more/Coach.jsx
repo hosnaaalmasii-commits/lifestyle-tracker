@@ -17,6 +17,7 @@ import { coachName, memoryPrompt, memoryIsDue, refreshMemory, HISTORY_FOR_REPLY 
 import { getSpeechProgress } from '../../utils/speechOutput'
 import CoachSettingsSheet from '../../components/CoachSettingsSheet'
 import CoachTalkView from '../../components/CoachTalkView'
+import { setLiveSource } from '../../utils/lipSync'
 import { useT } from '../../i18n/useT'
 import { tx } from '../../i18n/tx'
 
@@ -140,7 +141,7 @@ export default function Coach({ setView, openSettings = false }) {
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
   }, [messages, sending])
   const liveRef = useRef(null) // the ElevenLabs live conversation, while one is open
-  useEffect(() => () => { talkRef.current = false; recognizerRef.current?.abort(); stopSpeaking(); liveRef.current?.endSession() }, [])
+  useEffect(() => () => { talkRef.current = false; recognizerRef.current?.abort(); stopSpeaking(); liveRef.current?.endSession(); setLiveSource(null) }, [])
 
   const send = () => sendText(input)
   // The language to listen and speak in (voice settings; default the app's).
@@ -381,6 +382,7 @@ export default function Coach({ setView, openSettings = false }) {
         onAgentText: (text) => { setTalkReply(text); recordLive('assistant', text) },
         onEnd: (reason) => {
           liveRef.current = null
+          setLiveSource(null)
           if (!talkRef.current) return
           if (reason) setError(reason)
           setTalkState('idle')
@@ -390,6 +392,10 @@ export default function Coach({ setView, openSettings = false }) {
       })
       if (!talkRef.current) { conversation.endSession(); return }
       liveRef.current = conversation
+      // The coach's lips follow the live voice (TalkingFace.jsx).
+      setLiveSource(service === 'OpenAI'
+        ? { audioEl }
+        : { volume: () => Math.min(1, (conversation.getOutputVolume?.() || 0) * 2.2) })
       setDiag(label)
       setTalkState('listening')
     } catch (e) {
@@ -423,6 +429,7 @@ export default function Coach({ setView, openSettings = false }) {
     talkRef.current = false
     liveRef.current?.endSession()
     liveRef.current = null
+    setLiveSource(null)
     recognizerRef.current?.abort()
     recognizerRef.current = null
     stopSpeaking()

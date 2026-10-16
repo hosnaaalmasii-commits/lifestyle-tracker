@@ -793,9 +793,26 @@ the browser.
   JPEG data URL, synced) or null = the orb. `CoachPortrait` renders the
   person waist-up in a glass arch on deep purple (the user's reference
   image), above the chat (tap = start talking) and big in the talk sheet;
-  it breathes / glows while speaking (`.coach-arch` in motion.css) — no
-  lip movement. `CoachAvatar` is the small round face-zoomed version
-  (per-preset `face` focus point).
+  it breathes / glows while speaking (`.coach-arch` in motion.css).
+  `CoachAvatar` is the small round face-zoomed version (per-preset `face`
+  focus point).
+  **Lips, blinks and sway (2026-10-16, `TalkingFace.jsx` + `utils/lipSync.js`)**:
+  per preset, 9 frames (re-rendered face, 5 mouth openings, a rounded
+  mouth, half/fully closed eyes) were rendered **once, offline** with
+  LivePortrait's single-image retargeting on the user's CPU
+  (`scripts/coach_frames.py`, how-to in `scripts/coach-frames.md`; ~6 s a
+  frame — **turn off `flag_use_half_precision` on CPU**, fp16 made it
+  take 10+ min a frame), cropped to the changed area →
+  `public/coaches/frames/*.webp` (~550 KB for all six) +
+  `src/data/coachFrames.json`. At runtime the browser only cross-fades
+  those crops (feathered masks) at 60 fps: mouth opening from the real
+  loudness of the voice (Web Audio analyser on the cloud-voice `<audio>`
+  via captureStream, on OpenAI live's WebRTC stream, or ElevenLabs'
+  `getOutputVolume()` — set with `setLiveSource()` in Coach.jsx
+  startLive), letter-based for device voices; random blinks; CSS sway
+  (`.coach-sway`) plus small nods while talking. No service, no tokens,
+  no per-use cost. An own uploaded photo has no frames: it only sways.
+  LivePortrait was deleted from the PC afterwards.
   **Rejected on the way, don't re-propose without a new reference**:
   DiceBear drawn avatars ("te cartoon"), a free talking 3D person via
   TalkingHead/Ready Player Me ("niet mooi", game-like), a round-cropped
@@ -804,7 +821,8 @@ the browser.
   loops were tried next: the Hugging Face Spaces need 360 s of ZeroGPU
   (free tier can't), and on the user's PC (Ryzen 5 7530U, no NVIDIA) one
   7-second video took 20+ min on CPU — stopped and fully uninstalled at
-  the user's request. **Open lead: Spatius** (spatius.ai — on-device 3D
+  the user's request (superseded by the frame approach above, which
+  doesn't need video). **Former lead: Spatius** (spatius.ai — on-device 3D
   Gaussian-splat avatars with real lip-sync, BYO TTS incl. ElevenLabs, web
   SDK, free plan ~12k credits/yr). Waiting on the user to create a free
   account; unknowns: custom avatar from a photo on the free plan,

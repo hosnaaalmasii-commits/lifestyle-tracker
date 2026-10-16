@@ -1,4 +1,5 @@
 import { coachImage } from '../utils/coachAvatar'
+import TalkingFace from './TalkingFace'
 import { ORB_BACKGROUND } from './CoachAvatar'
 
 // The coach, waist-up, standing in a softly glowing glass arch on deep
@@ -34,7 +35,7 @@ export default function CoachPortrait({ avatar, width = 200, state = 'idle', onC
         background: 'radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--accent) 45%, #2a1f5c) 0%, #1c1640 70%)',
       }}
     >
-      <img src={img.src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: img.pos }} />
+      <TalkingFace img={img} />
       {/* glass: a light sheen and a thin bright rim, like the reference's arch */}
       <span
         aria-hidden

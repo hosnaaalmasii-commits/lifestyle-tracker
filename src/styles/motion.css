@@ -115,8 +115,8 @@ button.card:active { transform: scale(0.985); }
   to { transform: scale(1.06); }
 }
 
-/* Coach portrait (glass arch): it can't move its lips, so it breathes slowly and
-   glows softly in rhythm while the coach speaks — calm, not jumpy. */
+/* Coach portrait (glass arch): breathes slowly and glows softly in rhythm while
+   the coach speaks — calm, not jumpy. The lips and blinks are TalkingFace.jsx. */
 .coach-arch { animation: photo-breathe 7s ease-in-out infinite; }
 .coach-arch.listening { animation: orb-listen 1.8s ease-out infinite; }
 .coach-arch.speaking { animation: photo-speak 1.6s ease-in-out infinite; }
@@ -129,9 +129,19 @@ button.card:active { transform: scale(0.985); }
   50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 60px color-mix(in srgb, var(--accent) 60%, transparent); }
 }
 
+/* The person inside the arch: a slow, uneven weight shift like someone standing
+   and breathing — never a regular metronome swing. */
+.coach-sway { animation: coach-sway 11s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes coach-sway {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  22% { transform: translate(-0.6px, -0.8px) rotate(-0.35deg); }
+  48% { transform: translate(0.4px, 0.3px) rotate(0.2deg); }
+  71% { transform: translate(0.8px, -0.6px) rotate(0.4deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page > *, body::before, .xp-bar-fill, .speak-btn::after, .float-soft, .flame-flicker,
-  .check-dot.done, .check-dot.done svg *, .tab-btn.active .tab-dot, .sheet, .coach-orb, .coach-arch {
+  .check-dot.done, .check-dot.done svg *, .tab-btn.active .tab-dot, .sheet, .coach-orb, .coach-arch, .coach-sway {
     animation: none !important;
   }
 }
