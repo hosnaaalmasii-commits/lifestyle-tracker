@@ -58,3 +58,7 @@
 .tab-btn.active .tab-label {
   font-weight: 700;
 }
+
+/* While typing on a phone the keyboard takes the bottom of the screen — the
+   tab bar would float above it, in the way (Coach.jsx sets kb-open). */
+body.kb-open .tabbar { display: none; }

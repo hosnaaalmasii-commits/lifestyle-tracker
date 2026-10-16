@@ -21,6 +21,11 @@ import App from './App.jsx'
 // and activates a pre-existing waiting worker directly, on top of
 // listening for one that appears mid-session — the belt-and-suspenders
 // version of the same fix.
+// Ask the browser to keep this app's storage (data and API keys) instead
+// of clearing it when space runs low or after a while unused — on iPhone
+// the ElevenLabs key kept disappearing after a few days.
+navigator.storage?.persist?.().catch(() => {})
+
 registerSW({
   immediate: true,
   onRegisteredSW(_swUrl, registration) {

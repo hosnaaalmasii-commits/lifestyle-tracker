@@ -17,6 +17,8 @@ import { coachName, memoryPrompt, memoryIsDue, refreshMemory, HISTORY_FOR_REPLY 
 import { getSpeechProgress } from '../../utils/speechOutput'
 import CoachSettingsSheet from '../../components/CoachSettingsSheet'
 import CoachTalkView from '../../components/CoachTalkView'
+import CoachThreadsSheet from '../../components/CoachThreadsSheet'
+import RichText from '../../components/RichText'
 import { useT } from '../../i18n/useT'
 import { tx } from '../../i18n/tx'
 
@@ -82,7 +84,15 @@ function takeOldChat() {
 // conversation (listen → reply → speak → listen again).
 // openSettings: open straight into "Coach instellen" (from the menu item).
 export default function Coach({ setView, openSettings = false }) {
-  const { data, addCoachMessages, setCoachMemory } = useApp()
+  const { data, addCoachMessages, setCoachMemory, startNewCoachChat, openCoachThread, deleteCoachThread, clearCoachConversation } = useApp()
+  const [threadsOpen, setThreadsOpen] = useState(false)
+  // iPhone: while typing, the keyboard covers the tab bar's spot — hide the
+  // tab bar and let the message box sit right above the keyboard.
+  const [typing, setTyping] = useState(false)
+  useEffect(() => {
+    document.body.classList.toggle('kb-open', typing)
+    return () => document.body.classList.remove('kb-open')
+  }, [typing])
   const { t, locale } = useT()
   const coachSettings = getCoachSettings()
   const messages = data.coach?.messages || []
@@ -472,6 +482,36 @@ export default function Coach({ setView, openSettings = false }) {
     </button>
   )
 
+  const threads = data.coach?.threads || []
+  const newChat = () => {
+    if (!messagesRef.current.length) return
+    updateMemory(true)
+    startNewCoachChat()
+    setInput('')
+    setError('')
+  }
+  const chatBar = (
+    <div className="row" style={{ gap: 8, marginBottom: 14 }}>
+      <button type="button" className="chip" onClick={newChat} disabled={!messages.length} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <Icon name="chat" size={14} />{tx("Nieuw gesprek")}
+      </button>
+      <button type="button" className="chip" onClick={() => setThreadsOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <Icon name="repeat" size={14} />{tx("Gesprekken")}{threads.length ? ` (${threads.length})` : ''}
+      </button>
+    </div>
+  )
+  const threadsSheet = (
+    <CoachThreadsSheet
+      open={threadsOpen}
+      onClose={() => setThreadsOpen(false)}
+      current={messages}
+      threads={threads}
+      onOpen={(id) => { updateMemory(true); openCoachThread(id); setThreadsOpen(false) }}
+      onDelete={deleteCoachThread}
+      onClearCurrent={() => { clearCoachConversation(); setThreadsOpen(false) }}
+    />
+  )
+
   const avatarSheet = <CoachSettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
   // No key yet: paste it right here (with where to find it) — as soon as
@@ -522,8 +562,9 @@ export default function Coach({ setView, openSettings = false }) {
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100dvh - var(--tabbar-height) - 40px)' }}>
       {header}
+      {chatBar}
 
-      {face && (
+      {face && !typing && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, margin: '0 0 18px' }}>
           <CoachPortrait
             avatar={data.settings.coachAvatar}
@@ -547,7 +588,7 @@ export default function Coach({ setView, openSettings = false }) {
             onSpeak={m.role === 'assistant' && CAN_SPEAK ? () => { unlockSpeech(); speak(m.content, { lang: voiceLang(), onError: voiceError }) } : null}
             speakLabel={t('coach.readAloud')}
           >
-            {m.content}
+            {m.role === 'assistant' ? <RichText text={m.content} /> : m.content}
           </Bubble>
         ))}
         {sending && <div className="text-sm faint" style={{ padding: '2px 6px' }}>{t('coach.thinking')}</div>}
@@ -557,11 +598,14 @@ export default function Coach({ setView, openSettings = false }) {
 
       <div
         style={{
-          position: 'sticky', bottom: 'calc(var(--tabbar-height) + var(--safe-bottom) + 12px)',
-          paddingTop: 8,
+          position: 'sticky', bottom: typing ? 0 : 'calc(var(--tabbar-height) + var(--safe-bottom))',
+          margin: '0 -18px', padding: typing ? '10px 18px' : '10px 18px 12px', zIndex: 5,
+          background: 'var(--bg)',
+          // a soft fade above it, so messages scroll away underneath cleanly
+          boxShadow: '0 -18px 18px -2px var(--bg)',
         }}
       >
-        <div className="scroll-x" style={{ marginBottom: 10 }}>
+        <div className="scroll-x" style={{ marginBottom: 10, display: typing ? 'none' : undefined }}>
           {canTalk && (
             <button className="chip" onClick={openTalk} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <Icon name="mic" size={14} />{t('coach.talk')}
@@ -577,11 +621,14 @@ export default function Coach({ setView, openSettings = false }) {
           style={{ gap: 8, padding: '5px 5px 5px 18px', borderRadius: 999, background: 'var(--surface)', border: '1.2px solid color-mix(in srgb, var(--accent) 55%, transparent)' }}
         >
           <input
-            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14.5 }}
+            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 16 }}
             placeholder={t('coach.placeholder')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') send() }}
+            onFocus={() => setTyping(true)}
+            onBlur={() => setTyping(false)}
+            enterKeyHint="send"
           />
           <DictateButton
             compact
@@ -595,6 +642,7 @@ export default function Coach({ setView, openSettings = false }) {
 
       <DayReplanSheet open={replanOpen} onClose={() => setReplanOpen(false)} />
       {avatarSheet}
+      {threadsSheet}
 
       <CoachTalkView
         open={talkOpen}
@@ -627,7 +675,7 @@ function Bubble({ role, children, onSpeak, speakLabel }) {
           borderRadius: mine ? '18px 6px 18px 18px' : '6px 18px 18px 18px',
           fontSize: 14.5,
           lineHeight: 1.5,
-          whiteSpace: 'pre-wrap',
+          whiteSpace: mine ? 'pre-wrap' : 'normal',
         }}
       >
         {children}

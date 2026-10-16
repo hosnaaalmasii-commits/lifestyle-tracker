@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react'
-import { useApp } from '../context/AppContext'
 import { COACH_PRESETS, photoFromFile, PORTRAIT_PROMPT } from '../utils/coachAvatar'
 import CoachPortrait from './CoachPortrait'
 import { ORB_BACKGROUND } from './CoachAvatar'
 import { tx } from '../i18n/tx'
 
 // Choose the coach: one of the preset people, your own photo, or the orb.
-export default function CoachAvatarPicker() {
-  const { data, setCoachAvatar } = useApp()
-  const current = data.settings.coachAvatar || null
+// Controlled (value/onChange) so "Coach instellen" only keeps it on Opslaan.
+export default function CoachAvatarPicker({ value, onChange }) {
+  const current = value || null
+  const setCoachAvatar = onChange
   const fileRef = useRef(null)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
@@ -61,10 +61,10 @@ export default function CoachAvatarPicker() {
         ))}
         {current?.type === 'photo' && tile('own', true, () => {}, <CoachPortrait avatar={current} width={76} />, tx("Eigen foto"))}
         {tile('orb', !current, () => setCoachAvatar(null),
-          <span style={{ width: 76, height: 99, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ width: 76, height: 76, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ width: 52, height: 52, borderRadius: '50%', background: ORB_BACKGROUND, boxShadow: '0 0 20px color-mix(in srgb, var(--accent) 50%, transparent)' }} />
           </span>,
-          tx("Bol"))}
+          tx("Geen gezicht"))}
       </div>
 
       <button type="button" className="btn btn-secondary btn-block" onClick={() => fileRef.current?.click()}>

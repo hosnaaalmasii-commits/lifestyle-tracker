@@ -846,6 +846,30 @@ the browser.
   an old build after deploys.
   A second launch config `vite-preview-build` (port 4173) serves the
   production build — use it for anything that might differ once bundled.
+- **Coach cleanup (2026-10-16, user: "super rommelig")**:
+  - "Coach instellen" (`CoachSettingsSheet.jsx`) has one **Opslaan /
+    Annuleren** bar. Device settings (voice, speed, language, keys) are
+    written as you pick (so Beluister plays the choice), but a snapshot from
+    opening is restored unless you save; name/face are a draft; key uploads
+    to the account are held (`beginSecretDraft`/`commitSecretDraft` in
+    secretSync.js) until Opslaan. Closing with changes asks first.
+  - Tabs: Gezicht & naam · Stem · **Sleutels & kosten** (`CoachKeysPanel`:
+    all three keys in one place, each showing "op dit toestel" / "ook
+    versleuteld in je account", a warning when not signed in to Cloud Sync,
+    and a "Wat gebruikt wat" table) · Geheugen. The voice tab no longer has
+    key fields — it links to the keys tab.
+  - `navigator.storage.persist()` on start (main.jsx): the ElevenLabs key
+    kept vanishing from the iPhone after a few days.
+  - The coach window is **round** now (CoachPortrait, talk view, picker),
+    face-centred via `roundPhotoStyle()` — the user asked for it.
+  - **Conversations**: "Nieuw gesprek" moves the current chat into
+    `data.coach.threads` (max 20, titled by the first message);
+    "Gesprekken" (`CoachThreadsSheet`) reopens or deletes them. Memory facts
+    are shared across all conversations.
+  - Chat: replies render markdown (`RichText.jsx`); the composer has a solid
+    background (messages showed through it on iPhone), its input is 16px
+    (smaller makes iOS zoom the page), and while typing the tab bar hides
+    (`body.kb-open`) and the face/quick chips step aside.
 - **API keys sync across devices, encrypted** (`utils/secretSync.js`,
   `supabase/user_secrets.sql` — **run and confirmed on Tessera 2026-09-30**).
   User request ("ik moet elke key telkens opnieuw ingeven"), knowingly

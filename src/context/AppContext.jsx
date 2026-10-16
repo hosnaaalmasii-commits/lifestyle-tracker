@@ -63,6 +63,20 @@ function seedTaskSchedule() {
   return out
 }
 
+const COACH_MAX_THREADS = 20
+
+// The current coach conversation moved into the list of earlier ones
+// (titled after its first message), or the list unchanged if it's empty.
+function archiveThread(coach) {
+  const threads = coach.threads || []
+  const msgs = coach.messages || []
+  if (!msgs.length) return threads
+  const first = msgs.find((m) => m.role === 'user')?.content || msgs[0].content || ''
+  const title = first.replace(/\s+/g, ' ').trim().slice(0, 60) || 'Gesprek'
+  const at = msgs[msgs.length - 1].at || Date.now()
+  return [{ id: `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, title, at, messages: msgs }, ...threads].slice(0, COACH_MAX_THREADS)
+}
+
 const DEFAULT_DATA = {
   version: 2,
   settings: {
@@ -126,7 +140,9 @@ const DEFAULT_DATA = {
   // messages, { role, content, at }), durable facts it learned about the
   // user ({ id, text, at } — utils/coachMemory.js) and how many messages
   // have already been read for facts (memoryUpTo).
-  coach: { messages: [], memory: [], memoryUpTo: 0 },
+  // threads: earlier conversations ({ id, title, at, messages }), newest
+  // first — "Nieuw gesprek" moves the current one there (max COACH_MAX_THREADS).
+  coach: { messages: [], memory: [], memoryUpTo: 0, threads: [] },
   measurements: [],
   googleCalendarEventIds: {},
   water: {},
@@ -784,7 +800,22 @@ export function AppProvider({ children }) {
     setCoachMemory: (memory, memoryUpTo) => setData((d) => ({ ...d, coach: { ...DEFAULT_DATA.coach, ...d.coach, memory, memoryUpTo } })),
     deleteCoachMemoryItem: (id) => setData((d) => ({ ...d, coach: { ...DEFAULT_DATA.coach, ...d.coach, memory: (d.coach?.memory || []).filter((m) => m.id !== id) } })),
     clearCoachConversation: () => setData((d) => ({ ...d, coach: { ...DEFAULT_DATA.coach, ...d.coach, messages: [], memoryUpTo: 0 } })),
-    forgetCoachEverything: () => setData((d) => ({ ...d, coach: { messages: [], memory: [], memoryUpTo: 0 } })),
+    forgetCoachEverything: () => setData((d) => ({ ...d, coach: { messages: [], memory: [], memoryUpTo: 0, threads: [] } })),
+    // Start a fresh conversation; the current one is kept under threads.
+    // What the coach learned (memory) carries over to every conversation.
+    startNewCoachChat: () => setData((d) => {
+      const coach = { ...DEFAULT_DATA.coach, ...d.coach }
+      return { ...d, coach: { ...coach, messages: [], memoryUpTo: 0, threads: archiveThread(coach) } }
+    }),
+    // Continue an earlier conversation (the current one is kept too).
+    openCoachThread: (id) => setData((d) => {
+      const coach = { ...DEFAULT_DATA.coach, ...d.coach }
+      const thread = (coach.threads || []).find((t) => t.id === id)
+      if (!thread) return d
+      const rest = { ...coach, threads: (coach.threads || []).filter((t) => t.id !== id) }
+      return { ...d, coach: { ...rest, messages: thread.messages, memoryUpTo: thread.messages.length, threads: archiveThread(rest) } }
+    }),
+    deleteCoachThread: (id) => setData((d) => ({ ...d, coach: { ...DEFAULT_DATA.coach, ...d.coach, threads: (d.coach?.threads || []).filter((t) => t.id !== id) } })),
     setGentleMode: (on) => setData((d) => ({ ...d, settings: { ...d.settings, gentleMode: on } })),
 
     connectGoogleCalendar: async (rawClientId) => {

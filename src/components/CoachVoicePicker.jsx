@@ -6,10 +6,10 @@ import {
   SPEECH_LANGS, getSpeechLangSetting, setSpeechLangSetting,
 } from '../utils/speechOutput'
 import {
-  getElevenKey, setElevenKey, getElevenVoice, setElevenVoice, getElevenModel, setElevenModel,
+  getElevenKey, getElevenVoice, setElevenVoice, getElevenModel, setElevenModel,
   fetchElevenVoices, ELEVEN_MODELS,
 } from '../utils/elevenLabs'
-import { getOpenAiKey, setOpenAiKey, getOpenAiVoice, setOpenAiVoice, OPENAI_VOICES } from '../utils/openaiTts'
+import { getOpenAiKey, getOpenAiVoice, setOpenAiVoice, OPENAI_VOICES } from '../utils/openaiTts'
 import { LIVE_MODELS, getLiveModel, setLiveModel, REALTIME_VOICES } from '../utils/openaiRealtime'
 import Icon from './Icon'
 import { tx } from '../i18n/tx'
@@ -31,13 +31,12 @@ const SAMPLES = {
   pl: 'Cześć! Tak brzmi mój głos. Przejrzymy razem twój dzień?',
 }
 
-// Keys save as you type (no save button) — the status line under each key
-// field says so.
 // Choose who speaks for the coach — the device's own voices, OpenAI or
-// ElevenLabs — which voice, and how fast. Everything here is per device
-// (own localStorage keys; the API keys never leave this device). Used in
-// Settings → AI Coach and the coach's talk sheet.
-export default function CoachVoicePicker() {
+// ElevenLabs — which voice, and how fast. Per device (own localStorage
+// keys). Lives in "Coach instellen", which keeps a snapshot and only keeps
+// the changes on Opslaan. The API keys themselves are entered in the
+// "Sleutels & kosten" tab (CoachKeysPanel) — onNeedKey jumps there.
+export default function CoachVoicePicker({ onNeedKey, onProviderChange }) {
   const { locale } = useT()
   const [provider, setProvider] = useState(getVoiceProvider)
   const [speakError, setSpeakError] = useState('')
@@ -58,7 +57,7 @@ export default function CoachVoicePicker() {
   // After picking a voice: unlock inside the tap, then play a sample.
   const previewSoon = (forLang) => { unlockSpeech(); setTimeout(() => preview(forLang), 50) }
 
-  const chooseProvider = (id) => { setProvider(id); setVoiceProvider(id); setSpeakError('') }
+  const chooseProvider = (id) => { setProvider(id); setVoiceProvider(id); setSpeakError(''); onProviderChange?.(id) }
   const chooseRate = (value) => { setRate(value); setSpeechRate(value); previewSoon() }
   const chooseLang = (code) => { setLangSetting(code); setSpeechLangSetting(code); previewSoon(code || locale) }
 
@@ -92,8 +91,8 @@ export default function CoachVoicePicker() {
       </div>
 
       {provider === 'device' && <DeviceSection locale={lang} previewButton={previewButton} onPicked={previewSoon} />}
-      {provider === 'openai' && <OpenAiSection previewButton={previewButton} onPicked={previewSoon} />}
-      {provider === 'elevenlabs' && <ElevenSection previewButton={previewButton} onPicked={previewSoon} />}
+      {provider === 'openai' && <OpenAiSection previewButton={previewButton} onPicked={previewSoon} onNeedKey={onNeedKey} />}
+      {provider === 'elevenlabs' && <ElevenSection previewButton={previewButton} onPicked={previewSoon} onNeedKey={onNeedKey} />}
 
       <div className="field" style={{ marginBottom: 0 }}>
         <label>{tx("Spreeksnelheid")}</label>
@@ -108,27 +107,8 @@ export default function CoachVoicePicker() {
 
       {speakError && <p className="text-sm" style={{ margin: 0, color: 'var(--danger)' }}>{speakError}</p>}
       <p className="text-sm faint" style={{ margin: 0 }}>
-        {tx("Ben je ingelogd bij Cloud Sync, dan worden je sleutels versleuteld bewaard in je eigen Supabase en staan ze vanzelf op al je apparaten. De gekozen stem en snelheid stel je per apparaat in.")}
+        {tx("Stem en snelheid stel je per toestel in.")}
       </p>
-    </div>
-  )
-}
-
-function KeyInput({ value, onChange, placeholder }) {
-  const [show, setShow] = useState(false)
-  return (
-    <div className="row" style={{ gap: 8 }}>
-      <input
-        className="input"
-        style={{ flex: 1, minWidth: 0 }}
-        type={show ? 'text' : 'password'}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        autoComplete="off"
-        spellCheck={false}
-      />
-      <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShow((s) => !s)}>{show ? tx("Hide") : tx("Show")}</button>
     </div>
   )
 }
@@ -168,26 +148,16 @@ function DeviceSection({ locale, previewButton, onPicked }) {
   )
 }
 
-function OpenAiSection({ previewButton, onPicked }) {
-  const [key, setKey] = useState(getOpenAiKey)
+function OpenAiSection({ previewButton, onPicked, onNeedKey }) {
+  const key = getOpenAiKey()
   const [voice, setVoice] = useState(getOpenAiVoice)
   const [liveModel, setLiveModelState] = useState(getLiveModel)
-  const saveKey = (value) => { setKey(value.trim()); setOpenAiKey(value) }
   const choose = (id) => { setVoice(id); setOpenAiVoice(id); onPicked() }
   const chooseModel = (m) => { setLiveModelState(m); setLiveModel(m) }
 
   return (
     <>
-      <div className="field" style={{ marginBottom: 0 }}>
-        <label>{tx("OpenAI API-sleutel")}</label>
-        {!key && (
-          <p className="text-sm faint" style={{ margin: '0 0 8px' }}>
-            {tx("Maak een account op platform.openai.com, zet er wat tegoed op (Billing — vanaf $5) en maak een sleutel onder API keys. Je betaalt per gebruik, geen abonnement: voorlezen ongeveer 1,5 cent per minuut, live praten (Snel & voordelig) een paar cent per minuut.")}
-          </p>
-        )}
-        <KeyInput value={key} onChange={saveKey} placeholder="sk-…" />
-        {key && <p className="text-sm" style={{ margin: '6px 0 0', color: 'var(--success)' }}>✓ {tx("Opgeslagen — tik op Beluister om te testen")}</p>}
-      </div>
+      {!key && <NeedKey name="OpenAI" onNeedKey={onNeedKey} />}
       {key && (
         <div className="field" style={{ marginBottom: 0 }}>
           <label>{tx("Stem van de coach")}</label>
@@ -217,8 +187,8 @@ function OpenAiSection({ previewButton, onPicked }) {
   )
 }
 
-function ElevenSection({ previewButton, onPicked }) {
-  const [key, setKey] = useState(getElevenKey)
+function ElevenSection({ previewButton, onPicked, onNeedKey }) {
+  const key = getElevenKey()
   const [voices, setVoices] = useState(null) // null = not loaded
   const [voice, setVoice] = useState(getElevenVoice)
   const [model, setModel] = useState(getElevenModel)
@@ -238,26 +208,13 @@ function ElevenSection({ previewButton, onPicked }) {
     return () => { cancelled = true; clearTimeout(timer) }
   }, [key])
 
-  const saveKey = (value) => { setKey(value.trim()); setElevenKey(value) }
   const choose = (id) => { setVoice(id); setElevenVoice(id); onPicked() }
   const chooseModel = (value) => { setModel(value); setElevenModel(value) }
 
   return (
     <>
-      <div className="field" style={{ marginBottom: 0 }}>
-        <label>{tx("ElevenLabs API-sleutel")}</label>
-        {!key && (
-          <p className="text-sm faint" style={{ margin: '0 0 8px' }}>
-            {tx("Maak een gratis account op elevenlabs.io, ga naar je profiel → API Keys en maak een sleutel met rechten voor \"Text to Speech\" en \"Voices\". Gratis plan: ongeveer 10–20 minuten spraak per maand; Starter ($6/maand): ongeveer 30–60 minuten.")}
-          </p>
-        )}
-        <KeyInput value={key} onChange={saveKey} placeholder={tx("ElevenLabs API-sleutel")} />
-        {key && (
-          <p className="text-sm" style={{ margin: '6px 0 0', color: loadError ? 'var(--danger)' : voices ? 'var(--success)' : 'var(--text-soft)' }}>
-            {loadError ? tx("Opgeslagen, maar ElevenLabs weigert deze sleutel — zie hieronder.") : voices ? `✓ ${tx("Opgeslagen en verbonden")}` : tx("Opgeslagen — verbinden…")}
-          </p>
-        )}
-      </div>
+      {!key && <NeedKey name="ElevenLabs" onNeedKey={onNeedKey} />}
+      {key && voices && <p className="text-sm" style={{ margin: 0, color: 'var(--success)' }}>✓ {tx("Verbonden met ElevenLabs")}</p>}
       {key && (
         <>
           <div className="field" style={{ marginBottom: 0 }}>
@@ -291,5 +248,14 @@ function ElevenSection({ previewButton, onPicked }) {
         </>
       )}
     </>
+  )
+}
+
+function NeedKey({ name, onNeedKey }) {
+  return (
+    <div className="card stack" style={{ gap: 8, padding: 14 }}>
+      <span className="text-sm">{tx("Hiervoor heb je een")} {name}{tx("-sleutel nodig.")}</span>
+      {onNeedKey && <button type="button" className="btn btn-secondary btn-sm" onClick={onNeedKey}>{tx("Sleutel invullen")}</button>}
+    </div>
   )
 }
