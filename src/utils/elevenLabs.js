@@ -40,18 +40,40 @@ export const setElevenModel = (model) => write(MODEL_STORAGE, model)
 
 export class ElevenLabsError extends Error {}
 
-async function explain(res) {
-  let detail = ''
+// ElevenLabs' refusals, in words the user can act on. Their 401s carry a
+// detail.status that says *why* (2026-10-30: the user got "weigert de
+// sleutel" while "alles staat juist" — the generic text didn't help).
+// Shared with elevenAgent.js. The raw status/code is always appended so a
+// screenshot shows exactly what ElevenLabs answered.
+export async function describeElevenError(res, what = '') {
+  let code = ''
+  let message = ''
   try {
     const body = await res.json()
-    detail = body?.detail?.message || body?.detail?.status || (typeof body?.detail === 'string' ? body.detail : '')
+    code = body?.detail?.status || body?.detail?.code || ''
+    message = (body?.detail?.message || (typeof body?.detail === 'string' ? body.detail : '')).trim().replace(/\.+$/, '')
   } catch { /* not JSON */ }
-  // Used-up credit also comes back as a 401, so check for it first.
-  if (/quota/i.test(detail)) return 'Je ElevenLabs-tegoed voor deze maand is op.'
-  if (res.status === 401) return `ElevenLabs weigert de sleutel${detail ? ` (${detail})` : ''}. Controleer de sleutel en of hij rechten heeft voor "Text to Speech" en "Voices".`
-  if (res.status === 429) return 'ElevenLabs: te veel verzoeken tegelijk — probeer het zo nog eens.'
-  return `ElevenLabs-fout ${res.status}${detail ? `: ${detail}` : ''}`
+  const where = what ? ` bij ${what}` : ''
+  const tag = ` [${res.status}${code ? ` ${code}` : ''}]`
+  const all = `${code} ${message}`
+  if (/unusual_activity|unusual activity/i.test(all)) {
+    return `ElevenLabs heeft het gratis gebruik van je account geblokkeerd ("ongebruikelijke activiteit")${where}. Dat doen ze bij gratis accounts o.a. bij een VPN of meerdere gratis accounts. Zet een VPN uit, of neem het goedkoopste abonnement (Starter) — dan verdwijnt deze blokkade.${tag}`
+  }
+  if (/quota|credit|character_limit/i.test(all)) return `Je ElevenLabs-tegoed voor deze maand is op${where}.${tag}`
+  if (/invalid_api_key|invalid api key/i.test(all)) {
+    return `ElevenLabs kent deze sleutel niet${where}. Plak hem opnieuw, volledig (begint met sk_), of maak een nieuwe op elevenlabs.io → Developers → API Keys.${tag}`
+  }
+  if (/missing_permission|permission/i.test(all)) {
+    return `Je ElevenLabs-sleutel mist een recht${where}${message ? `: ${message}` : ''}. Zet bij de sleutel op elevenlabs.io (Developers → API Keys → bewerken) "Text to Speech", "Voices" en "ElevenLabs Agents" (lezen én schrijven) aan, of maak een sleutel zonder beperkingen.${tag}`
+  }
+  if (res.status === 402 || /paid_plan|payment_required|subscription/i.test(all)) {
+    return `Dit kan niet met het gratis ElevenLabs-abonnement${where}${message ? ` (${message})` : ''}. Kies een standaardstem (bv. Sarah) of neem het Starter-abonnement.${tag}`
+  }
+  if (res.status === 401 || res.status === 403) return `ElevenLabs weigert de sleutel${where}${message ? `: ${message}` : ''}.${tag}`
+  if (res.status === 429) return `ElevenLabs: te veel verzoeken tegelijk — probeer het zo nog eens.${tag}`
+  return `ElevenLabs-fout${where}${message ? `: ${message}` : ''}.${tag}`
 }
+const explain = (res) => describeElevenError(res)
 
 // [{ id, name, description }] — the voices this account can use.
 export async function fetchElevenVoices() {

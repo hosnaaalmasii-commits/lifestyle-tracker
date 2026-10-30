@@ -14,7 +14,7 @@
 // browser. Nothing goes through a server of ours.
 
 import { Conversation } from '@elevenlabs/client'
-import { getElevenKey, getElevenVoice, DEFAULT_VOICE_ID } from './elevenLabs'
+import { getElevenKey, getElevenVoice, DEFAULT_VOICE_ID, describeElevenError } from './elevenLabs'
 
 const API = 'https://api.elevenlabs.io/v1'
 const AGENT_STORAGE = 'lifestyle-tracker-elevenlabs-agent'
@@ -27,19 +27,7 @@ const LANGS = new Set(['nl', 'en', 'fr', 'de', 'es', 'it', 'pt', 'tr', 'ar', 'fa
 
 export class LiveCoachError extends Error {}
 
-async function explain(res, what) {
-  let detail = ''
-  try {
-    const body = await res.json()
-    detail = body?.detail?.message || body?.detail?.status || (typeof body?.detail === 'string' ? body.detail : '')
-  } catch { /* not JSON */ }
-  if (/quota|credit/i.test(detail)) return 'Je ElevenLabs-tegoed is op.'
-  if (res.status === 401 || res.status === 403) {
-    return `ElevenLabs weigert de sleutel bij ${what}${detail ? ` (${detail})` : ''}. Geef je API-sleutel op elevenlabs.io (Developers → API Keys) ook toegang tot "ElevenLabs Agents" (lezen én schrijven).`
-  }
-  if (res.status === 429) return 'ElevenLabs: te veel gesprekken tegelijk of tegoed op — probeer het zo nog eens.'
-  return `ElevenLabs-fout ${res.status} bij ${what}${detail ? `: ${detail}` : ''}`
-}
+const explain = (res, what) => describeElevenError(res, what)
 
 async function api(path, { method = 'GET', body, what }) {
   let res
