@@ -8,17 +8,17 @@ import CoachAvatarPicker from './CoachAvatarPicker'
 import CoachVoicePicker from './CoachVoicePicker'
 import CoachKeysPanel from './CoachKeysPanel'
 import { getReadAloud, setReadAloud, stopSpeaking, unlockSpeech, getVoiceProvider } from '../utils/speechOutput'
-import { beginSecretDraft, commitSecretDraft, discardSecretDraft } from '../utils/secretSync'
+import { commitSecretDraft, discardSecretDraft } from '../utils/secretSync'
 import { tx } from '../i18n/tx'
 
-// The per-device settings this sheet can change (voice, speed, language,
-// keys…). They're written as you pick — so "Beluister" plays exactly what
-// you chose — but a snapshot taken on opening is put back unless you tap
-// Opslaan. Keys only go to the account (secretSync) on Opslaan.
+// The per-device settings this sheet can change (voice, speed, language…).
+// They're written as you pick — so "Beluister" plays exactly what you
+// chose — but a snapshot taken on opening is put back unless you tap
+// Opslaan. API keys are NOT part of that: a pasted key is saved (and
+// synced to the account) right away and never put back — closing without
+// Opslaan used to wipe them ("die van openai is weeral verdwenen … ik moet
+// telkens opnieuw ingeven", 2026-10-30).
 const DEVICE_KEYS = [
-  'lifestyle-tracker-anthropic-key',
-  'lifestyle-tracker-openai-key',
-  'lifestyle-tracker-elevenlabs-key',
   'lifestyle-tracker-coach-voice-provider',
   'lifestyle-tracker-coach-voice',
   'lifestyle-tracker-coach-rate',
@@ -63,7 +63,6 @@ export default function CoachSettingsSheet({ open, onClose, initialTab = 'face' 
   useEffect(() => {
     if (!open) return
     snapRef.current = snapshot()
-    beginSecretDraft()
     setDraftName(data.settings.coachName || '')
     setDraftAvatar(data.settings.coachAvatar || null)
     setReadAloudState(getReadAloud())

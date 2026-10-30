@@ -867,9 +867,13 @@ the browser.
   - "Coach instellen" (`CoachSettingsSheet.jsx`) has one **Opslaan /
     Annuleren** bar. Device settings (voice, speed, language, keys) are
     written as you pick (so Beluister plays the choice), but a snapshot from
-    opening is restored unless you save; name/face are a draft; key uploads
-    to the account are held (`beginSecretDraft`/`commitSecretDraft` in
-    secretSync.js) until Opslaan. Closing with changes asks first.
+    opening is restored unless you save; name/face are a draft. Closing
+    with changes asks first. **API keys are excluded (2026-10-30)**: the
+    snapshot/restore wiped a freshly pasted OpenAI key whenever the sheet
+    was closed without Opslaan ("ik moet telkens opnieuw ingeven"), so
+    keys now save and sync immediately and are never restored; the
+    secret-draft helpers in secretSync.js are no longer started. The
+    ElevenLabs key placeholder is `sk_…` (was `xi-…`).
   - Tabs: Gezicht & naam · Stem · **Sleutels & kosten** (`CoachKeysPanel`:
     all three keys in one place, each showing "op dit toestel" / "ook
     versleuteld in je account", a warning when not signed in to Cloud Sync,

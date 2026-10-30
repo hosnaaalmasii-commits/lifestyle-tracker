@@ -10,8 +10,8 @@ import { tx } from '../i18n/tx'
 
 // All the coach's keys in one place, each with where it's kept, and a plain
 // overview of which service is used for what (and what it costs).
-// Key fields write to this device right away; the account copy is only
-// updated on "Opslaan" (CoachSettingsSheet holds a secret draft).
+// Key fields save right away — on this device and (signed in) to the
+// account — and closing the sheet never puts an old key back.
 const KEYS = [
   {
     id: 'anthropic', name: 'Claude (Anthropic)', placeholder: 'sk-ant-…', get: getApiKey, set: setApiKey,
@@ -22,7 +22,7 @@ const KEYS = [
     how: 'platform.openai.com → zet tegoed op je account (Billing, vanaf $5) → API keys. Alleen nodig als je coach met OpenAI praat.',
   },
   {
-    id: 'elevenlabs', name: 'ElevenLabs', placeholder: 'xi-…', get: getElevenKey, set: setElevenKey,
+    id: 'elevenlabs', name: 'ElevenLabs', placeholder: 'sk_…', get: getElevenKey, set: setElevenKey,
     how: 'elevenlabs.io → je profiel → API Keys, met rechten voor Text to Speech, Voices en Conversational AI (Agents). Alleen nodig als je coach met ElevenLabs praat.',
   },
 ]
