@@ -243,7 +243,10 @@ export default function CoachSettingsSheet({ open, onClose, initialTab = 'face' 
               <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={dirty ? discard : requestClose}>
                 {dirty ? tx("Annuleren") : tx("Sluiten")}
               </button>
-              <button type="button" className="btn btn-primary" style={{ flex: 1 }} disabled={!dirty} onClick={save}>{tx("Opslaan")}</button>
+              {/* Always tappable: keys save as you paste them (so they don't
+                  make the sheet "dirty"), and a greyed-out Opslaan right after
+                  pasting one read as broken ("knop opslaan werkt niet"). */}
+              <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={save}>{tx("Opslaan")}</button>
             </div>
           )}
         </div>
