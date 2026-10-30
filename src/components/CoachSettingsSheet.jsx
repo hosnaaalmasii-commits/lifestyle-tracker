@@ -249,6 +249,8 @@ export default function CoachSettingsSheet({ open, onClose, initialTab = 'face' 
               <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={save}>{tx("Opslaan")}</button>
             </div>
           )}
+          {/* Which build this phone runs — the PWA can lag behind a deploy. */}
+          <div className="faint" style={{ fontSize: 11, textAlign: 'center', marginTop: 6, opacity: 0.6 }}>{tx("versie")} {__BUILD_ID__}</div>
         </div>
       </div>
     </Sheet>
