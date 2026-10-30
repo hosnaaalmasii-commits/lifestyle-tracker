@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext'
 import { WEEKDAY_KEYS, TASK_CATEGORIES, weekdayKeyForDate } from '../../utils/taskSchedule'
 import { todayKey } from '../../utils/dates'
 import { isPushSupported, isThisDeviceSubscribed, showTestNotification } from '../../utils/push'
+import { parseReminder, describeReminder, isUpcoming } from '../../utils/reminders'
 import BackHeader from '../../components/BackHeader'
 import Sheet from '../../components/Sheet'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -31,7 +32,7 @@ export default function DailySchedule({ onBack }) {
   const {
     data, sync, addTaskToDay, updateTaskInDay, removeTaskFromDay,
     setMealForDay, setStreakThreshold, setNotifyCategory,
-    enablePushNotifications, disablePushNotifications,
+    enablePushNotifications, disablePushNotifications, addReminder, removeReminder,
   } = useApp()
 
   const [day, setDay] = useState(() => weekdayKeyForDate(todayKey()))
@@ -42,6 +43,19 @@ export default function DailySchedule({ onBack }) {
   const [pushBusy, setPushBusy] = useState(false)
   const [pushError, setPushError] = useState(null)
   const [testMsg, setTestMsg] = useState(null)
+  const [reminderText, setReminderText] = useState('')
+  const [reminderNote, setReminderNote] = useState(null)
+  const upcomingReminders = (data.reminders || []).filter((r) => isUpcoming(r))
+  const addTypedReminder = () => {
+    // Same words as in the coach: "om 15:00 water drinken", "morgen om 8 uur tandarts".
+    const text = reminderText.trim()
+    if (!text) return
+    const parsed = parseReminder(/herinner|remind/i.test(text) ? text : `herinner me ${text}`)
+    if (!parsed) { setReminderNote(tx("Zet er een tijd bij, bv. \"om 15:00 water drinken\" of \"over 20 minuten stretchen\".")); return }
+    addReminder(parsed)
+    setReminderText('')
+    setReminderNote(`⏰ ${parsed.text} — ${describeReminder(parsed)}`)
+  }
   // Whether THIS device is signed up — not the synced pushEnabled setting,
   // which follows whichever device last changed it (see push.js).
   const [deviceOn, setDeviceOn] = useState(false)
@@ -169,6 +183,33 @@ export default function DailySchedule({ onBack }) {
             disabled={!isPushSupported() || !sync.signedIn || pushBusy}
             onClick={handlePushToggle}
           />
+        </div>
+        <div className="list-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>{tx("Herinneringen")}</div>
+            <div className="text-sm faint">{tx("Vraag het ook gewoon aan je coach: \"herinner me om 15:00 om water te drinken\".")}</div>
+          </div>
+          <div className="row" style={{ gap: 8 }}>
+            <input
+              className="input"
+              style={{ flex: 1, minWidth: 0 }}
+              placeholder={tx("bv. om 15:00 water drinken")}
+              value={reminderText}
+              onChange={(e) => { setReminderText(e.target.value); setReminderNote(null) }}
+              onKeyDown={(e) => { if (e.key === 'Enter') addTypedReminder() }}
+            />
+            <button type="button" className="btn btn-secondary btn-sm" onClick={addTypedReminder} disabled={!reminderText.trim()}>{tx("Zet")}</button>
+          </div>
+          {reminderNote && <div className="text-sm faint">{reminderNote}</div>}
+          {upcomingReminders.map((r) => (
+            <div key={r.id} className="row" style={{ gap: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600 }}>{r.text}</div>
+                <div className="text-sm faint">{describeReminder(r)}</div>
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeReminder(r.id)} aria-label={tx("Verwijder herinnering")}>{tx("Verwijder")}</button>
+            </div>
+          ))}
         </div>
         {deviceOn && (
           <div className="list-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>

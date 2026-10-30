@@ -31,6 +31,7 @@ export const CATEGORY_META = {
   place: { label: 'Place', icon: 'compass', color: 'var(--second)' },
   task_done: { label: 'Task done', icon: 'check', color: 'var(--second)' },
   note: { label: 'Note', icon: 'chat', color: 'var(--text-soft)' },
+  reminder: { label: 'Herinnering', icon: 'calendar', color: 'var(--accent)' },
 }
 
 // Where each category ends up in the app — shown after a voice log is
@@ -39,6 +40,7 @@ export const CATEGORY_DESTINATION = {
   drink: 'Water', alcohol: 'Alcohol', meal: 'Voeding', food: 'Voeding', mood: 'Stemming',
   workout: 'Training', cycle: 'Cyclus', schedule: 'Agenda', budget: 'Budget', sleep: 'Slaap',
   weight: 'Gewicht', appointment: 'Vandaag', place: 'Plaatsen', task_done: 'Vandaag', note: 'Notities',
+  reminder: 'Meldingen',
 }
 
 // Only these field/category combinations are allowed to trigger a
@@ -84,6 +86,7 @@ Categories and their fields (use exactly these field names):
 - "appointment": { title: string, start: "HH:MM", end: "HH:MM"|null, location: string|null, travelMinutes: number|null } — something happening today at a time (doctor, meeting, dinner out). If a saved place is meant, use its address as location. Estimate one-way travel minutes from home when a location is given.
 - "place": { name: string, address: string } — the user tells you where something is ("my gym is at …", "I live at …"); use name "home" for where they live.
 - "task_done": { taskId: string } — they say they did one of today's scheduled tasks; use the matching id from the list above.
+- "reminder": { date: "YYYY-MM-DD", time: "HH:MM", text: string } — the user asks to be reminded of something at a time ("herinner me om 15:00 …", "remind me in 20 minutes to …"); resolve relative times against now; a time already past today means tomorrow.
 - "note": { text: string } — anything worth keeping that fits no other category.
 
 Use "workout" mode "log_pr" only when the user states a specific weight and/or reps for a specific exercise (e.g. "I benched 80kg for 8"). Use "complete_today" for generic completion ("I worked out", "did my workout").
@@ -98,7 +101,7 @@ Output shape:
 {
   "intents": [
     {
-      "category": "drink" | "alcohol" | "meal" | "mood" | "workout" | "cycle" | "schedule" | "budget" | "sleep" | "weight" | "food" | "appointment" | "place" | "task_done" | "note",
+      "category": "drink" | "alcohol" | "meal" | "mood" | "workout" | "cycle" | "schedule" | "budget" | "sleep" | "weight" | "food" | "appointment" | "place" | "task_done" | "reminder" | "note",
       "when": "today" | "yesterday",
       "summary": "short human-readable description, e.g. 'Water — 500 ml'",
       "fields": { "<fieldName>": { "value": ..., "confidence": "..." }, ... },
@@ -295,6 +298,13 @@ export function applyVoiceIntent(actions, intent) {
     case 'task_done': {
       const id = fv(f, 'taskId')
       if (id && !actions.data.taskCompletions[dateKey]?.[id]) actions.toggleTask(dateKey, id)
+      break
+    }
+    case 'reminder': {
+      const time = fv(f, 'time')
+      const date = fv(f, 'date') || todayKey()
+      if (!/^\d{2}:\d{2}$/.test(time || '') || !/^\d{4}-\d{2}-\d{2}$/.test(date)) break
+      actions.addReminder?.({ date, time, text: fv(f, 'text') || 'Herinnering' })
       break
     }
     case 'note': {

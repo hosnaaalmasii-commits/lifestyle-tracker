@@ -16,8 +16,17 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)))
 }
 
+// Save a subscription row. Not an upsert: push_subscriptions has no UPDATE
+// policy (push_notifications.sql), so upserting an existing endpoint failed
+// with an RLS error — re-enabling on a device that was already registered
+// broke. Insert, and treat "already there" (23505) as success.
+async function saveSubscriptionRow(supabaseClient, row) {
+  const { error } = await supabaseClient.from('push_subscriptions').insert(row)
+  if (error && error.code !== '23505') throw error
+}
+
 // Requests notification permission, subscribes this device to Web Push, and
-// upserts the subscription into Supabase (one row per device — the same
+// saves the subscription into Supabase (one row per device — the same
 // person on their phone and their laptop each need their own row so both
 // get notified). Returns the subscription, or throws if permission was
 // denied or push isn't supported.
@@ -37,14 +46,13 @@ export async function subscribeToPush(supabaseClient, userId, deviceLabel) {
   }
 
   const json = subscription.toJSON()
-  const { error } = await supabaseClient.from('push_subscriptions').upsert({
+  await saveSubscriptionRow(supabaseClient, {
     user_id: userId,
     endpoint: json.endpoint,
     p256dh: json.keys.p256dh,
     auth: json.keys.auth,
     device_label: deviceLabel,
-  }, { onConflict: 'endpoint' })
-  if (error) throw error
+  })
 
   return subscription
 }
@@ -69,14 +77,13 @@ export async function refreshPushSubscription(supabaseClient, userId) {
   if (!supabaseClient || !userId || !(await isThisDeviceSubscribed())) return false
   const registration = await navigator.serviceWorker.ready
   const json = (await registration.pushManager.getSubscription()).toJSON()
-  const { error } = await supabaseClient.from('push_subscriptions').upsert({
+  await saveSubscriptionRow(supabaseClient, {
     user_id: userId,
     endpoint: json.endpoint,
     p256dh: json.keys.p256dh,
     auth: json.keys.auth,
     device_label: navigator.userAgent.slice(0, 60),
-  }, { onConflict: 'endpoint' })
-  if (error) throw error
+  })
   return true
 }
 

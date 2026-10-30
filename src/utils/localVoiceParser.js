@@ -1,3 +1,4 @@
+import { parseReminder, describeReminder } from './reminders'
 // Rule-based fallback for the voice/text-logging pipeline: turns everyday
 // Dutch (and some English) sentences into the same intent shape the
 // Claude parser returns, so "ik heb vandaag een banaan gegeten" lands in
@@ -255,6 +256,15 @@ function parseTaskDone(clause, tasks) {
 
 // context: { tasks: today's tasks [{id,time,label,done}] }
 export function parseTranscriptLocally(transcript, context = {}) {
+  // "Herinner me om 15:00 …" is one whole request, not clauses to split.
+  const reminder = parseReminder(transcript)
+  if (reminder) {
+    return [{
+      category: 'reminder', when: 'today',
+      summary: `Herinnering — ${reminder.text} (${describeReminder(reminder)})`,
+      fields: { date: exact(reminder.date), time: exact(reminder.time), text: exact(reminder.text) },
+    }]
+  }
   // '7 en een half uur' → '7.5 uur' before ' en ' splits it into clauses.
   const text = transcript.trim().replace(/(\d+)\s+en\s+een\s+half/gi, '$1.5')
   if (!text) return []

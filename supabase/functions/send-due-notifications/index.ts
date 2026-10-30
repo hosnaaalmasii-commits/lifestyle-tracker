@@ -6,6 +6,12 @@
 // today (sent_task_notifications is the dedup marker) — and sends a Web
 // Push notification for each to all of that user's subscribed devices.
 //
+// Also sends one-off reminders the user asked for in the app
+// (data.reminders: [{ id, date, time, text }] — "herinner me om 15:00 …",
+// added 2026-10-30). A reminder is sent once, at its time or up to 15
+// minutes late if a cron tick was missed; dedup uses the same table with
+// task_id "reminder:<id>".
+//
 // Deployed with JWT verification OFF (this function needs no caller auth —
 // it's only ever invoked by pg_cron inside the same project) so no secret
 // needs to be embedded in the cron job's SQL. SUPABASE_URL and
@@ -75,33 +81,23 @@ Deno.serve(async () => {
     const nowHHMM = hhmmInTz(timeZone)
     const today = dateKeyInTz(timeZone)
 
-    // A replanned day (dayOverrides[today].tasks — the in-app "Afspraak /
-    // dag aanpassen" flow) replaces the weekly template for that date.
-    const dayTasks = appData?.dayOverrides?.[today]?.tasks || appData?.taskSchedule?.[day] || []
-    const tasks = dayTasks.filter((t) => t.time === nowHHMM)
-    if (!tasks.length) continue
-
-    const completionsToday = appData?.taskCompletions?.[today] || {}
-    const notifyCategories = appData?.settings?.notifyCategories
-
-    for (const task of tasks) {
-      if (!task.notify) continue
-      if (completionsToday[task.id]) continue
-      if (!categoryEnabled(notifyCategories, task.category)) continue
-
+    const userSubs = subs.filter((s) => s.user_id === userId)
+    // Sends one notification to all of this user's devices, once per
+    // (date, key). Returns nothing; counts into sent/errors.
+    const notifyOnce = async (key, payload) => {
       const { data: already } = await supabase
         .from('sent_task_notifications')
         .select('task_id')
-        .eq('user_id', userId).eq('date', today).eq('task_id', task.id)
+        .eq('user_id', userId).eq('date', today).eq('task_id', key)
         .maybeSingle()
-      if (already) continue
-
-      const userSubs = subs.filter((s) => s.user_id === userId)
+      if (already) return
+      // Mark first, so a slow send can't be picked up again by the next tick.
+      await supabase.from('sent_task_notifications').insert({ user_id: userId, date: today, task_id: key })
       for (const sub of userSubs) {
         try {
           await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-            JSON.stringify({ title: task.label, body: `${task.time} · ${task.category}` }),
+            JSON.stringify(payload),
           )
           sent += 1
         } catch (e) {
@@ -112,8 +108,29 @@ Deno.serve(async () => {
           }
         }
       }
+    }
 
-      await supabase.from('sent_task_notifications').insert({ user_id: userId, date: today, task_id: task.id })
+    // A replanned day (dayOverrides[today].tasks — the in-app "Afspraak /
+    // dag aanpassen" flow) replaces the weekly template for that date.
+    const dayTasks = appData?.dayOverrides?.[today]?.tasks || appData?.taskSchedule?.[day] || []
+    const tasks = dayTasks.filter((t) => t.time === nowHHMM)
+    const completionsToday = appData?.taskCompletions?.[today] || {}
+    const notifyCategories = appData?.settings?.notifyCategories
+
+    for (const task of tasks) {
+      if (!task.notify) continue
+      if (completionsToday[task.id]) continue
+      if (!categoryEnabled(notifyCategories, task.category)) continue
+      await notifyOnce(task.id, { title: task.label, body: `${task.time} · ${task.category}` })
+    }
+
+    // One-off reminders: due now, or missed by at most 15 minutes.
+    const toMin = (hhmm) => { const [h, m] = String(hhmm).split(':').map(Number); return h * 60 + m }
+    const nowMin = toMin(nowHHMM)
+    const dueReminders = (appData?.reminders || []).filter((r) => r?.date === today
+      && /^\d{2}:\d{2}$/.test(r.time || '') && toMin(r.time) <= nowMin && nowMin - toMin(r.time) <= 15)
+    for (const r of dueReminders) {
+      await notifyOnce(`reminder:${r.id}`, { title: '⏰ Herinnering', body: r.text || 'Herinnering' })
     }
   }
 

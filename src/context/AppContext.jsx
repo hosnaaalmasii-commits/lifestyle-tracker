@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { todayKey } from '../utils/dates'
+import { todayKey, dateKey } from '../utils/dates'
 import transformatieplan from '../data/transformatieplan-data.json'
 import { WEEKDAY_KEYS } from '../utils/taskSchedule'
 import { generateWorkoutSchedule, getAlternateExercise, findRegionForExercise } from '../utils/workoutGenerator'
@@ -136,6 +136,10 @@ const DEFAULT_DATA = {
   // Named places the user told the app about ("gym", "work", "home") —
   // [{ id, name, address }]. Used for appointment locations/travel.
   places: [],
+  // One-off reminders the user asked for ("herinner me om 15:00 …") —
+  // [{ id, date: 'YYYY-MM-DD', time: 'HH:MM', text }]; sent as push by the
+  // send-due-notifications Edge Function (utils/reminders.js).
+  reminders: [],
   // The coach's memory, synced like everything else so every device's
   // coach knows the same things: the conversation (last COACH_MAX_MESSAGES
   // messages, { role, content, at }), durable facts it learned about the
@@ -708,6 +712,18 @@ export function AppProvider({ children }) {
         },
       }))
     },
+    addReminder: ({ date, time, text }) => {
+      const reminder = { id: makeId(), date, time, text }
+      // Keep the list small: drop reminders more than two days old.
+      const cutoff = dateKey(new Date(Date.now() - 2 * 86400000))
+      setData((d) => ({
+        ...d,
+        reminders: [...(d.reminders || []).filter((r) => r.date >= cutoff), reminder]
+          .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)),
+      }))
+      return reminder
+    },
+    removeReminder: (id) => setData((d) => ({ ...d, reminders: (d.reminders || []).filter((r) => r.id !== id) })),
     savePlace: ({ name, address }) => setData((d) => {
       const rest = (d.places || []).filter((p) => p.name.toLowerCase() !== name.toLowerCase())
       return { ...d, places: [...rest, { id: makeId(), name, address }] }

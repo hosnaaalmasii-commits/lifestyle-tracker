@@ -19,6 +19,7 @@ import CoachSettingsSheet from '../../components/CoachSettingsSheet'
 import CoachTalkView from '../../components/CoachTalkView'
 import CoachThreadsSheet from '../../components/CoachThreadsSheet'
 import RichText from '../../components/RichText'
+import { parseReminder, describeReminder } from '../../utils/reminders'
 import { useT } from '../../i18n/useT'
 import { tx } from '../../i18n/tx'
 
@@ -84,7 +85,7 @@ function takeOldChat() {
 // conversation (listen → reply → speak → listen again).
 // openSettings: open straight into "Coach instellen" (from the menu item).
 export default function Coach({ setView, openSettings = false }) {
-  const { data, addCoachMessages, setCoachMemory, startNewCoachChat, openCoachThread, deleteCoachThread, clearCoachConversation } = useApp()
+  const { data, addCoachMessages, setCoachMemory, startNewCoachChat, openCoachThread, deleteCoachThread, clearCoachConversation, addReminder } = useApp()
   const [threadsOpen, setThreadsOpen] = useState(false)
   // iPhone: while typing, the keyboard covers the tab bar's spot — hide the
   // tab bar and let the message box sit right above the keyboard.
@@ -182,6 +183,18 @@ export default function Coach({ setView, openSettings = false }) {
     if (!text || sending) return null
     setInput('')
     setError('')
+    // "Herinner me om 15:00 …" — set the reminder right here (no AI call)
+    // and confirm in the chat; the server sends it as a notification.
+    const reminder = parseReminder(text)
+    if (reminder) {
+      addReminder(reminder)
+      const confirm = `⏰ ${tx("Komt eraan:")} "${reminder.text}" — ${describeReminder(reminder)}. ${data.settings.pushEnabled ? '' : tx("Zet meldingen aan in Dagschema & menu om hem te krijgen.")}`.trim()
+      const msgs = [{ role: 'user', content: text, at: Date.now() }, { role: 'assistant', content: confirm, at: Date.now() }]
+      messagesRef.current = [...messagesRef.current, ...msgs]
+      addCoachMessages(msgs)
+      if (voice && !talkRef.current && CAN_SPEAK) speak(confirm, { lang: voiceLang(), onError: voiceError })
+      return confirm
+    }
     const userMsg = { role: 'user', content: text, at: Date.now() }
     const nextMessages = [...messagesRef.current, userMsg]
     messagesRef.current = nextMessages
@@ -388,7 +401,17 @@ export default function Coach({ setView, openSettings = false }) {
         lang: voiceLang(),
         speed: getSpeechRate(),
         onMode: (mode) => { if (talkRef.current) setTalkState(mode === 'speaking' ? 'speaking' : 'listening') },
-        onUserText: (text) => { setHeard(text); recordLive('user', text) },
+        onUserText: (text) => {
+          setHeard(text)
+          recordLive('user', text)
+          // A reminder asked for out loud is set too (the live coach itself
+          // can't set it, but the app can).
+          const reminder = parseReminder(text)
+          if (reminder) {
+            addReminder(reminder)
+            setDiag(`⏰ ${tx("Herinnering gezet:")} "${reminder.text}" — ${describeReminder(reminder)}`)
+          }
+        },
         onAgentText: (text) => { setTalkReply(text); recordLive('assistant', text) },
         onEnd: (reason) => {
           liveRef.current = null

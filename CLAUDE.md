@@ -476,6 +476,29 @@ Server side was not checked (Supabase is blocked from the sandbox): if
 still nothing arrives, check the project isn't paused, the function's
 invocations/logs, and the pg_cron job in the dashboard.
 
+**Reminders on request (2026-10-30, "i want the app to send me
+notification, if i ask so")**: `data.reminders` ([{ id, date, time,
+text }], synced; `addReminder`/`removeReminder` in AppContext, prunes
+entries > 2 days old). `utils/reminders.js` `parseReminder()` is
+rule-based (NL/EN; only fires on an explicit "herinner me / remind me /
+zet een herinnering"; absolute "om 15:00 / om 3 uur / om half 6 / at
+3pm", relative "over 20 minuten / in 10 minutes / over een half uur",
+morgen/overmorgen, a past time → tomorrow, "om 3 uur" in the afternoon →
+15:00). Wired into: typed coach chat (handled locally, no Claude call,
+confirmation bubble), live talk transcripts (reminder set + note in the
+diagnostics line), the dictation sheet (local parser + a "reminder"
+category in the AI schema), and a "Herinneringen" list with add/delete in
+Dagschema & menu → Meldingen & reeks. `send-due-notifications` sends
+due reminders (at their time or ≤ 15 min late) with dedup key
+`reminder:<id>`, and now marks before sending. **The function must be
+redeployed by the user (Supabase dashboard)** for reminders — and for
+dayOverrides — to be sent. Verified with a Node harness (stubbed
+supabase-js/web-push): due + 10-min-late sent, 40-min-old and future
+skipped, nothing twice.
+Also fixed: `push_subscriptions` has no UPDATE policy, so the client's
+upsert of an existing endpoint failed under RLS; it now inserts and
+treats 23505 (duplicate) as success.
+
 The one deliberate exception to "no custom backend" (see Explicitly out of
 scope above — this was a considered supersession, not scope creep).
 Real, OS-level push, working even when the app is closed, required a
