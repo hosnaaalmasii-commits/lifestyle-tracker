@@ -49,6 +49,46 @@ export async function subscribeToPush(supabaseClient, userId, deviceLabel) {
   return subscription
 }
 
+// Is *this* device actually signed up? (2026-10-30, "it doesn't send
+// notifications": the switch used `settings.pushEnabled`, which syncs
+// between devices — on the iPhone it showed "on" because the pc had
+// enabled it, while the iPhone itself had no subscription at all.)
+export async function isThisDeviceSubscribed() {
+  if (!isPushSupported() || Notification.permission !== 'granted') return false
+  try {
+    const registration = await navigator.serviceWorker.ready
+    return !!(await registration.pushManager.getSubscription())
+  } catch { return false }
+}
+
+// On every sign-in / app start: re-save this device's existing
+// subscription, so a row that got lost (deleted, an expired endpoint that
+// iOS renewed, a reset database) is restored without the user doing
+// anything. Does nothing unless the device already allowed notifications.
+export async function refreshPushSubscription(supabaseClient, userId) {
+  if (!supabaseClient || !userId || !(await isThisDeviceSubscribed())) return false
+  const registration = await navigator.serviceWorker.ready
+  const json = (await registration.pushManager.getSubscription()).toJSON()
+  const { error } = await supabaseClient.from('push_subscriptions').upsert({
+    user_id: userId,
+    endpoint: json.endpoint,
+    p256dh: json.keys.p256dh,
+    auth: json.keys.auth,
+    device_label: navigator.userAgent.slice(0, 60),
+  }, { onConflict: 'endpoint' })
+  if (error) throw error
+  return true
+}
+
+// Shows a notification right now, from this device — proves the phone
+// may and can display them (not that the server sends them).
+export async function showTestNotification() {
+  if (!isPushSupported()) throw new Error('Deze browser kan geen meldingen tonen. Op iPhone: open de app via het icoon op je beginscherm.')
+  if (Notification.permission !== 'granted') throw new Error('Meldingen zijn niet toegestaan. Zet ze aan bij Instellingen → Meldingen → Lifestyle.')
+  const registration = await navigator.serviceWorker.ready
+  await registration.showNotification('Testmelding', { body: 'Meldingen werken op dit toestel 👍', icon: 'icons/icon-192.png', tag: 'test' })
+}
+
 export async function unsubscribeFromPush(supabaseClient) {
   if (!isPushSupported()) return
   const registration = await navigator.serviceWorker.ready

@@ -464,6 +464,18 @@ fully rule-based:
 
 ## Push notifications
 
+**2026-10-30 ("it doesn't send notifications")**: the "Meldingen op dit
+toestel" switch used `settings.pushEnabled`, which syncs between devices,
+so the iPhone could show "on" while only the pc had a subscription. The
+switch now reflects this device's real `pushManager.getSubscription()`
+(`isThisDeviceSubscribed` in push.js); `refreshPushSubscription` re-saves
+an existing subscription on every sign-in/app start (restores a lost
+row); "Stuur een testmelding" shows a local notification to prove the
+device can display them. The server function never read `pushEnabled`.
+Server side was not checked (Supabase is blocked from the sandbox): if
+still nothing arrives, check the project isn't paused, the function's
+invocations/logs, and the pg_cron job in the dashboard.
+
 The one deliberate exception to "no custom backend" (see Explicitly out of
 scope above — this was a considered supersession, not scope creep).
 Real, OS-level push, working even when the app is closed, required a

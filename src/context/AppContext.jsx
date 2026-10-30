@@ -12,7 +12,7 @@ import { hasOuraApiKey, getOuraApiKey, fetchOuraToday } from '../utils/ouraApi'
 import { isCloudSyncConfigured, getSupabaseClient } from '../utils/supabaseClient'
 import { setSecretPusher, pullSecrets, secretDraftActive } from '../utils/secretSync'
 import { readLocalPrefs, applyPrefs, samePrefs } from '../utils/prefSync'
-import { subscribeToPush, unsubscribeFromPush } from '../utils/push'
+import { subscribeToPush, unsubscribeFromPush, refreshPushSubscription } from '../utils/push'
 import {
   signUp as cloudSignUpApi, signIn as cloudSignInApi, signOut as cloudSignOutApi,
   getSession, onAuthStateChange, reconcile, pushToCloud, markLocalModified, hasUserData,
@@ -263,6 +263,9 @@ export function AppProvider({ children }) {
     } catch (e) {
       console.warn('Key sync unavailable (has supabase/user_secrets.sql been run?)', e)
     }
+    // Keep this device's push subscription stored server-side (push.js).
+    refreshPushSubscription(client, sessionUserRef.current?.id)
+      .catch((e) => console.warn('Push subscription refresh failed', e))
   }, [])
 
   // Saving on load is not a change: marking it "modified" made every device

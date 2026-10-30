@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { WEEKDAY_KEYS, TASK_CATEGORIES, weekdayKeyForDate } from '../../utils/taskSchedule'
 import { todayKey } from '../../utils/dates'
-import { isPushSupported } from '../../utils/push'
+import { isPushSupported, isThisDeviceSubscribed, showTestNotification } from '../../utils/push'
 import BackHeader from '../../components/BackHeader'
 import Sheet from '../../components/Sheet'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -41,17 +41,33 @@ export default function DailySchedule({ onBack }) {
   const [toDelete, setToDelete] = useState(null) // task id
   const [pushBusy, setPushBusy] = useState(false)
   const [pushError, setPushError] = useState(null)
+  const [testMsg, setTestMsg] = useState(null)
+  // Whether THIS device is signed up — not the synced pushEnabled setting,
+  // which follows whichever device last changed it (see push.js).
+  const [deviceOn, setDeviceOn] = useState(false)
+  useEffect(() => { isThisDeviceSubscribed().then(setDeviceOn) }, [])
 
   const handlePushToggle = async () => {
     setPushError(null)
     setPushBusy(true)
     try {
-      if (data.settings.pushEnabled) await disablePushNotifications()
+      if (deviceOn) await disablePushNotifications()
       else await enablePushNotifications()
     } catch (e) {
       setPushError(e.message)
     } finally {
+      setDeviceOn(await isThisDeviceSubscribed())
       setPushBusy(false)
+    }
+  }
+
+  const sendTest = async () => {
+    setTestMsg(null)
+    try {
+      await showTestNotification()
+      setTestMsg({ ok: true, text: tx("Testmelding verstuurd — zie je hem bovenaan je scherm? Dan kan dit toestel meldingen tonen.") })
+    } catch (e) {
+      setTestMsg({ ok: false, text: e.message })
     }
   }
 
@@ -147,13 +163,19 @@ export default function DailySchedule({ onBack }) {
           </div>
           <button
             type="button"
-            className={`switch${data.settings.pushEnabled ? ' on' : ''}`}
-            aria-pressed={!!data.settings.pushEnabled}
+            className={`switch${deviceOn ? ' on' : ''}`}
+            aria-pressed={deviceOn}
             aria-label={tx("Meldingen op dit toestel")}
             disabled={!isPushSupported() || !sync.signedIn || pushBusy}
             onClick={handlePushToggle}
           />
         </div>
+        {deviceOn && (
+          <div className="list-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={sendTest}>{tx("Stuur een testmelding")}</button>
+            {testMsg && <div className="text-sm" style={{ color: testMsg.ok ? 'var(--success)' : 'var(--danger)' }}>{testMsg.text}</div>}
+          </div>
+        )}
         <div className="list-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
           <div>
             <div style={{ fontWeight: 600, fontSize: 15 }}>{tx("Waarvoor wil je een melding?")}</div>
