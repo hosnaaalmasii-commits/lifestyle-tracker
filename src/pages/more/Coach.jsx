@@ -101,6 +101,7 @@ export default function Coach({ setView, openSettings = false }) {
   const [error, setError] = useState('')
   const [replanOpen, setReplanOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(openSettings)
+  const [settingsTab, setSettingsTab] = useState('face')
   const [speakingNow, setSpeakingNow] = useState(false)
   const [talkOpen, setTalkOpen] = useState(false)
   const [talkState, setTalkState] = useState('idle') // idle | listening | thinking | speaking
@@ -415,6 +416,16 @@ export default function Coach({ setView, openSettings = false }) {
   }
 
   const openTalk = () => {
+    // No way to talk in this browser yet (no speech recognition, no
+    // OpenAI/ElevenLabs key here — keys are per browser): show where to
+    // set it up instead of hiding the button (2026-10-30: "i dont see the
+    // option speak to the coach via this link").
+    if (!useLiveCoach() && !CAN_LISTEN && !cloudEarsAvailable()) {
+      setError(tx("Om live te praten: kies bij Stem \"OpenAI\" of \"ElevenLabs\" en vul in deze browser de sleutel in (Sleutels & kosten)."))
+      setSettingsTab('voice')
+      setSettingsOpen(true)
+      return
+    }
     if (useLiveCoach()) {
       stopSpeaking()
       talkRef.current = true
@@ -512,15 +523,39 @@ export default function Coach({ setView, openSettings = false }) {
     />
   )
 
-  const avatarSheet = <CoachSettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+  const avatarSheet = <CoachSettingsSheet open={settingsOpen} initialTab={settingsTab} onClose={() => { setSettingsOpen(false); setSettingsTab('face') }} />
 
   // No key yet: paste it right here (with where to find it) — as soon as
   // it's in, the chat and the talk button appear.
+  // The full-screen conversation, shared by both page layouts below.
+  const talkView = (
+    <CoachTalkView
+      open={talkOpen}
+      avatar={data.settings.coachAvatar}
+      name={coachName(data)}
+      state={talkState}
+      heard={heard}
+      reply={talkReply}
+      error={error}
+      diag={`${diag ? `${diag} · ` : ''}${IS_IOS ? 'iOS · ' : ''}${tx("versie")} ${__BUILD_ID__}`}
+      tapToFinish={!useLiveCoach() && useCloudEars()}
+      live={useLiveCoach()}
+      onTapCoach={tapOrb}
+      onStop={closeTalk}
+    />
+  )
+
   if (!keyPresent) {
     return (
       <div className="page">
         {header}
         <Bubble role="assistant">{t('coach.noKey')}</Bubble>
+        {/* Live talk via OpenAI/ElevenLabs doesn't need the Claude key. */}
+        {useLiveCoach() && (
+          <button className="btn btn-primary btn-block" style={{ marginTop: 12 }} onClick={openTalk}>
+            <Icon name="mic" size={16} /> {t('coach.talk')}
+          </button>
+        )}
         <div className="card stack" style={{ marginTop: 16, gap: 10 }}>
           <label style={{ fontWeight: 700, fontSize: 14 }}>{tx("Plak hier je Claude-sleutel")}</label>
           <input
@@ -542,6 +577,7 @@ export default function Coach({ setView, openSettings = false }) {
           </div>
         </div>
         {avatarSheet}
+        {talkView}
       </div>
     )
   }
@@ -551,7 +587,8 @@ export default function Coach({ setView, openSettings = false }) {
   // glass arch above the chat; tapping it starts a spoken conversation.
   // It can't move its lips, so it breathes and glows (motion.css .coach-arch).
   const face = coachImage(data.settings.coachAvatar)
-  const canTalk = CAN_LISTEN || cloudEarsAvailable()
+  // Always offered; openTalk explains what's missing when it can't start.
+  const canTalk = true
   const talkLabel = {
     listening: t('coach.listening'),
     thinking: t('coach.thinking'),
@@ -644,20 +681,7 @@ export default function Coach({ setView, openSettings = false }) {
       {avatarSheet}
       {threadsSheet}
 
-      <CoachTalkView
-        open={talkOpen}
-        avatar={data.settings.coachAvatar}
-        name={coachName(data)}
-        state={talkState}
-        heard={heard}
-        reply={talkReply}
-        error={error}
-        diag={`${diag ? `${diag} · ` : ''}${IS_IOS ? 'iOS · ' : ''}${tx("versie")} ${__BUILD_ID__}`}
-        tapToFinish={!useLiveCoach() && useCloudEars()}
-        live={useLiveCoach()}
-        onTapCoach={tapOrb}
-        onStop={closeTalk}
-      />
+      {talkView}
     </div>
   )
 }
